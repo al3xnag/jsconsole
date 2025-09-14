@@ -1,0 +1,150 @@
+:root {
+  --token-variable: #1b1c1cff;
+  --token-property: #1b1c1cff;
+  --token-type: rgb(25 134 57 / 100%);
+  --token-variable-special: rgb(8 66 160 / 100%);
+  --token-definition: rgb(8 66 160 / 100%);
+  --token-builtin: rgb(6 46 111 / 100%);
+  --token-number: rgb(11 87 208 / 100%);
+  --token-bigint: rgb(20 108 46 / 100%);
+  --token-string: #ba1a1aff;
+  --token-string-special: #de3730ff;
+  --token-symbol: #de3730ff;
+  --token-regexp: #de3730ff;
+  --token-atom: rgb(6 46 111 / 100%);
+  --token-keyword: rgb(185 0 99 / 100%);
+  --token-comment: rgb(20 108 46 / 100%);
+  --token-meta: #919191ff;
+  --token-invalid: #ba1a1aff;
+  --token-tag: rgb(142 0 75 / 100%);
+  --token-attribute: rgb(159 67 18 / 100%);
+  --token-attribute-value: rgb(8 66 160 / 100%);
+  --token-inserted: rgb(30 164 70 / 100%);
+  --token-deleted: #de3730ff;
+  --token-muted: rgb(31 31 31 / 38%);
+  --token-plaintext: currentColor;
+}
+
+/* .dark {} */
+
+.token-variable {
+  color: var(--token-variable);
+}
+
+.token-property {
+  color: var(--token-property);
+}
+
+.token-type {
+  color: var(--token-type);
+}
+
+.token-variable-special {
+  color: var(--token-variable-special);
+}
+
+.token-definition {
+  color: var(--token-definition);
+}
+
+.token-builtin {
+  color: var(--token-builtin);
+}
+
+.token-number {
+  color: var(--token-number);
+}
+
+.token-bigint {
+  color: var(--token-bigint);
+}
+
+.token-string {
+  color: var(--token-string);
+}
+
+.token-string-special {
+  color: var(--token-string-special);
+}
+
+.token-atom {
+  color: var(--token-atom);
+}
+
+.token-keyword {
+  color: var(--token-keyword);
+}
+
+.token-comment {
+  color: var(--token-comment);
+}
+
+.token-meta {
+  color: var(--token-meta);
+}
+
+.token-invalid {
+  color: var(--token-invalid);
+}
+
+.token-tag {
+  color: var(--token-tag);
+}
+
+.token-attribute {
+  color: var(--token-attribute);
+}
+
+.token-attribute-value {
+  color: var(--token-attribute-value);
+}
+
+.token-inserted {
+  color: var(--token-inserted);
+}
+
+.token-deleted {
+  color: var(--token-deleted);
+}
+
+.token-heading {
+  color: var(--token-variable-special);
+  font-weight: bold;
+}
+
+.token-link {
+  color: var(--token-variable-special);
+  text-decoration: underline;
+}
+
+.token-strikethrough {
+  text-decoration: line-through;
+}
+
+.token-strong {
+  font-weight: bold;
+}
+
+.token-emphasis {
+  font-style: italic;
+}
+
+.token-muted {
+  color: var(--token-muted);
+}
+
+.token-symbol {
+  color: var(--token-symbol);
+}
+
+.token-regexp {
+  color: var(--token-regexp);
+}
+
+.token-plaintext {
+  color: var(--token-plaintext);
+}
+
+.token-date {
+  color: var(--token-plaintext);
+}

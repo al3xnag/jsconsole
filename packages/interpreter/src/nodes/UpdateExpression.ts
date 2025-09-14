@@ -1,0 +1,66 @@
+import { UpdateExpression } from 'acorn'
+import { Context, EvaluatedNode, EvaluateGenerator, Scope } from '../types'
+import { assertNever } from '../lib/assert'
+import { setVariableValue } from '../lib/setVariableValue'
+import { getVariableValue } from '../lib/getVariableValue'
+import { evaluateMemberExpression, evaluateMemberExpressionParts } from './MemberExpression'
+import { setPropertyValue } from '../lib/setPropertyValue'
+import { logEvaluated, logEvaluating } from '../lib/log'
+
+export function* evaluateUpdateExpression(
+  node: UpdateExpression,
+  scope: Scope,
+  context: Context,
+): EvaluateGenerator {
+  DEV: logEvaluating(node, context)
+
+  const { argument, operator, prefix } = node
+  argument.parent = node
+
+  let getValue: () => Generator<EvaluatedNode, any, EvaluatedNode>
+  let setValue: (value: unknown) => void
+
+  if (argument.type === 'Identifier') {
+    // eslint-disable-next-line require-yield
+    getValue = function* () {
+      return getVariableValue(argument.name, scope, context, { throwOnUndefined: true })
+    }
+    setValue = (value: unknown) => {
+      setVariableValue(argument.name, value, scope, context)
+    }
+  } else if (argument.type === 'MemberExpression') {
+    const parts = yield* evaluateMemberExpressionParts(argument, scope, context)
+    getValue = function* () {
+      const { value } = yield* evaluateMemberExpression(argument, scope, context, parts)
+      return value
+    }
+    setValue = (value: unknown) => {
+      setPropertyValue(parts.object, parts.propertyKey, value, context)
+    }
+  } else {
+    // Acorn should not allow this.
+    throw new SyntaxError('Invalid left-hand side expression in postfix operation')
+  }
+
+  const oldValue = yield* getValue()
+
+  switch (operator) {
+    case '++': {
+      setValue(oldValue + 1)
+      break
+    }
+    case '--': {
+      setValue(oldValue - 1)
+      break
+    }
+    default: {
+      assertNever(operator, 'Unhandled update operator')
+    }
+  }
+
+  const resultValue = prefix ? yield* getValue() : oldValue
+
+  const evaluated: EvaluatedNode = { value: resultValue }
+  DEV: logEvaluated(evaluated, node, context)
+  return yield evaluated
+}

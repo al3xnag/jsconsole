@@ -1,0 +1,30 @@
+{
+  "name": "@jsconsole/interpreter",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "scripts": {
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "lint": "eslint .",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.23.0",
+    "@types/node": "^22.13.11",
+    "@vitest/ui": "^3.0.9",
+    "eslint": "^9.23.0",
+    "globals": "^16.0.0",
+    "happy-dom": "^17.4.4",
+    "prettier": "^3.5.3",
+    "typescript": "~5.7.2",
+    "typescript-eslint": "^8.28.0",
+    "vitest": "^3.0.9"
+  },
+  "dependencies": {
+    "@lezer/common": "^1.2.3",
+    "@lezer/javascript": "^1.4.21",
+    "acorn": "^8.14.1"
+  }
+}

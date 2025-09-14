@@ -1,0 +1,22 @@
+{
+  "name": "jsconsole",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "license": "ISC",
+  "author": "Aleksei Nagovitsyn (https://github.com/al3xnag)",
+  "scripts": {
+    "dev": "npm run dev --workspace=packages/app",
+    "build": "npm run build --workspace=packages/app",
+    "preview": "npm run preview --workspace=packages/app",
+    "lint": "npm run lint --workspaces --if-present",
+    "format": "npm run format --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present"
+  },
+  "workspaces": [
+    "packages/app",
+    "packages/interpreter",
+    "packages/code-editor",
+    "packages/codemirror-block-cursor"
+  ]
+}

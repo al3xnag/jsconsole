@@ -1,0 +1,18 @@
+import { it } from '../test-utils'
+
+it('if (true) { 1 }', 1)
+it('if (false) { 1 }', undefined)
+it('if (true) { 1 } else { 2 }', 1)
+it('if (false) { 1 } else { 2 }', 2)
+it('if (true) { 1 } else if (false) { 2 } else { 3 }', 1)
+it('if (false) { 1 } else if (true) { 2 } else { 3 }', 2)
+it('if (false) { 1 } else if (false) { 2 } else { 3 }', 3)
+it('if (true) { await 1 }', 1)
+it('if (false) { await 1 }', undefined)
+it('if (await true) { 1 }', 1)
+it('if (await false) { 1 }', undefined)
+it('(function() { if (true) { return 1 } })()', 1)
+it('if (true) { let a = 1 }', undefined)
+it('if (true) { let a = 1; a }', 1)
+it('let a = 1; if (true) { let a = 2 }; a', 1)
+it('let a = 1; if (true) { a = 2 }; a', 2)
