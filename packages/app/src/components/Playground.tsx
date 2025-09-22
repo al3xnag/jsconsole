@@ -6,12 +6,34 @@ import { Preview } from '@/components/Preview'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable'
 import { useConsole } from '@/hooks/useConsole'
 import { usePreview } from '@/hooks/usePreview'
+import type { PanelGroupStorage } from 'react-resizable-panels'
+
+const panelGroupDefaultState = {
+  'console,preview': {
+    expandToSizes: { preview: 30 },
+    layout: [100, 0],
+  },
+}
+
+const panelGroupStorage: PanelGroupStorage = {
+  getItem(name) {
+    return localStorage.getItem(name) ?? JSON.stringify(panelGroupDefaultState)
+  },
+  setItem(name, value) {
+    localStorage.setItem(name, value)
+  },
+}
 
 export function Playground() {
   return (
     <div className="fixed inset-0 flex flex-col text-sm">
       <Header />
-      <ResizablePanelGroup direction="horizontal" className="flex-1" autoSaveId="main">
+      <ResizablePanelGroup
+        direction="horizontal"
+        className="flex-1"
+        autoSaveId="main"
+        storage={panelGroupStorage}
+      >
         <ConsolePanel />
         <ResizableHandle className="aria-[valuenow=100]:hidden" />
         <PreviewPanel />
@@ -24,7 +46,7 @@ function ConsolePanel() {
   const { consoleHandleRef } = useConsole()
 
   return (
-    <ResizablePanel id="console" order={1} minSize={1} defaultSize={70}>
+    <ResizablePanel id="console" order={1} minSize={1}>
       <Console ref={consoleHandleRef} />
     </ResizablePanel>
   )
