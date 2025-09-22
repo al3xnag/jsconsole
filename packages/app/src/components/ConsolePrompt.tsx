@@ -121,7 +121,6 @@ export function ConsolePrompt({ ref, onSubmit, onUpdate }: ConsolePromptProps) {
       return
     }
 
-    console.log('creating editor')
     const editor = createEditor({
       parent,
       theme: editorTheme,
@@ -137,7 +136,6 @@ export function ConsolePrompt({ ref, onSubmit, onUpdate }: ConsolePromptProps) {
     setEditor(editor)
 
     return () => {
-      console.log('destroying editor')
       editor.destroy()
       setEditor(undefined)
     }
