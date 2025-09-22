@@ -9,6 +9,7 @@ const commitHash = execSync('git rev-parse --short HEAD').toString().trim()
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   return {
+    base: process.env.BASE,
     plugins: [react(), tailwindcss()],
     esbuild: {
       dropLabels: mode === 'production' ? ['DEV'] : undefined,

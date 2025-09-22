@@ -52,7 +52,13 @@ export function Header() {
   return (
     <header>
       <h1 className="fixed right-3 bottom-3 z-10 flex items-center gap-1 opacity-20 select-none hover:opacity-80">
-        <img src="/jslogo.svg" width={24} height={24} className="rounded" alt="JavaScript logo" />
+        <img
+          src={import.meta.env.BASE_URL + 'jslogo.svg'}
+          width={24}
+          height={24}
+          className="rounded"
+          alt="JavaScript logo"
+        />
         <span className="pt-[9px] text-[15px] leading-none font-bold" aria-label="JS Console">
           Console
         </span>
