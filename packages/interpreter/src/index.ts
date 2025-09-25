@@ -1,22 +1,22 @@
-import { EvaluateOptions, Context, EvaluatedNode, EvaluateResult, GlobalScope } from './types'
-import { evaluateNode } from './nodes'
 import { parse } from 'acorn'
-import { run } from './lib/run'
 import { EMPTY } from './constants'
-import { wrapObjectLiteral } from './lib/wrapObjectLiteral'
 import { Metadata } from './lib/Metadata'
+import { run } from './lib/run'
 import { SideEffectInfo } from './lib/SideEffectInfo'
 import { setSyncContext } from './lib/syncContext'
+import { wrapObjectLiteral } from './lib/wrapObjectLiteral'
+import { evaluateProgram } from './nodes/Program'
+import { Context, EvaluatedNode, EvaluateOptions, EvaluateResult, GlobalScope } from './types'
 
 export type { EvaluateOptions, EvaluateResult, PublicGlobalScope as GlobalScope } from './types'
 
 export * from './lib/Metadata'
 export * from './lib/SideEffectInfo'
 
-export { PossibleSideEffectError } from './lib/PossibleSideEffectError'
 export { InternalError } from './lib/InternalError'
-export { UnsupportedOperationError } from './lib/UnsupportedOperationError'
+export { PossibleSideEffectError } from './lib/PossibleSideEffectError'
 export { TimeoutError } from './lib/TimeoutError'
+export { UnsupportedOperationError } from './lib/UnsupportedOperationError'
 
 /**
  * Evaluate JavaScript code.
@@ -69,7 +69,7 @@ export function evaluate(
 
   try {
     const evaluated: EvaluatedNode | Promise<EvaluatedNode> = run(
-      evaluateNode(ast, context.globalScope, context),
+      evaluateProgram(ast, context.globalScope, context),
       context,
     )
 

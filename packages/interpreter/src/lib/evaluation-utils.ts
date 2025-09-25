@@ -39,8 +39,7 @@ export function breakableStatementCompletion(evaluated: EvaluatedNode): Evaluate
 }
 
 // https://tc39.es/ecma262/#sec-loopcontinues
-// TODO: support labeled break and continue statements (labelSet argument): https://tc39.es/ecma262/#sec-statement-semantics-runtime-semantics-evaluation
-export function loopContinues(evaluated: EvaluatedNode /* , labelSet */) {
+export function loopContinues(evaluated: EvaluatedNode, labels: string[] | undefined | null) {
   if (evaluated.type === undefined) {
     return true
   }
@@ -53,7 +52,9 @@ export function loopContinues(evaluated: EvaluatedNode /* , labelSet */) {
     return true
   }
 
-  // TODO: 4. If labelSet contains completion.[[Target]], return true.
+  if (labels?.includes(evaluated.label)) {
+    return true
+  }
 
   return false
 }

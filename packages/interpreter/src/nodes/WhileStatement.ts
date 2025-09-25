@@ -10,6 +10,7 @@ export function* evaluateWhileStatement(
   node: WhileStatement,
   scope: Scope,
   context: Context,
+  labels?: string[],
 ): EvaluateGenerator {
   DEV: logEvaluating(node, context)
 
@@ -29,7 +30,7 @@ export function* evaluateWhileStatement(
 
     const evaluatedBody = yield* evaluateNode(node.body, scope, context)
 
-    if (!loopContinues(evaluatedBody)) {
+    if (!loopContinues(evaluatedBody, labels)) {
       const evaluated = breakableStatementCompletion(updateEmpty(evaluatedBody, value))
       DEV: logEvaluated(evaluated, node, context)
       return yield evaluated

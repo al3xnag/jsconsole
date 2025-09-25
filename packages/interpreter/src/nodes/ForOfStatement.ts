@@ -13,6 +13,7 @@ export function* evaluateForOfStatement(
   node: ForOfStatement,
   scope: Scope,
   context: Context,
+  labels?: string[],
 ): EvaluateGenerator {
   DEV: logEvaluating(node, context)
 
@@ -61,7 +62,7 @@ export function* evaluateForOfStatement(
 
     const evaluatedBody = yield* evaluateNode(body, forOfScope, context)
 
-    if (!loopContinues(evaluatedBody)) {
+    if (!loopContinues(evaluatedBody, labels)) {
       const evaluated = breakableStatementCompletion(updateEmpty(evaluatedBody, value))
       DEV: logEvaluated(evaluated, node, context)
       return yield evaluated

@@ -1,4 +1,4 @@
-import { AnyNode } from 'acorn'
+import { AnonymousClassDeclaration, AnyNode, Statement } from 'acorn'
 import { UnsupportedOperationError } from '../lib/UnsupportedOperationError'
 import { Context, EvaluateGenerator, Scope } from '../types'
 import { evaluateArrayExpression } from './ArrayExpression'
@@ -22,6 +22,7 @@ import { evaluateFunctionDeclaration } from './FunctionDeclaration'
 import { evaluateFunctionExpression } from './FunctionExpression'
 import { evaluateIdentifier } from './Identifier'
 import { evaluateIfStatement } from './IfStatement'
+import { evaluateLabeledStatement } from './LabeledStatement'
 import { evaluateLiteral } from './Literal'
 import { evaluateLogicalExpression } from './LogicalExpression'
 import { evaluateMemberExpression } from './MemberExpression'
@@ -43,25 +44,79 @@ import { evaluateUpdateExpression } from './UpdateExpression'
 import { evaluateVariableDeclaration } from './VariableDeclaration'
 import { evaluateWhileStatement } from './WhileStatement'
 
-export function* evaluateNode(node: AnyNode, scope: Scope, context: Context): EvaluateGenerator {
-  const handler = handlers[node.type]
+type StatementFixed = Statement | AnonymousClassDeclaration
+
+type EvaluateStatement<T extends StatementFixed> = (
+  node: T,
+  scope: Scope,
+  context: Context,
+  labels?: string[],
+) => EvaluateGenerator
+
+type EvaluateNode<T extends AnyNode> = (
+  node: T,
+  scope: Scope,
+  context: Context,
+) => EvaluateGenerator
+
+type DropFirst<T extends unknown[]> = T extends [any, ...infer U] ? U : never
+
+export function evaluateStatement<T extends StatementFixed>(
+  node: T,
+  ..._args: DropFirst<Parameters<EvaluateStatement<T>>>
+): ReturnType<EvaluateStatement<T>> {
+  const handler = statementHandlers[node.type] as EvaluateStatement<T> | undefined
   if (!handler) {
     throw new UnsupportedOperationError(`${node.type} is not supported`)
   }
 
-  const evaluated = yield* handler(node, scope, context)
-  return evaluated
+  // eslint-disable-next-line prefer-spread
+  return handler.apply(null, arguments as unknown as Parameters<EvaluateStatement<T>>)
 }
 
-const handlers: Partial<
-  Record<AnyNode['type'], (node: any, scope: Scope, context: Context) => EvaluateGenerator>
-> = {
-  Program: evaluateProgram,
+export function evaluateNode<T extends AnyNode>(
+  node: T,
+  ..._args: DropFirst<Parameters<EvaluateNode<T>>>
+): ReturnType<EvaluateNode<T>> {
+  const handler = handlers[node.type] as EvaluateNode<T> | undefined
+  if (!handler) {
+    throw new UnsupportedOperationError(`${node.type} is not supported`)
+  }
+
+  // eslint-disable-next-line prefer-spread
+  return handler.apply(null, arguments as unknown as Parameters<EvaluateNode<T>>)
+}
+
+const statementHandlers: Partial<{
+  [T in StatementFixed['type']]: EvaluateStatement<Extract<StatementFixed, { type: T }>>
+}> = {
   BlockStatement: evaluateBlockStatement,
   ReturnStatement: evaluateReturnStatement,
   BreakStatement: evaluateBreakStatement,
   ContinueStatement: evaluateContinueStatement,
+  LabeledStatement: evaluateLabeledStatement,
   ExpressionStatement: evaluateExpressionStatement,
+  EmptyStatement: evaluateEmptyStatement,
+  TryStatement: evaluateTryStatement,
+  ThrowStatement: evaluateThrowStatement,
+  IfStatement: evaluateIfStatement,
+  WhileStatement: evaluateWhileStatement,
+  DoWhileStatement: evaluateDoWhileStatement,
+  ForInStatement: evaluateForInStatement,
+  ForOfStatement: evaluateForOfStatement,
+  ForStatement: evaluateForStatement,
+  SwitchStatement: evaluateSwitchStatement,
+}
+
+const handlers: Partial<{
+  [T in AnyNode['type']]: (
+    node: Extract<AnyNode, { type: T }>,
+    scope: Scope,
+    context: Context,
+  ) => EvaluateGenerator
+}> = {
+  ...statementHandlers,
+  Program: evaluateProgram,
   Identifier: evaluateIdentifier,
   ThisExpression: evaluateThisExpression,
   Literal: evaluateLiteral,
@@ -82,18 +137,8 @@ const handlers: Partial<
   ArrowFunctionExpression: evaluateArrowFunctionExpression,
   NewExpression: evaluateNewExpression,
   FunctionDeclaration: evaluateFunctionDeclaration,
-  EmptyStatement: evaluateEmptyStatement,
   AwaitExpression: evaluateAwaitExpression,
-  TryStatement: evaluateTryStatement,
-  ThrowStatement: evaluateThrowStatement,
-  IfStatement: evaluateIfStatement,
-  WhileStatement: evaluateWhileStatement,
-  DoWhileStatement: evaluateDoWhileStatement,
-  ForInStatement: evaluateForInStatement,
-  ForOfStatement: evaluateForOfStatement,
-  ForStatement: evaluateForStatement,
   UpdateExpression: evaluateUpdateExpression,
-  SwitchStatement: evaluateSwitchStatement,
   TaggedTemplateExpression: evaluateTaggedTemplateExpression,
   ConditionalExpression: evaluateConditionalExpression,
   MetaProperty: evaluateMetaProperty,
