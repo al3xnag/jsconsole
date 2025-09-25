@@ -2,7 +2,7 @@
 
 This is a JavaScript console powered by its own JavaScript interpreter, written in JavaScript.
 
-**It's very experimental and a work in progress.**
+**It is very experimental and a work in progress.**
 
 ## Features
 
@@ -13,6 +13,7 @@ This is a JavaScript console powered by its own JavaScript interpreter, written 
 - Non-isolated execution (transparently works within the browser context, so you can use the DOM and browser APIs)
 - Preview window
 - Console log can be shared via a link
+- Supports TypeScript (strips erasable types without type checking)
 
 ## Interpreter
 
