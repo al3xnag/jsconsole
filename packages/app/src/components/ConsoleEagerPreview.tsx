@@ -73,6 +73,7 @@ export function ConsoleEagerPreview({ editor }: { editor: EditorView | undefined
           throwOnSideEffect: true,
           timeout: 500,
           wrapObjectLiteral: true,
+          stripTypes: true,
         })
       } catch (e) {
         if (

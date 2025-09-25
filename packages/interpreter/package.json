@@ -25,6 +25,7 @@
   "dependencies": {
     "@lezer/common": "^1.2.3",
     "@lezer/javascript": "^1.4.21",
-    "acorn": "8.14.1"
+    "acorn": "8.14.1",
+    "ts-blank-space": "^0.6.2"
   }
 }

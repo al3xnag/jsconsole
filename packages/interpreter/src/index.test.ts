@@ -1,6 +1,7 @@
-import { expect, test } from 'vitest'
+import { describe, expect, test } from 'vitest'
 import { evaluate, Metadata, TimeoutError } from '.'
 import { EvaluateResult, PublicGlobalScope } from './types'
+import { it } from './test-utils'
 
 test('empty', () => {
   const result = evaluate('')
@@ -51,5 +52,21 @@ test('reusing globalObject & globalScope', () => {
     arrow: false,
     async: false,
     generator: false,
+  })
+})
+
+describe('options.stripTypes', () => {
+  it('const a: number = 1; a', ({ thrown }) => {
+    expect(thrown).toThrow(SyntaxError)
+  })
+  it('const a: number = 1; a', 1, { stripTypes: true })
+  it('const a: string = 1; a', 1, { stripTypes: true })
+  it(
+    `function fn<T extends number>(a: T, b?: object | string) { return [a, b] }; fn(1, 2)`,
+    [1, 2],
+    { stripTypes: true },
+  )
+  it(`type T = { a: number }; const obj: T = { a: 1 } as const; (obj as any).a`, 1, {
+    stripTypes: true,
   })
 })

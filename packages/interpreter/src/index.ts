@@ -1,4 +1,5 @@
-import { parse } from 'acorn'
+import { parse, Program } from 'acorn'
+import tsBlankSpace from 'ts-blank-space'
 import { EMPTY } from './constants'
 import { Metadata } from './lib/Metadata'
 import { run } from './lib/run'
@@ -29,11 +30,7 @@ export function evaluate(
     code = wrapObjectLiteral(code)
   }
 
-  const ast = parse(code, {
-    ecmaVersion: 'latest',
-    locations: true,
-    allowAwaitOutsideFunction: true,
-  })
+  const ast = options?.stripTypes ? parseCodeStripTypes(code) : parseCode(code)
 
   const globalObject = (options?.globalObject ?? globalThis) as Record<PropertyKey, unknown>
   const globalScope: GlobalScope = {
@@ -88,4 +85,29 @@ export function evaluate(
   } finally {
     setSyncContext(null)
   }
+}
+
+function parseCodeStripTypes(code: string): Program {
+  try {
+    return parseCode(code)
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      const js = tsBlankSpace(code)
+      if (js === code) {
+        throw error
+      }
+
+      return parseCode(js)
+    }
+
+    throw error
+  }
+}
+
+function parseCode(code: string): Program {
+  return parse(code, {
+    ecmaVersion: 'latest',
+    locations: true,
+    allowAwaitOutsideFunction: true,
+  })
 }

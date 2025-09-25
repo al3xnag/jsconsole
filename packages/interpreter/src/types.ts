@@ -25,6 +25,7 @@ export type PublicGlobalScope = Pick<GlobalScope, 'bindings'>
 
 export type EvaluateOptions = {
   wrapObjectLiteral?: boolean
+  stripTypes?: boolean
   globalObject?: object
   globalScope?: PublicGlobalScope
   metadata?: Metadata

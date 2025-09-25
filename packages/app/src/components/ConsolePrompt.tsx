@@ -78,6 +78,7 @@ export function ConsolePrompt({ ref, onSubmit, onUpdate }: ConsolePromptProps) {
       metadata: currentSession.metadata,
       sideEffectInfo: currentSession.sideEffectInfo,
       wrapObjectLiteral: true,
+      stripTypes: true,
       throwOnSideEffect: true,
       timeout: 500,
     }

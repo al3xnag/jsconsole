@@ -13,6 +13,7 @@ A JavaScript interpreter written in JavaScript, based on the Acorn parser.
 - Supports top-level await
 - Option `wrapObjectLiteral: boolean` to ensure object-like input such as `{ a: 1 }` evaluates as an object rather than a block
 - Result values comply with the ECMAScript specification – the same way `eval` returns the last expression's value (roughly speaking)
+- Supports TypeScript via the `stripTypes: boolean` option – by stripping erasable types without performing type checking (similar to `--experimental-strip-types` flag in Node.js, which is enabled by default since Node.js 23.6.0)
 
 ## Usage
 

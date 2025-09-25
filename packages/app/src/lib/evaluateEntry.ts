@@ -18,6 +18,7 @@ export function evaluateEntry(
     sideEffectInfo: session.sideEffectInfo,
     throwOnSideEffect: false,
     wrapObjectLiteral: true,
+    stripTypes: true,
     debug: console.debug,
   }
 
