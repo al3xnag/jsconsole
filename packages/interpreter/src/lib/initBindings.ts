@@ -79,5 +79,9 @@ export function initBindings(
       }
       break
     }
+    case 'LabeledStatement': {
+      initBindings(node.body, scope, context, env)
+      break
+    }
   }
 }

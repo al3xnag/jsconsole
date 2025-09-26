@@ -1,3 +1,4 @@
+import { expect } from 'vitest'
 import { it } from '../test-utils'
 
 it(`a: 1`, 1)
@@ -35,3 +36,17 @@ it(
   [2, 3],
 )
 it(`a: for (var j = 0; j < 3; j++) { j; break a; }`, 0)
+it(`a: var b = 1; b`, 1)
+it(`a: let b = 1; b`, ({ thrown }) => {
+  expect(thrown).toThrow(SyntaxError)
+})
+it(`a: { var b = 1; } b`, 1)
+it(`a: { let b = 1; } b`, ({ thrown }) => {
+  expect(thrown).toThrow(new ReferenceError('b is not defined'))
+})
+it(`a: function fn() { return 1; } fn()`, 1)
+it(`a: { function fn() { return 1; } break a; } fn()`, 1)
+it(`a: { break a; function fn() { return 1; } } fn()`, ({ thrown }) => {
+  expect(thrown).toThrow(new TypeError('fn is not a function'))
+})
+it(`a: { break a; function fn() { return 1; } } fn`, undefined)

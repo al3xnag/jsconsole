@@ -1,4 +1,4 @@
-import { AnonymousClassDeclaration, AnyNode, Statement } from 'acorn'
+import { AnonymousClassDeclaration, AnonymousFunctionDeclaration, AnyNode, Statement } from 'acorn'
 import { UnsupportedOperationError } from '../lib/UnsupportedOperationError'
 import { Context, EvaluateGenerator, Scope } from '../types'
 import { evaluateArrayExpression } from './ArrayExpression'
@@ -44,7 +44,7 @@ import { evaluateUpdateExpression } from './UpdateExpression'
 import { evaluateVariableDeclaration } from './VariableDeclaration'
 import { evaluateWhileStatement } from './WhileStatement'
 
-type StatementFixed = Statement | AnonymousClassDeclaration
+type StatementFixed = Statement | AnonymousClassDeclaration | AnonymousFunctionDeclaration
 
 type EvaluateStatement<T extends StatementFixed> = (
   node: T,
@@ -106,6 +106,8 @@ const statementHandlers: Partial<{
   ForOfStatement: evaluateForOfStatement,
   ForStatement: evaluateForStatement,
   SwitchStatement: evaluateSwitchStatement,
+  VariableDeclaration: evaluateVariableDeclaration,
+  FunctionDeclaration: evaluateFunctionDeclaration,
 }
 
 const handlers: Partial<{
@@ -122,7 +124,6 @@ const handlers: Partial<{
   Literal: evaluateLiteral,
   UnaryExpression: evaluateUnaryExpression,
   TemplateLiteral: evaluateTemplateLiteral,
-  VariableDeclaration: evaluateVariableDeclaration,
   AssignmentExpression: evaluateAssignmentExpression,
   ChainExpression: evaluateChainExpression,
   MemberExpression: evaluateMemberExpression,
@@ -136,7 +137,6 @@ const handlers: Partial<{
   FunctionExpression: evaluateFunctionExpression,
   ArrowFunctionExpression: evaluateArrowFunctionExpression,
   NewExpression: evaluateNewExpression,
-  FunctionDeclaration: evaluateFunctionDeclaration,
   AwaitExpression: evaluateAwaitExpression,
   UpdateExpression: evaluateUpdateExpression,
   TaggedTemplateExpression: evaluateTaggedTemplateExpression,
