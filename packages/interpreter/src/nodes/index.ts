@@ -12,6 +12,7 @@ import { evaluateCallExpression } from './CallExpression'
 import { evaluateChainExpression } from './ChainExpression'
 import { evaluateConditionalExpression } from './ConditionalExpression'
 import { evaluateContinueStatement } from './ContinueStatement'
+import { evaluateDebuggerStatement } from './DebuggerStatement'
 import { evaluateDoWhileStatement } from './DoWhileStatement'
 import { evaluateEmptyStatement } from './EmptyStatement'
 import { evaluateExpressionStatement } from './ExpressionStatement'
@@ -108,6 +109,7 @@ const statementHandlers: Partial<{
   SwitchStatement: evaluateSwitchStatement,
   VariableDeclaration: evaluateVariableDeclaration,
   FunctionDeclaration: evaluateFunctionDeclaration,
+  DebuggerStatement: evaluateDebuggerStatement,
 }
 
 const handlers: Partial<{
