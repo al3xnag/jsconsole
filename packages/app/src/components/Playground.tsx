@@ -35,7 +35,7 @@ export function Playground() {
         storage={panelGroupStorage}
       >
         <ConsolePanel />
-        <ResizableHandle className="aria-[valuenow=100]:hidden" />
+        <ResizableHandle withHandle className="aria-[valuenow=100]:hidden" />
         <PreviewPanel />
       </ResizablePanelGroup>
     </div>
