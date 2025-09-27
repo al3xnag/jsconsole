@@ -328,7 +328,7 @@ function RenderPromise({
         updateMeta(getMeta)
       })
     }
-  }, [])
+  }, [state, value])
 
   if (placement === 'inner') {
     return <span>{tag}</span>
@@ -414,7 +414,7 @@ function RenderObjectTopOrItem({
         updateDisplayProps(getDisplayProps)
       })
     }
-  }, [])
+  }, [value])
 
   return (
     <span className={placement === 'top' ? 'italic' : ''}>
