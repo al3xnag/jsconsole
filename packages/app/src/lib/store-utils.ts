@@ -1,4 +1,5 @@
 import { Store, ConsoleEntryInput } from '@/types'
+import { nextId } from './nextId'
 
 export function resetAllSessions(store: Store): Store {
   const currentSession = store.sessions.at(-1)
@@ -10,14 +11,14 @@ export function resetAllSessions(store: Store): Store {
     ...store,
     sessions: [
       {
-        id: crypto.randomUUID(),
+        id: nextId(),
         timestamp: Date.now(),
         entries: store.sessions
           .flatMap((session) => session.entries)
           .filter((entry) => entry.type === 'input')
           .map((entry) => {
             return {
-              id: crypto.randomUUID(),
+              id: nextId(),
               type: 'input',
               value: entry.value,
               state: 'not-evaluated',
@@ -45,13 +46,13 @@ export function resetCurrentSession(store: Store): Store {
     sessions: [
       ...store.sessions.slice(0, -1),
       {
-        id: crypto.randomUUID(),
+        id: nextId(),
         timestamp: Date.now(),
         entries: currentSession.entries
           .filter((entry) => entry.type === 'input')
           .map((entry) => {
             return {
-              id: crypto.randomUUID(),
+              id: nextId(),
               type: 'input',
               value: entry.value,
               state: 'not-evaluated',

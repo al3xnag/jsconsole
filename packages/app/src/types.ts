@@ -15,7 +15,7 @@ import { AnySyntheticPropertyKey } from './lib/synthetic'
 export type JSONValue = string | number | boolean | null | JSONValue[] | JSONObject
 export type JSONObject = { [key: string]: JSONValue }
 
-export type ConsoleEntryId = string
+export type ConsoleEntryId = number
 
 export interface ConsoleEntryBase {
   id: ConsoleEntryId
@@ -63,7 +63,7 @@ export type ConsoleEntryStoredJson =
   | ConsoleEntrySystem
 
 export type ConsoleSession = {
-  id: string
+  id: number
   timestamp: number
   entries: ConsoleEntry[]
   previewWindow: PreviewWindow | null
@@ -74,6 +74,7 @@ export type ConsoleSession = {
 }
 
 export type ConsoleSessionStoredJson = {
+  id: number
   timestamp: number
   entries: ConsoleEntryStoredJson[]
 }
@@ -112,14 +113,14 @@ export type StoreReducerAction =
   | {
       type: 'addConsoleEntry'
       payload: {
-        sessionId?: string
+        sessionId?: number
         consoleEntry: ConsoleEntry
       }
     }
   | {
       type: 'updateConsoleEntry'
       payload: {
-        sessionId?: string
+        sessionId?: number
         consoleEntry: Pick<ConsoleEntry, 'id'> & Partial<ConsoleEntry>
       }
     }

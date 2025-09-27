@@ -7,6 +7,7 @@ import { getGlobals } from '@/lib/globals'
 import { resetAllSessions, resetCurrentSession } from '@/lib/store-utils'
 import { exhaustMicrotaskQueue } from '@/lib/exhaustMicrotaskQueue'
 import { SideEffectInfo } from '@jsconsole/interpreter'
+import { nextId } from '@/lib/nextId'
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [store, dispatch] = useReducer(storeReducer, null, initStoreFromUrlOrLocalStorage)
@@ -44,7 +45,7 @@ function storeReducer(store: Store, action: StoreReducerAction): Store {
             entries: action.withEntry
               ? [
                   {
-                    id: crypto.randomUUID(),
+                    id: nextId(),
                     timestamp: Date.now(),
                     type: 'system',
                     kind: 'console-cleared',
@@ -161,7 +162,7 @@ function storeReducer(store: Store, action: StoreReducerAction): Store {
           ...store,
           sessions: [
             {
-              id: crypto.randomUUID(),
+              id: nextId(),
               timestamp: Date.now(),
               entries: [],
               previewWindow: action.previewWindow,
@@ -188,7 +189,7 @@ function storeReducer(store: Store, action: StoreReducerAction): Store {
               sideEffectInfo: new SideEffectInfo(),
             })),
             {
-              id: crypto.randomUUID(),
+              id: nextId(),
               timestamp: Date.now(),
               entries: [],
               previewWindow: action.previewWindow,
@@ -215,7 +216,7 @@ function storeReducer(store: Store, action: StoreReducerAction): Store {
               return entry.type === 'input' && entry.state === 'evaluating'
                 ? ({
                     ...entry,
-                    id: crypto.randomUUID(),
+                    id: nextId(),
                     state: 'not-evaluated',
                   } satisfies ConsoleEntryInput)
                 : entry
@@ -224,7 +225,7 @@ function storeReducer(store: Store, action: StoreReducerAction): Store {
             sideEffectInfo: new SideEffectInfo(),
           },
           {
-            id: crypto.randomUUID(),
+            id: nextId(),
             timestamp: Date.now(),
             entries: [],
             previewWindow: action.previewWindow,

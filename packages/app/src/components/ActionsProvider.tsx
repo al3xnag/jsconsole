@@ -4,6 +4,7 @@ import { useStoreDispatch } from '@/hooks/useStoreDispatch'
 import { ActionsContext, RestartOptions } from '@/lib/ActionsContext'
 import { evaluateEntry } from '@/lib/evaluateEntry'
 import { getGlobals } from '@/lib/globals'
+import { nextId } from '@/lib/nextId'
 import { resetAllSessions, resetCurrentSession } from '@/lib/store-utils'
 import { ConsoleEntryInput, ConsoleEntryResult, ConsoleSession } from '@/types'
 import { Metadata, SideEffectInfo } from '@jsconsole/interpreter'
@@ -191,7 +192,7 @@ export function ActionsProvider({ children }: { children: ReactNode }) {
       }
 
       let inputEntry: ConsoleEntryInput = {
-        id: crypto.randomUUID(),
+        id: nextId(),
         value: input,
         type: 'input',
         timestamp: Date.now(),

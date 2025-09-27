@@ -1,6 +1,7 @@
 import { ConsoleEntryInput, ConsoleEntryResult, ConsoleSession } from '@/types'
 import { INTERPRETER } from '@/constants'
 import type { EvaluateOptions, EvaluateResult } from '@jsconsole/interpreter'
+import { nextId } from './nextId'
 
 export function evaluateEntry(
   inputEntry: ConsoleEntryInput,
@@ -31,7 +32,7 @@ export function evaluateEntry(
 
     return {
       type: 'result',
-      id: crypto.randomUUID(),
+      id: nextId(),
       severity: 'error',
       value: error,
       timestamp: Date.now(),
@@ -44,7 +45,7 @@ export function evaluateEntry(
       (result) => {
         return {
           type: 'result',
-          id: crypto.randomUUID(),
+          id: nextId(),
           value: result.value,
           timestamp: Date.now(),
           inputId: inputEntry.id,
@@ -53,7 +54,7 @@ export function evaluateEntry(
       (error) => {
         return {
           type: 'result',
-          id: crypto.randomUUID(),
+          id: nextId(),
           severity: 'error',
           value: error,
           timestamp: Date.now(),
@@ -64,7 +65,7 @@ export function evaluateEntry(
   } else {
     return {
       type: 'result',
-      id: crypto.randomUUID(),
+      id: nextId(),
       value: result.value,
       timestamp: Date.now(),
       inputId: inputEntry.id,

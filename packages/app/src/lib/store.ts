@@ -15,14 +15,16 @@ import { toRevived } from './revived'
 import { assertNever } from '@jsconsole/interpreter/src/lib/assert'
 import { Metadata, SideEffectInfo } from '@jsconsole/interpreter'
 import { MarshalledValue, toMarshalled } from './marshalled'
+import { nextId, resetNextId } from './nextId'
 
 type StoreStoredJson = {
   sessions: ConsoleSessionStoredJson[]
+  nextId: number
 }
 
 function getEmptySession(): ConsoleSession {
   return {
-    id: crypto.randomUUID(),
+    id: nextId(),
     timestamp: Date.now(),
     entries: [],
     previewWindow: null,
@@ -58,6 +60,7 @@ export function saveStore(store: Store): void {
         })
         .map((session) => {
           return {
+            id: session.id,
             timestamp: session.timestamp,
             entries: session.entries.map((entry) => {
               if (entry.type === 'input') {
@@ -115,6 +118,7 @@ export function saveStore(store: Store): void {
             }),
           } satisfies ConsoleSessionStoredJson
         }),
+      nextId: nextId(),
     }
 
     const hash = encodeStore(storeJson)
@@ -139,6 +143,8 @@ export function initStoreFromUrlOrLocalStorage(): Store {
     return getEmptyStore()
   }
 
+  resetNextId(storeStoredJson.nextId)
+
   const store: Store = {
     sessions: [
       ...storeStoredJson.sessions
@@ -153,7 +159,7 @@ export function initStoreFromUrlOrLocalStorage(): Store {
           const valueContext: ValueContext = { globals, metadata, sideEffectInfo }
 
           return {
-            id: crypto.randomUUID(),
+            id: sessionJson.id,
             timestamp: sessionJson.timestamp,
             entries: sessionJson.entries.map<ConsoleEntry>((entryJson) => {
               if (entryJson.type === 'input') {

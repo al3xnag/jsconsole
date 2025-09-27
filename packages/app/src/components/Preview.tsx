@@ -12,6 +12,7 @@ import { useStoreDispatch } from '@/hooks/useStoreDispatch'
 import { PreviewIframe } from './PreviewIframe'
 import { Metadata } from '@jsconsole/interpreter'
 import { HELP_ENTRY_TEXT } from '@/constants'
+import { nextId } from '@/lib/nextId'
 
 export type PreviewRefHandle = {
   reload: () => Promise<PreviewWindow>
@@ -39,7 +40,7 @@ export function Preview({ ref }: PreviewProps) {
             type: 'addConsoleEntry',
             payload: {
               consoleEntry: {
-                id: crypto.randomUUID(),
+                id: nextId(),
                 timestamp: Date.now(),
                 type: 'user-agent',
                 output: [HELP_ENTRY_TEXT],
@@ -98,7 +99,7 @@ export function Preview({ ref }: PreviewProps) {
             type: 'addConsoleEntry',
             payload: {
               consoleEntry: {
-                id: crypto.randomUUID(),
+                id: nextId(),
                 timestamp: Date.now(),
                 type: 'user-agent',
                 output: args,
@@ -140,7 +141,7 @@ export function Preview({ ref }: PreviewProps) {
           type: 'addConsoleEntry',
           payload: {
             consoleEntry: {
-              id: crypto.randomUUID(),
+              id: nextId(),
               timestamp: Date.now(),
               type: 'user-agent',
               output: ['Uncaught', e.error],
@@ -155,7 +156,7 @@ export function Preview({ ref }: PreviewProps) {
           type: 'addConsoleEntry',
           payload: {
             consoleEntry: {
-              id: crypto.randomUUID(),
+              id: nextId(),
               timestamp: Date.now(),
               type: 'user-agent',
               output: ['Uncaught (in promise)', e.reason],
@@ -182,7 +183,7 @@ export function Preview({ ref }: PreviewProps) {
           type: 'addConsoleEntry',
           payload: {
             consoleEntry: {
-              id: crypto.randomUUID(),
+              id: nextId(),
               timestamp: Date.now(),
               type: 'system',
               kind: 'user-agent-reloaded',
