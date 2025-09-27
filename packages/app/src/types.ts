@@ -27,11 +27,13 @@ export interface ConsoleEntryInput extends ConsoleEntryBase {
   type: 'input'
   value: string
   state: 'not-evaluated' | 'evaluating' | 'evaluated'
+  resultId?: ConsoleEntryId
 }
 
 export interface ConsoleEntryResult extends ConsoleEntryBase {
   type: 'result'
   value: unknown
+  inputId?: ConsoleEntryId
 }
 
 export interface ConsoleEntryUserAgent extends ConsoleEntryBase {
@@ -51,14 +53,14 @@ export type ConsoleEntry =
   | ConsoleEntryUserAgent
 
 export type ConsoleEntryStoredJson =
-  | Omit<ConsoleEntryInput, 'id'>
-  | (Omit<ConsoleEntryResult, 'id' | 'value'> & {
+  | ConsoleEntryInput
+  | (Omit<ConsoleEntryResult, 'value'> & {
       value: MarshalledValue
     })
-  | (Omit<ConsoleEntryUserAgent, 'id' | 'output'> & {
+  | (Omit<ConsoleEntryUserAgent, 'output'> & {
       output: MarshalledValue[]
     })
-  | Omit<ConsoleEntrySystem, 'id'>
+  | ConsoleEntrySystem
 
 export type ConsoleSession = {
   id: string
@@ -119,6 +121,13 @@ export type StoreReducerAction =
       payload: {
         sessionId?: string
         consoleEntry: Pick<ConsoleEntry, 'id'> & Partial<ConsoleEntry>
+      }
+    }
+  | {
+      type: 'removeConsoleEntry'
+      payload: {
+        session: ConsoleSession
+        consoleEntry: ConsoleEntry
       }
     }
   | {

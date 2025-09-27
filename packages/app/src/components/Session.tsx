@@ -1,8 +1,9 @@
 import { Entry } from '@/components/Entry'
+import { HighlightedEntriesProvider } from '@/components/HighlightedEntriesProvider'
 import { ValueContextProvider } from '@/components/ValueContextProvider'
 import { useShowTimestamps } from '@/hooks/useShowTimestamps'
 import { useStore } from '@/hooks/useStore'
-import { ConsoleSession } from '@/types'
+import { ConsoleEntry, ConsoleSession } from '@/types'
 import { useMemo } from 'react'
 
 export function Session({ session }: { session: ConsoleSession }) {
@@ -20,18 +21,22 @@ export function Session({ session }: { session: ConsoleSession }) {
   }, [session.globals, session.metadata, session.sideEffectInfo])
 
   return (
-    <ValueContextProvider value={valueContext}>
-      {session.entries.map((entry) => (
-        <Entry
-          key={entry.id}
-          entry={entry}
-          isStale={!isCurrentSession}
-          showTimestamps={showTimestamps}
-        />
-      ))}
+    <HighlightedEntriesProvider>
+      <ValueContextProvider value={valueContext}>
+        {session.entries.map((entry, index, array) => (
+          <Entry
+            key={entry.id}
+            entry={entry}
+            session={session}
+            isStale={!isCurrentSession}
+            isPaired={isPaired(entry, index, array)}
+            showTimestamps={showTimestamps}
+          />
+        ))}
 
-      {!isCurrentSession && <SessionCut key={session.id} session={session} />}
-    </ValueContextProvider>
+        {!isCurrentSession && <SessionCut key={session.id} session={session} />}
+      </ValueContextProvider>
+    </HighlightedEntriesProvider>
   )
 }
 
@@ -46,4 +51,20 @@ function SessionCut({ session }: { session: ConsoleSession }) {
       </div>
     </div>
   )
+}
+
+function isPaired(entry: ConsoleEntry, index: number, array: ConsoleEntry[]): boolean {
+  const isPairedInput: boolean =
+    entry.type === 'input' &&
+    entry.resultId !== undefined &&
+    array[index + 1]?.type === 'result' &&
+    entry.resultId === array[index + 1].id
+
+  const isPairedResult: boolean =
+    entry.type === 'result' &&
+    entry.inputId !== undefined &&
+    array[index - 1]?.type === 'input' &&
+    entry.inputId === array[index - 1].id
+
+  return isPairedInput || isPairedResult
 }

@@ -1,9 +1,9 @@
-import { ConsoleEntryResult, ConsoleSession } from '@/types'
+import { ConsoleEntryInput, ConsoleEntryResult, ConsoleSession } from '@/types'
 import { INTERPRETER } from '@/constants'
 import type { EvaluateOptions, EvaluateResult } from '@jsconsole/interpreter'
 
 export function evaluateEntry(
-  input: string,
+  inputEntry: ConsoleEntryInput,
   session: ConsoleSession,
 ): ConsoleEntryResult | Promise<ConsoleEntryResult> {
   if (!session.previewWindow) {
@@ -25,7 +25,7 @@ export function evaluateEntry(
   let result: EvaluateResult | Promise<EvaluateResult>
 
   try {
-    result = evaluate(input, options)
+    result = evaluate(inputEntry.value, options)
   } catch (error) {
     console.error(error)
 
@@ -35,6 +35,7 @@ export function evaluateEntry(
       severity: 'error',
       value: error,
       timestamp: Date.now(),
+      inputId: inputEntry.id,
     }
   }
 
@@ -46,6 +47,7 @@ export function evaluateEntry(
           id: crypto.randomUUID(),
           value: result.value,
           timestamp: Date.now(),
+          inputId: inputEntry.id,
         }
       },
       (error) => {
@@ -55,6 +57,7 @@ export function evaluateEntry(
           severity: 'error',
           value: error,
           timestamp: Date.now(),
+          inputId: inputEntry.id,
         }
       },
     )
@@ -64,6 +67,7 @@ export function evaluateEntry(
       id: crypto.randomUUID(),
       value: result.value,
       timestamp: Date.now(),
+      inputId: inputEntry.id,
     }
   }
 }

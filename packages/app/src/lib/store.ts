@@ -62,7 +62,9 @@ export function saveStore(store: Store): void {
             entries: session.entries.map((entry) => {
               if (entry.type === 'input') {
                 return {
+                  id: entry.id,
                   timestamp: entry.timestamp,
+                  resultId: entry.resultId,
                   severity: entry.severity,
                   type: entry.type,
                   value: entry.value,
@@ -70,7 +72,9 @@ export function saveStore(store: Store): void {
                 }
               } else if (entry.type === 'result') {
                 return {
+                  id: entry.id,
                   timestamp: entry.timestamp,
+                  inputId: entry.inputId,
                   severity: entry.severity,
                   type: entry.type,
                   value: withCache(entry, () =>
@@ -83,6 +87,7 @@ export function saveStore(store: Store): void {
                 }
               } else if (entry.type === 'user-agent') {
                 return {
+                  id: entry.id,
                   timestamp: entry.timestamp,
                   severity: entry.severity,
                   type: entry.type,
@@ -98,6 +103,7 @@ export function saveStore(store: Store): void {
                 }
               } else if (entry.type === 'system') {
                 return {
+                  id: entry.id,
                   timestamp: entry.timestamp,
                   severity: entry.severity,
                   type: entry.type,
@@ -153,13 +159,11 @@ export function initStoreFromUrlOrLocalStorage(): Store {
               if (entryJson.type === 'input') {
                 return {
                   ...entryJson,
-                  id: crypto.randomUUID(),
                   state: entryJson.state === 'evaluating' ? 'not-evaluated' : entryJson.state,
                 } satisfies ConsoleEntryInput
               } else if (entryJson.type === 'result') {
                 const entry: ConsoleEntryResult = {
                   ...entryJson,
-                  id: crypto.randomUUID(),
                   value: toRevived(entryJson.value, valueContext),
                 }
 
@@ -169,7 +173,6 @@ export function initStoreFromUrlOrLocalStorage(): Store {
               } else if (entryJson.type === 'user-agent') {
                 const entry: ConsoleEntryUserAgent = {
                   ...entryJson,
-                  id: crypto.randomUUID(),
                   output: entryJson.output.map((x) => toRevived(x, valueContext)),
                 }
 
@@ -179,7 +182,6 @@ export function initStoreFromUrlOrLocalStorage(): Store {
               } else if (entryJson.type === 'system') {
                 return {
                   ...entryJson,
-                  id: crypto.randomUUID(),
                 } satisfies ConsoleEntrySystem
               } else {
                 assertNever(entryJson, 'Invalid entry type')

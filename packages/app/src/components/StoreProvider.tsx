@@ -123,6 +123,36 @@ function storeReducer(store: Store, action: StoreReducerAction): Store {
       return store
     }
 
+    case 'removeConsoleEntry': {
+      const { session, consoleEntry } = action.payload
+
+      return {
+        ...store,
+        sessions: store.sessions.map((s) =>
+          s.id === session.id
+            ? {
+                ...s,
+                entries: s.entries.filter((entry) => {
+                  if (entry.id === consoleEntry.id) {
+                    return false
+                  }
+
+                  if (entry.type === 'input' && entry.resultId === consoleEntry.id) {
+                    return false
+                  }
+
+                  if (entry.type === 'result' && entry.inputId === consoleEntry.id) {
+                    return false
+                  }
+
+                  return true
+                }),
+              }
+            : s,
+        ),
+      }
+    }
+
     case 'newSession': {
       const currentSession = store.sessions.at(-1)
 

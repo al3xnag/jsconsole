@@ -1,4 +1,8 @@
 import { ValueTreeView } from '@/components/ValueTreeView'
+import { HOTKEY_CLEAR_CONSOLE } from '@/constants'
+import { useActions } from '@/hooks/useActions'
+import { useHighlightedEntry } from '@/hooks/useHighlightedEntry'
+import { useStoreDispatch } from '@/hooks/useStoreDispatch'
 import { cn } from '@/lib/utils'
 import {
   ConsoleEntry,
@@ -6,37 +10,67 @@ import {
   ConsoleEntryResult,
   ConsoleEntrySystem,
   ConsoleEntryUserAgent,
+  ConsoleSession,
 } from '@/types'
 import { ChevronRight } from 'lucide-react'
-import { HighlightCode } from './HighlightCode'
+import { ComponentProps, useCallback } from 'react'
 import { ErrorBoundary } from './ErrorBoundary'
+import { HighlightCode } from './HighlightCode'
 import { ChevronLeftFromDot } from './icons/ChevronLeftFromDot'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+  ContextMenuTrigger,
+} from './ui/context-menu'
 
 type EntryProps<T extends ConsoleEntry> = {
   entry: T
+  session: ConsoleSession
   isStale: boolean
+  isPaired: boolean
   showTimestamps: boolean
 }
 
 export function Entry<T extends ConsoleEntry>(props: EntryProps<T>) {
-  const { entry, isStale } = props
+  const { entry, session, isStale, isPaired } = props
+
+  const { isHighlighted, highlight, unhighlight } = useHighlightedEntry(entry)
+
+  const onContextMenuOpenChange = useCallback(
+    (open: boolean) => {
+      if (open) {
+        highlight(true)
+      } else {
+        unhighlight(true)
+      }
+    },
+    [highlight, unhighlight],
+  )
 
   return (
-    <div
-      className={cn(
-        'entry',
-        isStale && 'bg-muted opacity-90',
-        entry.type === 'input' && entry.state === 'not-evaluated' && 'opacity-50',
-        entry.severity === 'error' && 'bg-red-500/20',
-        entry.severity === 'warning' && 'bg-yellow-500/20',
-      )}
-      data-type={entry.type}
-    >
-      {entry.type === 'input' && <InputEntry {...props} entry={entry} />}
-      {entry.type === 'result' && <ResultEntry {...props} entry={entry} />}
-      {entry.type === 'user-agent' && <UserAgentEntry {...props} entry={entry} />}
-      {entry.type === 'system' && <SystemEntry {...props} entry={entry} />}
-    </div>
+    <EntryContextMenu entry={entry} session={session} onOpenChange={onContextMenuOpenChange}>
+      <div
+        className={cn(
+          'entry border-border/30 border-b p-2 font-mono',
+          entry.type === 'input' && isPaired && 'border-b-0 pb-0',
+          entry.type === 'result' && isPaired && 'pt-0',
+          isStale && 'bg-muted opacity-90',
+          entry.type === 'input' && entry.state === 'not-evaluated' && 'opacity-50',
+          entry.severity === 'error' && 'bg-red-500/20',
+          entry.severity === 'warning' && 'bg-yellow-500/20',
+          isHighlighted && 'bg-selection text-selection-foreground',
+        )}
+        data-type={entry.type}
+      >
+        {entry.type === 'input' && <InputEntry {...props} entry={entry} />}
+        {entry.type === 'result' && <ResultEntry {...props} entry={entry} />}
+        {entry.type === 'user-agent' && <UserAgentEntry {...props} entry={entry} />}
+        {entry.type === 'system' && <SystemEntry {...props} entry={entry} />}
+      </div>
+    </EntryContextMenu>
   )
 }
 
@@ -140,5 +174,38 @@ function Timestamp({ value }: { value: number | string | Date }) {
     <time dateTime={date.toISOString()} title={date.toLocaleDateString() + ' ' + timeStr}>
       {timeStr}
     </time>
+  )
+}
+
+function EntryContextMenu({
+  entry,
+  session,
+  children,
+  ...contextMenuProps
+}: { entry: ConsoleEntry; session: ConsoleSession } & ComponentProps<typeof ContextMenu>) {
+  const storeDispatch = useStoreDispatch()
+  const { clear } = useActions()
+
+  return (
+    <ContextMenu {...contextMenuProps}>
+      <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
+      <ContextMenuContent className="w-56">
+        <ContextMenuItem
+          onClick={() => {
+            storeDispatch({
+              type: 'removeConsoleEntry',
+              payload: { session: session, consoleEntry: entry },
+            })
+          }}
+        >
+          Remove entry
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem onClick={() => clear({ withEntry: false })}>
+          Clear console
+          <ContextMenuShortcut>{HOTKEY_CLEAR_CONSOLE.shortcut}</ContextMenuShortcut>
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   )
 }

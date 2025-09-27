@@ -36,11 +36,12 @@ export function ActionsProvider({ children }: { children: ReactNode }) {
                 timestamp: Date.now(),
                 state: 'evaluating',
                 severity: undefined,
+                resultId: undefined,
               },
             },
           })
 
-          const result = evaluateEntry(entry.value, session)
+          const result = evaluateEntry(entry, session)
 
           if (result instanceof Promise) {
             if (awaitTopLevelAwait) {
@@ -54,6 +55,7 @@ export function ActionsProvider({ children }: { children: ReactNode }) {
                     id: entry.id,
                     state: 'evaluated',
                     severity: resolvedResult.severity,
+                    resultId: resolvedResult.id,
                   },
                 },
               })
@@ -75,6 +77,7 @@ export function ActionsProvider({ children }: { children: ReactNode }) {
                       id: entry.id,
                       state: 'evaluated',
                       severity: resolvedResult.severity,
+                      resultId: resolvedResult.id,
                     },
                   },
                 })
@@ -97,6 +100,7 @@ export function ActionsProvider({ children }: { children: ReactNode }) {
                   id: entry.id,
                   state: 'evaluated',
                   severity: result.severity,
+                  resultId: result.id,
                 },
               },
             })
@@ -202,7 +206,7 @@ export function ActionsProvider({ children }: { children: ReactNode }) {
         },
       })
 
-      const result = evaluateEntry(input, currentSession)
+      const result = evaluateEntry(inputEntry, currentSession)
 
       if (result instanceof Promise) {
         result.then((result) => {
@@ -210,6 +214,7 @@ export function ActionsProvider({ children }: { children: ReactNode }) {
             ...inputEntry,
             state: 'evaluated',
             severity: result.severity,
+            resultId: result.id,
           }
 
           storeDispatch({
@@ -233,6 +238,7 @@ export function ActionsProvider({ children }: { children: ReactNode }) {
           ...inputEntry,
           state: 'evaluated',
           severity: result.severity,
+          resultId: result.id,
         }
 
         storeDispatch({

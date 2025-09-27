@@ -86,6 +86,9 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-selection: var(--selection);
+  --color-selection-border: var(--selection-border);
+  --color-selection-foreground: var(--selection-foreground);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -104,17 +107,5 @@
 
   body {
     @apply bg-background text-foreground;
-  }
-
-  .entry {
-    @apply border-border/30 border-b p-2 font-mono;
-
-    &[data-type='input']:has(+ [data-type='result']) {
-      @apply border-b-0 pb-0;
-    }
-
-    &[data-type='input'] + [data-type='result'] {
-      @apply pt-0;
-    }
   }
 }
