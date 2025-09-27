@@ -1,4 +1,4 @@
-import { INTERPRETER } from '@/constants'
+import { INTERPRETER, SPECIAL_RESULTS } from '@/constants'
 import { useActions } from '@/hooks/useActions'
 import { useStore } from '@/hooks/useStore'
 import { editorTheme } from '@/lib/editorTheme'
@@ -89,6 +89,10 @@ export function ConsolePrompt({ ref, onSubmit, onUpdate }: ConsolePromptProps) {
       metadata: currentSession.metadata,
       evaluate(expr: string) {
         const { value } = evaluate(expr, evaluateOptions) as EvaluateResult
+        if (value === SPECIAL_RESULTS.HIDDEN) {
+          return undefined
+        }
+
         return value
       },
       cache: new AutocompleteCache(),

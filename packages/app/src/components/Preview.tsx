@@ -11,7 +11,7 @@ import { useActions } from '@/hooks/useActions'
 import { useStoreDispatch } from '@/hooks/useStoreDispatch'
 import { PreviewIframe } from './PreviewIframe'
 import { Metadata } from '@jsconsole/interpreter'
-import { HELP_ENTRY_TEXT } from '@/constants'
+import { SPECIAL_RESULTS } from '@/constants'
 import { nextId } from '@/lib/nextId'
 
 export type PreviewRefHandle = {
@@ -36,23 +36,13 @@ export function Preview({ ref }: PreviewProps) {
     (win: PreviewWindowRaw, metadata: Metadata): PreviewWindow => {
       const x = Object.assign<PreviewWindowRaw, PreviewWindowExtra>(win, {
         help: function help() {
-          storeDispatch({
-            type: 'addConsoleEntry',
-            payload: {
-              consoleEntry: {
-                id: nextId(),
-                timestamp: Date.now(),
-                type: 'user-agent',
-                output: [HELP_ENTRY_TEXT],
-                severity: 'info',
-              },
-            },
-          })
+          return SPECIAL_RESULTS.HELP
         }.bind(win),
 
         // `setTimeout(() => { console.clear(); console.log('a') }, 1000);` -> Console was cleared; a
         clear: function clear() {
           clearConsole({ withEntry: true })
+          return SPECIAL_RESULTS.HIDDEN
         }.bind(win),
       })
 

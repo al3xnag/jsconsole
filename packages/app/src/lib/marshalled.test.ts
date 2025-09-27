@@ -5,6 +5,7 @@ import { isMarshalled, MarshalledValue, toMarshalled } from './marshalled'
 import { ValueContext } from './ValueContextContext'
 import { getGlobals } from './globals'
 import { Metadata, SideEffectInfo } from '@jsconsole/interpreter'
+import { SPECIAL_RESULTS } from '@/constants'
 
 describe('toMarshalled', () => {
   type TestCase = [value: unknown, expected: MarshalledValue, context?: Partial<ValueContext>]
@@ -48,6 +49,9 @@ describe('toMarshalled', () => {
     [Symbol.for('test'), { $: 'symbol', desc: 'test' }],
     [Symbol(''), { $: 'symbol', desc: '' }],
     [Symbol(), { $: 'symbol', desc: undefined }],
+
+    // Special
+    [SPECIAL_RESULTS.HELP, { $: 'special', value: 'HELP' }],
 
     // function
     [eval('(() => {})'), { $: 'function', str: '() => {}', name: '', length: 0 }],

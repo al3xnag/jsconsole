@@ -17,6 +17,7 @@ import {
   MarshalledPrototype,
   MarshalledProxy,
   MarshalledSet,
+  MarshalledSpecial,
   MarshalledUnknownObject,
   MarshalledValue,
   MarshalledWeakMap,
@@ -24,6 +25,7 @@ import {
   MarshalledWeakSet,
 } from './marshalled'
 import { ValueContext } from './ValueContextContext'
+import { SPECIAL_RESULTS } from '@/constants'
 
 export type AnyRevived =
   | Function
@@ -222,6 +224,10 @@ export function toRevived(value: MarshalledValue, context: ValueContext): Revive
 
     case 'weakref': {
       return toRevivedWeakRef(value, context)
+    }
+
+    case 'special': {
+      return toRevivedSpecial(value)
     }
 
     default: {
@@ -629,6 +635,17 @@ function toRevivedWeakRef({ target }: MarshalledWeakRef, context: ValueContext):
   const weakref = new WeakRef(revivedTarget)
   revivedRefs.set(weakref, REVIVED_WEAK_REF)
   return weakref
+}
+
+function toRevivedSpecial({ value }: MarshalledSpecial): symbol | null {
+  switch (value) {
+    case 'HIDDEN':
+      return SPECIAL_RESULTS.HIDDEN
+    case 'HELP':
+      return SPECIAL_RESULTS.HELP
+    default:
+      return null
+  }
 }
 
 function getRevivedProperties(

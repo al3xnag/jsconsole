@@ -4,6 +4,7 @@ import { getObjectStringTag } from './getObjectStringTag'
 import { isWellKnownSymbol } from './well-known-symbols'
 import { ObjectTypeInspector } from './ObjectTypeInspector'
 import { ValueContext } from './ValueContextContext'
+import { SPECIAL_RESULTS } from '@/constants'
 
 const MAX_DEPTH = 4
 const MAX_PROPS = 30
@@ -39,6 +40,7 @@ export type MarshalledType =
   | 'weakmap'
   | 'weakset'
   | 'weakref'
+  | 'special'
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 type Marshalled<T extends MarshalledType, V extends JSONObject = {}> = { $: T } & V
@@ -232,6 +234,7 @@ export type MarshalledWeakMap = Marshalled<
 >
 export type MarshalledWeakSet = Marshalled<'weakset', { values?: Array<MarshalledValue> }>
 export type MarshalledWeakRef = Marshalled<'weakref', { target?: MarshalledValue }>
+export type MarshalledSpecial = Marshalled<'special', { value: keyof typeof SPECIAL_RESULTS }>
 
 export type AnyMarshalledObject =
   | MarshalledDate
@@ -255,6 +258,7 @@ export type AnyMarshalledObject =
   | MarshalledWeakMap
   | MarshalledWeakSet
   | MarshalledWeakRef
+  | MarshalledSpecial
 
 export type AnyMarshalled =
   | MarshalledUndefined
@@ -308,6 +312,17 @@ function toMarshalledBigInt(bigint: bigint): MarshalledBigInt {
 
 function toMarshalledSymbol(symbol: symbol): MarshalledSymbol {
   return { $: 'symbol', desc: symbol.description }
+}
+
+function toMarshalledSpecial(symbol: symbol): MarshalledSpecial | null {
+  switch (symbol) {
+    case SPECIAL_RESULTS.HIDDEN:
+      return { $: 'special', value: 'HIDDEN' }
+    case SPECIAL_RESULTS.HELP:
+      return { $: 'special', value: 'HELP' }
+    default:
+      return null
+  }
 }
 
 function toMarshalledDate(date: Date): MarshalledDate {
@@ -576,7 +591,7 @@ function toMarshalledInner(value: unknown, context: InnerContext): MarshalledVal
     }
 
     case 'symbol': {
-      return toMarshalledSymbol(value)
+      return toMarshalledSpecial(value) ?? toMarshalledSymbol(value)
     }
 
     case 'function': {

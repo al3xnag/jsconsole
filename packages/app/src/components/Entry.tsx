@@ -1,5 +1,5 @@
 import { ValueTreeView } from '@/components/ValueTreeView'
-import { HOTKEY_CLEAR_CONSOLE } from '@/constants'
+import { HOTKEY_CLEAR_CONSOLE, SPECIAL_RESULTS } from '@/constants'
 import { useActions } from '@/hooks/useActions'
 import { useHighlightedEntry } from '@/hooks/useHighlightedEntry'
 import { useStoreDispatch } from '@/hooks/useStoreDispatch'
@@ -50,6 +50,17 @@ export function Entry<T extends ConsoleEntry>(props: EntryProps<T>) {
     [highlight, unhighlight],
   )
 
+  if (entry.type === 'result' && entry.value === SPECIAL_RESULTS.HIDDEN) {
+    return null
+  }
+
+  if (
+    entry.type === 'user-agent' &&
+    entry.output.every((value) => value === SPECIAL_RESULTS.HIDDEN)
+  ) {
+    return null
+  }
+
   return (
     <EntryContextMenu entry={entry} session={session} onOpenChange={onContextMenuOpenChange}>
       <div
@@ -96,18 +107,28 @@ function ResultEntry({ entry, showTimestamps }: EntryProps<ConsoleEntryResult>) 
     <div className="flex items-start whitespace-pre-wrap text-gray-800">
       {showTimestamps && <TimestampPad value={entry.timestamp} className="mx-2" />}
       <ChevronLeftFromDot className="mr-1 h-5 w-4 shrink-0 text-gray-400/50" />
-      <span>
-        {entry.severity === 'error' && <span>Uncaught&nbsp;</span>}
-        <ErrorBoundary
-          fallback={<span>⚠️</span>}
-          onError={() => {
-            console.warn('Error rendering value', entry.value)
-          }}
-        >
-          <ValueTreeView value={entry.value} />
-        </ErrorBoundary>
-      </span>
+      <ResultEntryValue entry={entry} />
     </div>
+  )
+}
+
+function ResultEntryValue({ entry }: Pick<EntryProps<ConsoleEntryResult>, 'entry'>) {
+  if (entry.value === SPECIAL_RESULTS.HELP) {
+    return <SpecialResultHelp />
+  }
+
+  return (
+    <span>
+      {entry.severity === 'error' && <span>Uncaught&nbsp;</span>}
+      <ErrorBoundary
+        fallback={<span>⚠️</span>}
+        onError={() => {
+          console.warn('Error rendering value', entry.value)
+        }}
+      >
+        <ValueTreeView value={entry.value} />
+      </ErrorBoundary>
+    </span>
   )
 }
 
@@ -116,19 +137,21 @@ function UserAgentEntry({ entry, showTimestamps }: EntryProps<ConsoleEntryUserAg
     <div className="flex items-start text-gray-800">
       {showTimestamps && <TimestampPad value={entry.timestamp} className="mx-2" />}
       <span className="ml-5 whitespace-pre-wrap">
-        {entry.output.map((value, index) => (
-          <span key={index}>
-            {index > 0 && ' '}
-            <ErrorBoundary
-              fallback={<span>⚠️</span>}
-              onError={() => {
-                console.warn('Error rendering value', value)
-              }}
-            >
-              <ValueTreeView value={value} renderStringAsPlainText />
-            </ErrorBoundary>
-          </span>
-        ))}
+        {entry.output
+          .filter((value) => value !== SPECIAL_RESULTS.HIDDEN)
+          .map((value, index) => (
+            <span key={index}>
+              {index > 0 && ' '}
+              <ErrorBoundary
+                fallback={<span>⚠️</span>}
+                onError={() => {
+                  console.warn('Error rendering value', value)
+                }}
+              >
+                <ValueTreeView value={value} renderStringAsPlainText />
+              </ErrorBoundary>
+            </span>
+          ))}
       </span>
     </div>
   )
@@ -207,5 +230,77 @@ function EntryContextMenu({
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>
+  )
+}
+
+function SpecialResultHelp() {
+  return (
+    <div className="prose prose-h1:text-base dark:prose-invert prose-sm prose-code:text-sm max-w-[100ch] flex-1 [&_summary]:cursor-pointer [&_summary]:font-bold">
+      <details>
+        <summary>
+          <span className="px-1">Help</span>
+        </summary>
+
+        <section className="mt-2">
+          <h1>About</h1>
+          <p>
+            This is a JavaScript console, powered by its own JavaScript interpreter, written in
+            JavaScript.
+          </p>
+          <p>
+            The interpreter enables some nice features, such as <b>autocomplete</b>,{' '}
+            <b>eager evaluation</b>, and displaying <b>object metadata</b>, which would not be
+            possible using <code>eval</code>. This console transparently works within the current
+            browser realm, reusing existing browser APIs, global objects and prototypes.
+          </p>
+          <p>
+            <b>It is very experimental and a work in progress.</b>
+          </p>
+        </section>
+
+        <section>
+          <h1>Commands</h1>
+          <p>
+            In addition to the standard JavaScript stuff and browser APIs, you can use the following
+            global commands:
+          </p>
+          <ul>
+            <li>
+              <code>clear()</code> - clear the console (same as <code>console.clear()</code>)
+            </li>
+            <li>
+              <code>help()</code> - show this help
+            </li>
+          </ul>
+        </section>
+
+        <section>
+          <h1>Usage</h1>
+          <p>
+            Use the <b>menu</b> in the top-right corner and the <b>context menu</b> for additional
+            commands.
+          </p>
+          <p>
+            The code you submit is evaluated in the context of a dedicated iframe. You can open the{' '}
+            <b>Preview window</b> to view this iframe, which is useful when working with the DOM.
+          </p>
+          <p>
+            Console log is preserved between reloads – it is serialized to the URL, so you can{' '}
+            <b>share</b> a link with your colleagues.
+          </p>
+        </section>
+
+        <section>
+          <h1>Credits</h1>
+          <p>
+            This project is open source and available on GitHub:{' '}
+            <a href="https://github.com/al3xnag/jsconsole" target="_blank">
+              https://github.com/al3xnag/jsconsole
+            </a>
+          </p>
+          <p>Carefully (not really) crafted by @al3xnag.</p>
+        </section>
+      </details>
+    </div>
   )
 }

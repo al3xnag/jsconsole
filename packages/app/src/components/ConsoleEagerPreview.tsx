@@ -1,4 +1,4 @@
-import { INTERPRETER } from '@/constants'
+import { INTERPRETER, SPECIAL_RESULTS } from '@/constants'
 import { useStore } from '@/hooks/useStore'
 import { EditorView } from '@codemirror/view'
 import type { EvaluateResult } from '@jsconsole/interpreter'
@@ -89,6 +89,10 @@ export function ConsoleEagerPreview({ editor }: { editor: EditorView | undefined
       }
 
       if (result instanceof currentSession.globals.Promise) {
+        return NO_VALUE
+      }
+
+      if (result.value === SPECIAL_RESULTS.HIDDEN) {
         return NO_VALUE
       }
 

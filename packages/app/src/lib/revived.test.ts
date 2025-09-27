@@ -7,6 +7,7 @@ import { ValueContext } from './ValueContextContext'
 import { getGlobals } from './globals'
 import { MarshalledValue } from './marshalled'
 import { FunctionMetadata, Metadata, SideEffectInfo } from '@jsconsole/interpreter'
+import { SPECIAL_RESULTS } from '@/constants'
 
 describe('toRevived', () => {
   type TestCase = [value: MarshalledValue, expected: RevivedValue, context?: Partial<ValueContext>]
@@ -32,6 +33,7 @@ describe('toRevived', () => {
     [{ $: 'symbol' }, Symbol()],
     [{ $: 'symbol', desc: '' }, Symbol('')],
     [{ $: 'symbol', desc: 'symbol' }, Symbol('symbol')],
+    [{ $: 'special', value: 'HELP' }, SPECIAL_RESULTS.HELP],
     [{ $: 'date', value: 0 }, new Date(0)],
     [{ $: 'date', value: 1744828097586 }, new Date(1744828097586)],
     [{ $: 'date', value: null }, new Date('invalid')],
