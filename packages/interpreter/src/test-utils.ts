@@ -41,6 +41,7 @@ type TAssert = (result: TestEvaluateResult) => void | Promise<void>
  * it.skip('a = 1', 1)
  * it.todo('a = 1', 1)
  * it.fails('a = 1', 1)
+ * it.debug('a = 1', 1)
  */
 export function it<T>(
   this: any,
@@ -65,12 +66,14 @@ export function it<T>(
     const globalObject: object = options?.globalObject ?? getBasicGlobalObject()
     const globalScope: PublicGlobalScope = options?.globalScope ?? { bindings: new Map() }
     const metadata: Metadata = options?.metadata ?? new Metadata()
+    const debug = this?.debug ?? options?.debug
     try {
       const evalResult = await evaluate(code, {
         ...options,
         globalObject,
         globalScope,
         metadata,
+        debug,
       })
 
       result = Object.assign(evalResult, {
@@ -110,6 +113,7 @@ export function it<T>(
 it.skip = it.bind({ testFn: test.skip }) as typeof it
 it.todo = it.bind({ testFn: test.todo }) as typeof it
 it.fails = it.bind({ testFn: test.fails }) as typeof it
+it.debug = it.bind({ debug: console.debug }) as typeof it
 
 export function ExpectToThrowPossibleSideEffectError(x: TestEvaluateResult) {
   expect(x.thrown).toThrow(PossibleSideEffectError)
