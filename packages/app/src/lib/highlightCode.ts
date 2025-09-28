@@ -10,8 +10,21 @@ import { highlightStyle } from './highlightStyle'
 
 export type HighlightCodeLang = 'js' | 'ts' | 'jsx' | 'tsx' | 'css' | 'html'
 
-export async function highlightCodeInHTMLElement(el: HTMLElement, lang: HighlightCodeLang) {
+export type HighlightCodeOptions = {
+  highlightLimit?: number
+}
+
+export async function highlightCodeInHTMLElement(
+  el: HTMLElement,
+  lang: HighlightCodeLang,
+  options?: HighlightCodeOptions,
+) {
   const code = el.textContent || ''
+
+  if (code.length > (options?.highlightLimit ?? 80000)) {
+    return
+  }
+
   const language = await getLanguage(lang)
   const tree = getTree(code, language)
 

@@ -13,10 +13,11 @@ import {
   ConsoleSession,
 } from '@/types'
 import { ChevronRight } from 'lucide-react'
-import { ComponentProps, useCallback } from 'react'
+import { ComponentProps, useCallback, useState } from 'react'
 import { ErrorBoundary } from './ErrorBoundary'
 import { HighlightCode } from './HighlightCode'
 import { ChevronLeftFromDot } from './icons/ChevronLeftFromDot'
+import { Button } from './ui/button'
 import {
   ContextMenu,
   ContextMenuContent,
@@ -86,6 +87,13 @@ export function Entry<T extends ConsoleEntry>(props: EntryProps<T>) {
 }
 
 function InputEntry({ entry, showTimestamps }: EntryProps<ConsoleEntryInput>) {
+  const [isExpanded, setIsExpanded] = useState(false)
+
+  const maxLength = 1500
+  const isExceeded = entry.value.length > maxLength
+  const displayValue =
+    isExceeded && !isExpanded ? entry.value.slice(0, maxLength) + '… ' : entry.value
+
   return (
     <div className="flex items-start">
       {showTimestamps && <TimestampPad value={entry.timestamp} className="mx-2" />}
@@ -95,9 +103,21 @@ function InputEntry({ entry, showTimestamps }: EntryProps<ConsoleEntryInput>) {
           entry.state === 'evaluating' && 'animate-pulse',
         )}
       />
-      <HighlightCode lang="js" className="min-w-0 whitespace-pre-wrap">
-        {entry.value}
-      </HighlightCode>
+      <div className="min-w-0">
+        <HighlightCode lang="js" className="whitespace-pre-wrap">
+          {displayValue}
+        </HighlightCode>
+        {isExceeded && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-auto rounded-sm px-1 italic"
+            onClick={() => setIsExpanded((x) => !x)}
+          >
+            {isExpanded ? 'Show Less' : `Show More (${entry.value.length} chars)`}
+          </Button>
+        )}
+      </div>
     </div>
   )
 }
