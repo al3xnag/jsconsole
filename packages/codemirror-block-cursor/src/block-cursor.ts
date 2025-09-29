@@ -1,19 +1,7 @@
 /* Based on https://github.com/replit/codemirror-vim/blob/71919db3d4466d487d53aae551ab035a490dd75a/src/block-cursor.ts */
 
-import { SelectionRange, EditorState } from '@codemirror/state'
+import { SelectionRange } from '@codemirror/state'
 import { ViewUpdate, EditorView, Direction } from '@codemirror/view'
-
-import * as View from '@codemirror/view'
-
-// backwards compatibility for old versions not supporting getDrawSelectionConfig
-const getDrawSelectionConfig =
-  View.getDrawSelectionConfig ||
-  (function () {
-    const defaultConfig = { cursorBlinkRate: 1200 }
-    return function () {
-      return defaultConfig
-    }
-  })()
 
 type Measure = { cursors: Piece[] }
 
@@ -78,22 +66,19 @@ export class BlockCursor {
     this.cursorLayer.className = 'cm-cursorLayer cm-blockCursorLayer'
     this.cursorLayer.setAttribute('aria-hidden', 'true')
     view.requestMeasure(this.measureReq)
-    this.setBlinkRate(view.state)
-  }
-
-  setBlinkRate(state: EditorState) {
-    const config = getDrawSelectionConfig(state)
-    const blinkRate = config.cursorBlinkRate
-    this.cursorLayer.style.animationDuration = blinkRate + 'ms'
   }
 
   update(update: ViewUpdate) {
-    if (update.selectionSet || update.geometryChanged || update.viewportChanged) {
+    if (
+      update.selectionSet ||
+      update.geometryChanged ||
+      update.viewportChanged ||
+      update.focusChanged
+    ) {
       this.view.requestMeasure(this.measureReq)
       this.cursorLayer.style.animationName =
-        this.cursorLayer.style.animationName == 'cm-blink' ? 'cm-blink2' : 'cm-blink'
+        this.cursorLayer.style.animationName === 'cm-blink' ? 'cm-blink2' : 'cm-blink'
     }
-    if (configChanged(update)) this.setBlinkRate(update.view.state)
   }
 
   scheduleRedraw() {
@@ -127,10 +112,6 @@ export class BlockCursor {
   destroy() {
     this.cursorLayer.remove()
   }
-}
-
-function configChanged(update: ViewUpdate) {
-  return getDrawSelectionConfig(update.startState) != getDrawSelectionConfig(update.state)
 }
 
 function getBase(view: EditorView) {

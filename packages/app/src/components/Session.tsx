@@ -46,7 +46,7 @@ function SessionCut({ session }: { session: ConsoleSession }) {
       className="border-border/30 bg-muted border-b p-2 font-mono opacity-90"
       data-type="session-cut"
     >
-      <div className="px-2 text-xs whitespace-pre-wrap text-gray-800">
+      <div className="px-2 text-xs whitespace-pre-wrap">
         Previous session from {new Date(session.timestamp).toLocaleString()}
       </div>
     </div>

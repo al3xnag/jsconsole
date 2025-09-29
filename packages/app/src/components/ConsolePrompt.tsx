@@ -151,7 +151,7 @@ export function ConsolePrompt({ ref, onSubmit, onUpdate }: ConsolePromptProps) {
   return (
     <div>
       <div className="flex items-start">
-        <ChevronRight className="mt-2 ml-2 h-5 w-4 shrink-0 text-blue-600" />
+        <ChevronRight className="mt-2 ml-2 h-5 w-4 shrink-0 text-blue-600 dark:text-blue-400" />
         <div ref={editorRootRef} className="flex-grow text-sm" />
       </div>
       <ConsoleEagerPreview editor={editor} />

@@ -99,7 +99,7 @@ function InputEntry({ entry, showTimestamps }: EntryProps<ConsoleEntryInput>) {
       {showTimestamps && <TimestampPad value={entry.timestamp} className="mx-2" />}
       <ChevronRight
         className={cn(
-          'mr-1 h-5 w-4 shrink-0 text-blue-600',
+          'mr-1 h-5 w-4 shrink-0 text-blue-600 dark:text-blue-400',
           entry.state === 'evaluating' && 'animate-pulse',
         )}
       />
@@ -124,7 +124,7 @@ function InputEntry({ entry, showTimestamps }: EntryProps<ConsoleEntryInput>) {
 
 function ResultEntry({ entry, showTimestamps }: EntryProps<ConsoleEntryResult>) {
   return (
-    <div className="flex items-start whitespace-pre-wrap text-gray-800">
+    <div className="flex items-start whitespace-pre-wrap">
       {showTimestamps && <TimestampPad value={entry.timestamp} className="mx-2" />}
       <ChevronLeftFromDot className="mr-1 h-5 w-4 shrink-0 text-gray-400/50" />
       <ResultEntryValue entry={entry} />
@@ -154,7 +154,7 @@ function ResultEntryValue({ entry }: Pick<EntryProps<ConsoleEntryResult>, 'entry
 
 function UserAgentEntry({ entry, showTimestamps }: EntryProps<ConsoleEntryUserAgent>) {
   return (
-    <div className="flex items-start text-gray-800">
+    <div className="flex items-start">
       {showTimestamps && <TimestampPad value={entry.timestamp} className="mx-2" />}
       <span className="ml-5 whitespace-pre-wrap">
         {entry.output
@@ -179,7 +179,7 @@ function UserAgentEntry({ entry, showTimestamps }: EntryProps<ConsoleEntryUserAg
 
 function SystemEntry({ entry, showTimestamps }: EntryProps<ConsoleEntrySystem>) {
   return (
-    <div className="flex items-start text-gray-400 italic">
+    <div className="text-muted-foreground/70 flex items-start italic">
       {showTimestamps && <TimestampPad value={entry.timestamp} className="mx-2" />}
       <span className="ml-5 whitespace-pre-wrap">
         {entry.kind === 'user-agent-reloaded' && 'Preview window was reloaded'}

@@ -25,7 +25,32 @@
   --token-plaintext: currentColor;
 }
 
-/* .dark {} */
+.dark {
+  --token-variable: #c7c6c6ff;
+  --token-property: rgb(250 204 21 / 100%);
+  --token-type: rgb(124 172 248 / 100%);
+  --token-variable-special: #b1cbd0ff;
+  --token-definition: rgb(124 172 248 / 100%);
+  --token-builtin: rgb(168 199 250 / 100%);
+  --token-number: rgb(196 238 208 / 100%);
+  --token-bigint: rgb(153, 128, 255);
+  --token-string: rgb(254 141 89 / 100%);
+  --token-string-special: rgb(254 141 89 / 100%);
+  --token-symbol: rgb(92, 213, 251);
+  --token-regexp: rgb(92, 213, 251);
+  --token-atom: rgb(196 238 208 / 100%);
+  --token-keyword: rgb(191 103 255 / 100%);
+  --token-comment: #abababff;
+  --token-meta: #919191ff;
+  --token-invalid: rgb(254 141 89 / 100%);
+  --token-tag: rgb(124 172 248 / 100%);
+  --token-attribute: rgb(168 199 250 / 100%);
+  --token-attribute-value: rgb(254 141 89 / 100%);
+  --token-inserted: rgb(30 164 70 / 100%);
+  --token-deleted: #de3730ff;
+  --token-muted: rgba(227, 227, 227, 0.38);
+  --token-plaintext: currentColor;
+}
 
 .token-variable {
   color: var(--token-variable);

@@ -29,22 +29,24 @@ const theme = Prec.highest(
     },
     '.cm-block-cursor': {
       position: 'absolute',
-      background: 'black',
-      color: 'white',
+      background: 'light-dark(black, white)',
+      color: 'light-dark(white, black)',
       border: 'none',
       borderRadius: '1px',
       whiteSpace: 'pre',
       '&.cm-block-cursor-placeholder': {
-        color: '#ddd',
+        color: 'light-dark(#ddd, #333)',
       },
       '&.cm-block-cursor-partial': {
         color: 'transparent',
       },
     },
     '&:not(.cm-focused) .cm-block-cursor': {
-      background: 'none',
-      color: 'transparent',
-      outline: '1px solid black',
+      background: 'light-dark(#ebebeb, #434343)',
+      color: 'var(--text-color)',
+    },
+    '&:not(.cm-focused) .cm-block-cursor-placeholder': {
+      display: 'none',
     },
   }),
 )

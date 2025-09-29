@@ -4,8 +4,14 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuPortal,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuShortcut,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
@@ -18,6 +24,8 @@ import { useActions } from '@/hooks/useActions'
 import { useConsole } from '@/hooks/useConsole'
 import { useHotkey } from '@/hooks/useHotkey'
 import { usePreview } from '@/hooks/usePreview'
+import { useTheme } from '@/hooks/useTheme'
+import { Theme } from '@/lib/ThemeContext'
 import { ArrowUpRightIcon, MenuIcon } from 'lucide-react'
 import { useCallback } from 'react'
 
@@ -74,6 +82,7 @@ export function Header() {
             <MenuIcon className="size-4" />
           </Button>
         </DropdownMenuTrigger>
+
         <DropdownMenuContent className="w-56" align="end">
           <DropdownMenuGroup>
             <DropdownMenuItem onClick={handleRestart}>
@@ -91,7 +100,15 @@ export function Header() {
             <DropdownMenuSeparator />
             <PreviewToggleMenuItem />
           </DropdownMenuGroup>
+
           <DropdownMenuSeparator />
+
+          <DropdownMenuGroup>
+            <ThemeMenuSub />
+          </DropdownMenuGroup>
+
+          <DropdownMenuSeparator />
+
           <DropdownMenuItem asChild>
             <a href="https://github.com/al3xnag/jsconsole" target="_blank">
               GitHub <ArrowUpRightIcon className="size-4 opacity-60" />
@@ -111,5 +128,24 @@ function PreviewToggleMenuItem() {
       {previewShown ? 'Hide Preview' : 'Show Preview'}
       <DropdownMenuShortcut>{HOTKEY_TOGGLE_PREVIEW.shortcut}</DropdownMenuShortcut>
     </DropdownMenuItem>
+  )
+}
+
+function ThemeMenuSub() {
+  const { theme, setTheme } = useTheme()
+
+  return (
+    <DropdownMenuSub>
+      <DropdownMenuSubTrigger>Theme</DropdownMenuSubTrigger>
+      <DropdownMenuPortal>
+        <DropdownMenuSubContent>
+          <DropdownMenuRadioGroup value={theme} onValueChange={setTheme as (value: string) => void}>
+            <DropdownMenuRadioItem value={'system' satisfies Theme}>System</DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value={'light' satisfies Theme}>Light</DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value={'dark' satisfies Theme}>Dark</DropdownMenuRadioItem>
+          </DropdownMenuRadioGroup>
+        </DropdownMenuSubContent>
+      </DropdownMenuPortal>
+    </DropdownMenuSub>
   )
 }

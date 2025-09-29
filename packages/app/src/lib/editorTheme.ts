@@ -25,8 +25,7 @@ export const editorTheme = EditorView.theme({
   },
 
   '.cm-selectionMatch': {
-    backgroundColor: 'mark',
-    color: 'marktext',
+    backgroundColor: 'light-dark(#ffea008f, #685f00c9)',
   },
 
   '.cm-cursor': {
@@ -41,7 +40,7 @@ export const editorTheme = EditorView.theme({
   },
 
   '&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground': {
-    background: 'SelectedItem',
+    background: 'light-dark(#00a4ff40, #0080c08f)',
   },
 
   '&.cm-focused .cm-matchingBracket': {
@@ -125,6 +124,10 @@ export const editorTheme = EditorView.theme({
 
     '&::after': {
       content: 'unset',
+    },
+
+    '&:is(.dark *)': {
+      filter: 'invert(1)',
     },
   },
 

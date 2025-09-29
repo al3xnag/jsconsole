@@ -10,7 +10,7 @@ const injectInterpreterUrl = new URL(injectInterpreterRelativeUrl, import.meta.u
 
 export const PreviewIframe = memo((props: PreviewIframeProps) => {
   const iframeSrc = useMemo(() => {
-    const html = `<!DOCTYPE html><script src="${injectInterpreterUrl}" type="module" onload="this.remove()"></script>`
+    const html = `<!DOCTYPE html><meta name="color-scheme" content="light dark"><script src="${injectInterpreterUrl}" type="module" onload="this.remove()"></script>`
     const blob = new Blob([html], { type: 'text/html' })
     return URL.createObjectURL(blob)
   }, [])
