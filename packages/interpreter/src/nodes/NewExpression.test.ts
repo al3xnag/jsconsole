@@ -1,4 +1,4 @@
-import { expect } from 'vitest'
+import { describe, expect } from 'vitest'
 import { it } from '../test-utils'
 import { ProxyMetadata, WeakMapMetadata, WeakSetMetadata } from '../lib/Metadata'
 
@@ -45,3 +45,63 @@ it('new Proxy({ x: 1 }, { get() { return 2 } })', ({ value, metadata }) => {
   })
 })
 it('({ ...new Proxy({ x: 1 }, { get() { return 2 } }) })', { x: 2 })
+
+describe('TypeError: ... is not a constructor', () => {
+  it('new 1', ({ thrown }) => {
+    expect(thrown).toThrow(new TypeError('1 is not a constructor'))
+  })
+  it('new 1()', ({ thrown }) => {
+    expect(thrown).toThrow(new TypeError('1 is not a constructor'))
+  })
+  it('new null()', ({ thrown }) => {
+    expect(thrown).toThrow(new TypeError('null is not a constructor'))
+  })
+  it('var a = null; new a()', ({ thrown }) => {
+    expect(thrown).toThrow(new TypeError('a is not a constructor'))
+  })
+  it('var a = null; new a', ({ thrown }) => {
+    expect(thrown).toThrow(new TypeError('a is not a constructor'))
+  })
+  it('new {}', ({ thrown }) => {
+    expect(thrown).toThrow(new TypeError('{} is not a constructor'))
+  })
+  it('new {}()', ({ thrown }) => {
+    expect(thrown).toThrow(new TypeError('{} is not a constructor'))
+  })
+  it('new Math', ({ thrown }) => {
+    expect(thrown).toThrow(new TypeError('Math is not a constructor'))
+  })
+  it('new Function.prototype', ({ thrown }) => {
+    expect(thrown).toThrow(new TypeError('Function.prototype is not a constructor'))
+  })
+  it('new Function', expect.any(Function))
+  it('var a = function () {}; new a()', {})
+  it('var a = async function () {}; new a()', ({ thrown }) => {
+    expect(thrown).toThrow(new TypeError('a is not a constructor'))
+  })
+  it('var a = () => {}; new a()', ({ thrown }) => {
+    expect(thrown).toThrow(new TypeError('a is not a constructor'))
+  })
+  it('new {method() {}}.method', ({ thrown }) => {
+    // It's "TypeError: {(intermediate value)}.method is not a constructor" in Chrome
+    expect(thrown).toThrow(new TypeError('{method() {}}.method is not a constructor'))
+  })
+  it('new {method: function() {}}.method()', {})
+  it('new {method: () => {}}.method', ({ thrown }) => {
+    // It's "TypeError: {(intermediate value)}.method is not a constructor" in Chrome
+    expect(thrown).toThrow(new TypeError('{method: () => {}}.method is not a constructor'))
+  })
+  it('new Number()', new Number())
+  it('new Number(1)', new Number(1))
+  it('new (Number.bind())()', new Number())
+  it('new Number.bind()', ({ thrown }) => {
+    expect(thrown).toThrow(new TypeError('Number.bind is not a constructor'))
+  })
+  it('new BigInt()', ({ thrown }) => {
+    expect(thrown).toThrow(new TypeError('BigInt is not a constructor'))
+  })
+  it('new Symbol()', ({ thrown }) => {
+    expect(thrown).toThrow(new TypeError('Symbol is not a constructor'))
+  })
+  it('new URL("https://example.com")', new URL('https://example.com'))
+})

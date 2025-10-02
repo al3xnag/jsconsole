@@ -52,6 +52,7 @@ test('reusing globalObject & globalScope', () => {
     arrow: false,
     async: false,
     generator: false,
+    constructor: true,
   })
 })
 

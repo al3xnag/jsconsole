@@ -87,7 +87,7 @@ export function createFunction(node: AnyFunction, scope: Scope, context: Context
 
   let fn: Function
   // NOTE: generator functions are not supported at the moment.
-  const isArrow = node.type === 'ArrowFunctionExpression'
+  const isArrow = isArrowFunction(node)
   if (isArrow) {
     function evaluate(...args: unknown[]) {
       return evaluateRunner({
@@ -135,6 +135,7 @@ export function createFunction(node: AnyFunction, scope: Scope, context: Context
     arrow: isArrow,
     async: node.async,
     generator: node.generator,
+    constructor: isConstructor(node),
   })
 
   syncContext?.tmpRefs.add(fn)
@@ -190,6 +191,22 @@ function getFnSourceCode(node: AnyFunction, context: Context): string {
   }
 
   return getNodeText(node, context.code)
+}
+
+function isConstructor(node: AnyFunction): boolean {
+  if (node.async || node.generator || isArrowFunction(node)) {
+    return false
+  }
+
+  if (node.parent?.type === 'Property' && node.parent.method) {
+    return false
+  }
+
+  return true
+}
+
+function isArrowFunction(node: AnyFunction): boolean {
+  return node.type === 'ArrowFunctionExpression'
 }
 
 function* initScope(

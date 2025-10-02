@@ -7,11 +7,13 @@ import { WeakMapMetadata, WeakSetMetadata } from '../lib/Metadata'
 import { assertFunctionSideEffectFree } from '../lib/assertFunctionSideEffectFree'
 import { syncContext } from '../lib/syncContext'
 import { logEvaluated, logEvaluating } from '../lib/log'
+import { getNodeText } from '../lib/getNodeText'
 
 const WeakMapInitial = WeakMap
 const WeakSetInitial = WeakSet
 const ProxyInitial = Proxy
 
+// https://tc39.es/ecma262/#sec-new-operator
 export function* evaluateNewExpression(
   node: NewExpression,
   scope: Scope,
@@ -34,7 +36,12 @@ export function* evaluateNewExpression(
     }
   }
 
-  if (syncContext?.throwOnSideEffect && typeof callee === 'function') {
+  if (!isConstructor(callee, context)) {
+    const calleeStr = getNodeText(node.callee, context.code)
+    throw new TypeError(`${calleeStr} is not a constructor`)
+  }
+
+  if (syncContext?.throwOnSideEffect) {
     assertFunctionSideEffectFree(callee, context)
   }
 
@@ -57,6 +64,30 @@ export function* evaluateNewExpression(
   const evaluated: EvaluatedNode = { value: instanceRef.value }
   DEV: logEvaluated(evaluated, node, context)
   return yield evaluated
+}
+
+// https://tc39.es/ecma262/#sec-isconstructor
+function isConstructor(callee: unknown, context: Context): callee is Function {
+  if (typeof callee !== 'function') {
+    return false
+  }
+
+  const metadata = context.metadata.functions.get(callee)
+  if (metadata && typeof metadata.constructor === 'boolean') {
+    return metadata.constructor
+  }
+
+  // There is no built-in way to check whether an unknown value is constructable (has [[Construct]] internal method).
+  // Since this interpreter is non-sandboxed, and `callee` can be an external value created outside of the interpreter,
+  // we use this workaround to check if the value is constructable:
+  try {
+    // `callee` isn't called here, so it's safe in terms of side effects.
+    Reflect.construct(function () {}, [], callee)
+  } catch {
+    return false
+  }
+
+  return true
 }
 
 // TODO: Reflect.construct(WeakMap, args)

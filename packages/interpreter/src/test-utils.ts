@@ -214,6 +214,7 @@ function getBasicGlobalObjectProperties() {
     ReferenceError: p('ReferenceError'),
     JSON: p('JSON'),
     Math: p('Math'),
+    URL: p('URL'),
     console: p('console'),
     setTimeout: p('setTimeout'),
     clearTimeout: p('clearTimeout'),
