@@ -146,12 +146,16 @@ function functionPrototypeBindHookHandler(
     return
   }
 
+  const targetFunction = fnThis
+  const targetFunctionMetadata = context.metadata.functions.get(targetFunction)
+
   const [boundThis, ...boundArgs] = fnArgs as [unknown, ...unknown[]]
   context.metadata.functions.set(resultRef.value, {
+    ...targetFunctionMetadata,
     bound: true,
     boundThis,
     boundArgs,
-    targetFunction: fnThis,
+    targetFunction,
   })
 }
 
@@ -172,7 +176,7 @@ function functionPrototypeToStringHookHandler(
     return
   }
 
-  if (fnMetadata.sourceCode !== undefined) {
+  if (fnMetadata.sourceCode !== undefined && !fnMetadata.bound) {
     resultRef.value = fnMetadata.sourceCode satisfies string
   }
 }
