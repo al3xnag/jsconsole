@@ -135,7 +135,7 @@ export function createFunction(node: AnyFunction, scope: Scope, context: Context
     arrow: isArrow,
     async: node.async,
     generator: node.generator,
-    constructor: isConstructor(node),
+    constructable: isConstructable(node),
   })
 
   syncContext?.tmpRefs.add(fn)
@@ -193,7 +193,7 @@ function getFnSourceCode(node: AnyFunction, context: Context): string {
   return getNodeText(node, context.code)
 }
 
-function isConstructor(node: AnyFunction): boolean {
+function isConstructable(node: AnyFunction): boolean {
   if (node.async || node.generator || isArrowFunction(node)) {
     return false
   }

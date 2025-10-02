@@ -14,7 +14,7 @@ export type FunctionMetadata = {
   arrow?: boolean
   async?: boolean
   generator?: boolean
-  constructor?: boolean
+  constructable?: boolean
 }
 
 export type PromiseMetadata = {

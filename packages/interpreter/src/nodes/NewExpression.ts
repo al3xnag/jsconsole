@@ -73,8 +73,8 @@ function isConstructor(callee: unknown, context: Context): callee is Function {
   }
 
   const metadata = context.metadata.functions.get(callee)
-  if (metadata && typeof metadata.constructor === 'boolean') {
-    return metadata.constructor
+  if (metadata && typeof metadata.constructable === 'boolean') {
+    return metadata.constructable
   }
 
   // There is no built-in way to check whether an unknown value is constructable (has [[Construct]] internal method).
