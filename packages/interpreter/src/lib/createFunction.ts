@@ -51,7 +51,7 @@ type ArrowFunctionCallMeta = {
 
 export function createFunction(node: AnyFunction, scope: Scope, context: Context): Function {
   if (node.generator) {
-    throw new UnsupportedOperationError()
+    throw new UnsupportedOperationError('Generator function is not supported')
   }
 
   function* evaluateGenerator(meta: FunctionCallMeta | ArrowFunctionCallMeta): EvaluateGenerator {

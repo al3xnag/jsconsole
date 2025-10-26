@@ -23,5 +23,5 @@ export function* evaluateMetaProperty(
     return yield evaluated
   }
 
-  throw new UnsupportedOperationError()
+  throw new UnsupportedOperationError('MetaProperty is not supported')
 }

@@ -5,6 +5,7 @@ import { Context, EvaluatedNode, EvaluateGenerator, Scope } from '../types'
 import { assertPropertyReadSideEffectFree } from '../lib/assertPropertyReadSideEffectFree'
 import { syncContext } from '../lib/syncContext'
 import { logEvaluated, logEvaluating } from '../lib/log'
+import { InternalError } from '../lib/InternalError'
 
 type MemberExpressionParts = {
   object: any
@@ -43,14 +44,14 @@ export function* evaluateMemberExpressionParts(
   context: Context,
 ): Generator<EvaluatedNode, MemberExpressionParts, EvaluatedNode> {
   if (node.object.type === 'Super') {
-    throw new UnsupportedOperationError()
+    throw new UnsupportedOperationError('Super is not supported')
   }
 
   node.object.parent = node
   const { value: object } = yield* evaluateNode(node.object, scope, context)
 
   if (node.property.type === 'PrivateIdentifier') {
-    throw new UnsupportedOperationError()
+    throw new UnsupportedOperationError('PrivateIdentifier is not supported')
   }
 
   let propertyKey: PropertyKey
@@ -58,7 +59,7 @@ export function* evaluateMemberExpressionParts(
     if (node.property.type === 'Identifier') {
       propertyKey = node.property.name
     } else {
-      throw new UnsupportedOperationError()
+      throw new InternalError('Unexpected property type: ' + node.property.type)
     }
   } else {
     node.property.parent = node
