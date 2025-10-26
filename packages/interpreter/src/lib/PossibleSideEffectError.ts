@@ -1,4 +1,4 @@
-export class PossibleSideEffectError extends Error {
+export class PossibleSideEffectError extends EvalError {
   constructor() {
     super('Possible side effect detected')
   }
