@@ -124,7 +124,7 @@ export function ConsoleEagerPreview({ editor }: { editor: EditorView | undefined
       {valueContext && value !== NO_VALUE && (
         <ValueContextProvider value={valueContext}>
           <span ref={previewWrapperRef}>
-            <ValuePreview value={value} placement="top" />
+            <ValuePreview key={actualInput} value={value} placement="top" />
           </span>
         </ValueContextProvider>
       )}
