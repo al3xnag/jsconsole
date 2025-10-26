@@ -5,6 +5,7 @@
   "type": "module",
   "main": "./src/index.ts",
   "scripts": {
+    "build": "tsdown",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "lint": "eslint .",
@@ -18,6 +19,7 @@
     "globals": "^16.0.0",
     "happy-dom": "^17.4.4",
     "prettier": "^3.5.3",
+    "tsdown": "^0.15.9",
     "typescript": "~5.7.2",
     "typescript-eslint": "^8.28.0",
     "vitest": "^3.0.9"
