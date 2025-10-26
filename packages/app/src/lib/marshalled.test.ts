@@ -744,21 +744,16 @@ describe('toMarshalled', () => {
     // Error
     [
       (() => {
-        return new Error('test')
+        const err = new Error('test')
+        Object.defineProperty(err, 'stack', { value: 'test', configurable: true })
+        return err
       })(),
       {
         $: 'error',
         proto: 'Error.prototype',
         props: {
           names: [
-            [
-              'stack',
-              {
-                configurable: true,
-                get: expect.any(Object),
-                set: expect.any(Object),
-              },
-            ],
+            ['stack', { value: 'test', configurable: true }],
             ['message', { value: 'test', writable: true, configurable: true }],
           ],
         },
@@ -766,21 +761,16 @@ describe('toMarshalled', () => {
     ],
     [
       (() => {
-        return new TypeError('test')
+        const err = new TypeError('test')
+        Object.defineProperty(err, 'stack', { value: 'test', configurable: true })
+        return err
       })(),
       {
         $: 'error',
         proto: 'TypeError.prototype',
         props: {
           names: [
-            [
-              'stack',
-              {
-                configurable: true,
-                get: expect.any(Object),
-                set: expect.any(Object),
-              },
-            ],
+            ['stack', { value: 'test', configurable: true }],
             ['message', { value: 'test', writable: true, configurable: true }],
           ],
         },
