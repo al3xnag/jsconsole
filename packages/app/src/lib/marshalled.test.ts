@@ -744,16 +744,21 @@ describe('toMarshalled', () => {
     // Error
     [
       (() => {
-        const err = new Error('test')
-        err.stack = 'test'
-        return err
+        return new Error('test')
       })(),
       {
         $: 'error',
         proto: 'Error.prototype',
         props: {
           names: [
-            ['stack', { value: 'test', writable: true, configurable: true }],
+            [
+              'stack',
+              {
+                configurable: true,
+                get: expect.any(Object),
+                set: expect.any(Object),
+              },
+            ],
             ['message', { value: 'test', writable: true, configurable: true }],
           ],
         },
@@ -761,16 +766,21 @@ describe('toMarshalled', () => {
     ],
     [
       (() => {
-        const err = new TypeError('test')
-        err.stack = 'test'
-        return err
+        return new TypeError('test')
       })(),
       {
         $: 'error',
         proto: 'TypeError.prototype',
         props: {
           names: [
-            ['stack', { value: 'test', writable: true, configurable: true }],
+            [
+              'stack',
+              {
+                configurable: true,
+                get: expect.any(Object),
+                set: expect.any(Object),
+              },
+            ],
             ['message', { value: 'test', writable: true, configurable: true }],
           ],
         },
