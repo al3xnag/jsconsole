@@ -46,11 +46,17 @@ export function* evaluateUpdateExpression(
 
   switch (operator) {
     case '++': {
-      setValue(oldValue + 1)
+      // Note: 1n + 1 // TypeError: Cannot mix BigInt and other types, use explicit conversions
+      // Note: "a" + 1 // "a1", but var a = "a"; a++ // NaN
+      let newValue = oldValue
+      newValue++
+      setValue(newValue)
       break
     }
     case '--': {
-      setValue(oldValue - 1)
+      let newValue = oldValue
+      newValue--
+      setValue(newValue)
       break
     }
     default: {
