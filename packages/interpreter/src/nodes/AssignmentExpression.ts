@@ -7,15 +7,12 @@ import { evaluateMemberExpression, evaluateMemberExpressionParts } from './Membe
 import { evaluatePattern } from './Pattern'
 import { assertNever } from '../lib/assert'
 import { InternalError } from '../lib/InternalError'
-import { logEvaluated, logEvaluating } from '../lib/log'
 
 export function* evaluateAssignmentExpression(
   node: AssignmentExpression,
   scope: Scope,
   context: Context,
 ): EvaluateGenerator {
-  DEV: logEvaluating(node, context)
-
   const { left, right, operator } = node
   left.parent = node
   right.parent = node
@@ -52,8 +49,7 @@ export function* evaluateAssignmentExpression(
     evaluated = { value: rightValue }
   }
 
-  DEV: logEvaluated(evaluated, node, context)
-  return yield evaluated
+  return evaluated
 }
 
 function* evaluateAssignmentValue(

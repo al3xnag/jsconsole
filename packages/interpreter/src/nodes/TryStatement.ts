@@ -4,7 +4,6 @@ import { evaluateNode } from '.'
 import { evaluatePattern } from './Pattern'
 import { EMPTY, UNINITIALIZED, TYPE_RETURN } from '../constants'
 import { getLeftHandPatternIdentifiers } from '../lib/bound-identifiers'
-import { logEvaluated, logEvaluating } from '../lib/log'
 
 // https://tc39.es/ecma262/#sec-try-statement
 export function* evaluateTryStatement(
@@ -12,8 +11,6 @@ export function* evaluateTryStatement(
   scope: Scope,
   context: Context,
 ): EvaluateGenerator {
-  DEV: logEvaluating(node, context)
-
   let result: EvaluatedNode
 
   const { block, handler, finalizer } = node
@@ -63,6 +60,5 @@ export function* evaluateTryStatement(
     result.value = undefined
   }
 
-  DEV: logEvaluated(result, node, context)
-  return yield result
+  return result
 }

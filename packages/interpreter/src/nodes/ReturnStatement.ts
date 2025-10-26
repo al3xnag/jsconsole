@@ -2,7 +2,6 @@ import { ReturnStatement } from 'acorn'
 import { evaluateNode } from '.'
 import { Context, EvaluatedNode, EvaluateGenerator, Scope } from '../types'
 import { TYPE_RETURN } from '../constants'
-import { logEvaluated, logEvaluating } from '../lib/log'
 
 // https://tc39.es/ecma262/#sec-return-statement
 // TODO: generators: 3. If GetGeneratorKind() is async, set exprValue to ? Await(exprValue)
@@ -11,8 +10,6 @@ export function* evaluateReturnStatement(
   scope: Scope,
   context: Context,
 ): EvaluateGenerator {
-  DEV: logEvaluating(node, context)
-
   let evaluated: EvaluatedNode
 
   if (node.argument) {
@@ -27,6 +24,5 @@ export function* evaluateReturnStatement(
     type: TYPE_RETURN,
   }
 
-  DEV: logEvaluated(evaluated, node, context)
-  return yield evaluated
+  return evaluated
 }

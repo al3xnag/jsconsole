@@ -4,7 +4,6 @@ import { UnsupportedOperationError } from '../lib/UnsupportedOperationError'
 import { Context, EvaluatedNode, EvaluateGenerator, Scope } from '../types'
 import { assertPropertyReadSideEffectFree } from '../lib/assertPropertyReadSideEffectFree'
 import { syncContext } from '../lib/syncContext'
-import { logEvaluated, logEvaluating } from '../lib/log'
 import { InternalError } from '../lib/InternalError'
 
 type MemberExpressionParts = {
@@ -18,8 +17,6 @@ export function* evaluateMemberExpression(
   context: Context,
   preEvaluatedParts?: MemberExpressionParts,
 ): EvaluateGenerator {
-  DEV: logEvaluating(node, context)
-
   const { object, propertyKey } =
     preEvaluatedParts ?? (yield* evaluateMemberExpressionParts(node, scope, context))
 
@@ -29,13 +26,10 @@ export function* evaluateMemberExpression(
 
   const value = node.optional ? object?.[propertyKey] : object[propertyKey]
 
-  const evaluated: EvaluatedNode = {
+  return {
     value,
     base: object,
   }
-
-  DEV: logEvaluated(evaluated, node, context)
-  return yield evaluated
 }
 
 export function* evaluateMemberExpressionParts(

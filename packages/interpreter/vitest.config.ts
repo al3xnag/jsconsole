@@ -8,4 +8,7 @@ export default defineConfig({
       html: 'vitest-report/index.html',
     },
   },
+  define: {
+    DEBUG_INT: process.env.DEBUG_INT ? 'true' : 'false',
+  },
 })

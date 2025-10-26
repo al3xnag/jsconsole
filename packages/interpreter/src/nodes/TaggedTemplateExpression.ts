@@ -1,9 +1,8 @@
 import { TaggedTemplateExpression } from 'acorn'
-import { Context, EvaluatedNode, EvaluateGenerator, Scope } from '../types'
+import { Context, EvaluateGenerator, Scope } from '../types'
 import { evaluateNode } from '.'
 import { assertFunctionSideEffectFree } from '../lib/assertFunctionSideEffectFree'
 import { syncContext } from '../lib/syncContext'
-import { logEvaluated, logEvaluating } from '../lib/log'
 
 const defineProperty = Object.defineProperty
 const freeze = Object.freeze
@@ -13,8 +12,6 @@ export function* evaluateTaggedTemplateExpression(
   scope: Scope,
   context: Context,
 ): EvaluateGenerator {
-  DEV: logEvaluating(node, context)
-
   const { tag, quasi } = node
   tag.parent = node
   quasi.parent = node
@@ -44,8 +41,5 @@ export function* evaluateTaggedTemplateExpression(
   }
 
   const result = fn(templateObject, ...exprValues)
-
-  const evaluated: EvaluatedNode = { value: result }
-  DEV: logEvaluated(evaluated, node, context)
-  return yield evaluated
+  return { value: result }
 }

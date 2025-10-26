@@ -4,15 +4,12 @@ import { evaluateNode } from '.'
 import { TYPE_AWAIT } from '../constants'
 import { PossibleSideEffectError } from '../lib/PossibleSideEffectError'
 import { syncContext } from '../lib/syncContext'
-import { logEvaluated, logEvaluating } from '../lib/log'
 
 export function* evaluateAwaitExpression(
   node: AwaitExpression,
   scope: Scope,
   context: Context,
 ): EvaluateGenerator {
-  DEV: logEvaluating(node, context)
-
   if (syncContext?.throwOnSideEffect) {
     throw new PossibleSideEffectError()
   }
@@ -23,6 +20,5 @@ export function* evaluateAwaitExpression(
     value,
   }
 
-  DEV: logEvaluated(evaluated, node, context)
   return yield evaluated
 }

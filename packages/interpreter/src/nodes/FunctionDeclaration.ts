@@ -1,5 +1,5 @@
 import { AnonymousFunctionDeclaration, FunctionDeclaration } from 'acorn'
-import { Context, EvaluatedNode, EvaluateGenerator, FunctionScope, Scope } from '../types'
+import { Context, EvaluateGenerator, FunctionScope, Scope } from '../types'
 import { createFunction } from '../lib/createFunction'
 import { defineVariable } from '../lib/defineVariable'
 import { closestScope } from '../lib/scopes'
@@ -7,15 +7,12 @@ import { InternalError } from '../lib/InternalError'
 import { EMPTY } from '../constants'
 import { PossibleSideEffectError } from '../lib/PossibleSideEffectError'
 import { syncContext } from '../lib/syncContext'
-import { logEvaluated, logEvaluating } from '../lib/log'
 
 export function* evaluateFunctionDeclaration(
   node: FunctionDeclaration | AnonymousFunctionDeclaration,
   scope: Scope,
   context: Context,
 ): EvaluateGenerator {
-  DEV: logEvaluating(node, context)
-
   // https://dev.to/rkirsling/tales-from-ecma-s-crypt-annex-b-3-3-56go
   // https://262.ecma-international.org/6.0/#sec-block-level-function-declarations-web-legacy-compatibility-semantics
   // https://tc39.es/ecma262/#sec-web-compat-functiondeclarationinstantiation
@@ -45,9 +42,7 @@ export function* evaluateFunctionDeclaration(
     }
   }
 
-  const evaluated: EvaluatedNode = { value: EMPTY }
-  DEV: logEvaluated(evaluated, node, context)
-  return yield evaluated
+  return { value: EMPTY }
 }
 
 export function hoistFunctionDeclaration(

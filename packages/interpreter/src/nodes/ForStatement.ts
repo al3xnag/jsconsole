@@ -1,9 +1,8 @@
 import { ForStatement } from 'acorn'
-import { BlockScope, Context, EvaluatedNode, EvaluateGenerator, Scope } from '../types'
+import { BlockScope, Context, EvaluateGenerator, Scope } from '../types'
 import { EMPTY } from '../constants'
 import { evaluateNode } from '.'
 import { initBindings } from '../lib/initBindings'
-import { logEvaluated, logEvaluating } from '../lib/log'
 import { breakableStatementCompletion, loopContinues, updateEmpty } from '../lib/evaluation-utils'
 
 // https://tc39.es/ecma262/#sec-for-statement
@@ -13,8 +12,6 @@ export function* evaluateForStatement(
   context: Context,
   labels?: string[],
 ): EvaluateGenerator {
-  DEV: logEvaluating(node, context)
-
   let value: unknown = undefined
 
   const { init, test, update, body } = node
@@ -55,9 +52,7 @@ export function* evaluateForStatement(
     if (test) {
       const evaluatedTest = yield* evaluateNode(test, forScope, context)
       if (!evaluatedTest.value) {
-        const evaluated: EvaluatedNode = { value }
-        DEV: logEvaluated(evaluated, node, context)
-        return yield evaluated
+        return { value }
       }
     }
 
@@ -65,8 +60,7 @@ export function* evaluateForStatement(
 
     if (!loopContinues(evaluatedBody, labels)) {
       const evaluated = breakableStatementCompletion(updateEmpty(evaluatedBody, value))
-      DEV: logEvaluated(evaluated, node, context)
-      return yield evaluated
+      return evaluated
     }
 
     if (evaluatedBody.value !== EMPTY) {

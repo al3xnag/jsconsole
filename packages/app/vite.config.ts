@@ -7,13 +7,10 @@ import { execSync } from 'child_process'
 const commitHash = execSync('git rev-parse --short HEAD').toString().trim()
 
 // https://vite.dev/config/
-export default defineConfig(({ mode }) => {
+export default defineConfig(() => {
   return {
     base: process.env.BASE,
     plugins: [react(), tailwindcss()],
-    esbuild: {
-      dropLabels: mode === 'production' ? ['DEV'] : undefined,
-    },
     resolve: {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url)),
@@ -21,6 +18,7 @@ export default defineConfig(({ mode }) => {
     },
     define: {
       APP_VERSION: JSON.stringify(process.env.npm_package_version + '+' + commitHash),
+      DEBUG_INT: process.env.DEBUG_INT ? 'true' : 'false',
     },
   }
 })

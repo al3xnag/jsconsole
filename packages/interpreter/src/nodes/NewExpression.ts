@@ -1,12 +1,11 @@
 import { NewExpression } from 'acorn'
 import { evaluateNode } from '.'
-import { Context, EvaluatedNode, EvaluateGenerator, Scope } from '../types'
+import { Context, EvaluateGenerator, Scope } from '../types'
 import { getOrCreateSharedWeakRef } from '../lib/sharedWeakRefMap'
 import { unbindFunctionCall } from '../lib/unbindFunctionCall'
 import { WeakMapMetadata, WeakSetMetadata } from '../lib/Metadata'
 import { assertFunctionSideEffectFree } from '../lib/assertFunctionSideEffectFree'
 import { syncContext } from '../lib/syncContext'
-import { logEvaluated, logEvaluating } from '../lib/log'
 import { getNodeText } from '../lib/getNodeText'
 
 const WeakMapInitial = WeakMap
@@ -19,8 +18,6 @@ export function* evaluateNewExpression(
   scope: Scope,
   context: Context,
 ): EvaluateGenerator {
-  DEV: logEvaluating(node, context)
-
   const { value: callee } = yield* evaluateNode(node.callee, scope, context)
 
   const args: unknown[] = []
@@ -61,9 +58,7 @@ export function* evaluateNewExpression(
 
   syncContext?.tmpRefs.add(instanceRef.value)
 
-  const evaluated: EvaluatedNode = { value: instanceRef.value }
-  DEV: logEvaluated(evaluated, node, context)
-  return yield evaluated
+  return { value: instanceRef.value }
 }
 
 // https://tc39.es/ecma262/#sec-isconstructor

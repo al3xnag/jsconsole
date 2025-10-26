@@ -1,14 +1,10 @@
 import { Literal } from 'acorn'
-import { Context, EvaluatedNode, EvaluateGenerator, Scope } from '../types'
-import { logEvaluated, logEvaluating } from '../lib/log'
+import { Context, EvaluateGenerator, Scope } from '../types'
 
 export function* evaluateLiteral(
   node: Literal,
   _scope: Scope,
-  context: Context,
+  _context: Context,
 ): EvaluateGenerator {
-  DEV: logEvaluating(node, context)
-  const evaluated: EvaluatedNode = { value: node.value }
-  DEV: logEvaluated(evaluated, node, context)
-  return yield evaluated
+  return { value: node.value }
 }

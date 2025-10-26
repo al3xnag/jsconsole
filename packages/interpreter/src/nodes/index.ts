@@ -1,4 +1,7 @@
 import { AnonymousClassDeclaration, AnonymousFunctionDeclaration, AnyNode, Statement } from 'acorn'
+import { logEvaluated, logEvaluating } from '../lib/log'
+import { throwIfTimedOut } from '../lib/throwIfTimedOut'
+import { trackPromise } from '../lib/trackPromise'
 import { UnsupportedOperationError } from '../lib/UnsupportedOperationError'
 import { Context, EvaluateGenerator, Scope } from '../types'
 import { evaluateArrayExpression } from './ArrayExpression'
@@ -62,7 +65,7 @@ type EvaluateNode<T extends AnyNode> = (
 
 type DropFirst<T extends unknown[]> = T extends [any, ...infer U] ? U : never
 
-export function evaluateStatement<T extends StatementFixed>(
+export function* evaluateStatement<T extends StatementFixed>(
   node: T,
   ..._args: DropFirst<Parameters<EvaluateStatement<T>>>
 ): ReturnType<EvaluateStatement<T>> {
@@ -71,21 +74,32 @@ export function evaluateStatement<T extends StatementFixed>(
     throw new UnsupportedOperationError(`${node.type} is not supported`)
   }
 
-  // eslint-disable-next-line prefer-spread
-  return handler.apply(null, arguments as unknown as Parameters<EvaluateStatement<T>>)
+  return yield* handler.apply(null, arguments as unknown as Parameters<EvaluateStatement<T>>)
 }
 
-export function evaluateNode<T extends AnyNode>(
+export function* evaluateNode<T extends AnyNode>(
   node: T,
-  ..._args: DropFirst<Parameters<EvaluateNode<T>>>
+  _scope: Scope,
+  context: Context,
 ): ReturnType<EvaluateNode<T>> {
+  DEBUG_INT && logEvaluating(node, context)
+
+  throwIfTimedOut()
+
   const handler = handlers[node.type] as EvaluateNode<T> | undefined
   if (!handler) {
     throw new UnsupportedOperationError(`${node.type} is not supported`)
   }
 
-  // eslint-disable-next-line prefer-spread
-  return handler.apply(null, arguments as unknown as Parameters<EvaluateNode<T>>)
+  const evaluated = yield* handler.apply(null, arguments as unknown as Parameters<EvaluateNode<T>>)
+
+  // TODO: move to only those things, which can produce promises first time? (Expressions?)
+  if (evaluated.value instanceof Promise) {
+    trackPromise(evaluated.value, context)
+  }
+
+  DEBUG_INT && logEvaluated(evaluated, node, context)
+  return evaluated
 }
 
 const statementHandlers: Partial<{

@@ -7,5 +7,5 @@ export function* evaluateEmptyStatement(
   _scope: Scope,
   _context: Context,
 ): EvaluateGenerator {
-  return yield { value: EMPTY }
+  return { value: EMPTY }
 }

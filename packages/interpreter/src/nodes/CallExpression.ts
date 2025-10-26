@@ -2,7 +2,6 @@ import { CallExpression } from 'acorn'
 import { evaluateNode } from '.'
 import { assertFunctionCallSideEffectFree } from '../lib/assertFunctionCallSideEffectFree'
 import { getNodeText } from '../lib/getNodeText'
-import { logEvaluated, logEvaluating } from '../lib/log'
 import { getOrCreateSharedWeakRef, getSharedWeakRef } from '../lib/sharedWeakRefMap'
 import { syncContext } from '../lib/syncContext'
 import { unbindFunctionCall } from '../lib/unbindFunctionCall'
@@ -23,15 +22,12 @@ export function* evaluateCallExpression(
   scope: Scope,
   context: Context,
 ): EvaluateGenerator {
-  DEV: logEvaluating(node, context)
-
   node.callee.parent = node
   const { value: func, base: thisArg } = yield* evaluateNode(node.callee, scope, context)
 
   if (node.optional && func == null) {
     const evaluated: EvaluatedNode = { value: undefined }
-    DEV: logEvaluated(evaluated, node, context)
-    return yield evaluated
+    return evaluated
   }
 
   if (typeof func !== 'function') {
@@ -72,10 +68,7 @@ export function* evaluateCallExpression(
   }
 
   const evaluated: EvaluatedNode = { value: resultRef.value }
-
-  DEV: logEvaluated(evaluated, node, context)
-
-  return yield evaluated
+  return evaluated
 }
 
 // TODO: Reflect.apply(WeakMap.prototype.set/delete, weakMap, args)

@@ -24,8 +24,11 @@ export default defineConfig([
       '@typescript-eslint/no-unused-vars': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-unsafe-function-type': 'off',
+      '@typescript-eslint/no-unused-expressions': ['error', { allowShortCircuit: true }],
       'prefer-rest-params': 'off',
       'no-unused-labels': 'off',
+      'require-yield': 'off',
+      'prefer-spread': 'off',
     },
   },
 ])

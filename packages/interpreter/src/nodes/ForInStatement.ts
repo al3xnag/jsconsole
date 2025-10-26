@@ -1,10 +1,9 @@
 import { ForInStatement } from 'acorn'
 import { evaluateNode } from '.'
-import { BlockScope, Context, EvaluatedNode, EvaluateGenerator, Scope } from '../types'
+import { BlockScope, Context, EvaluateGenerator, Scope } from '../types'
 import { EMPTY } from '../constants'
 import { evaluatePattern } from './Pattern'
 import { initBindings } from '../lib/initBindings'
-import { logEvaluated, logEvaluating } from '../lib/log'
 import { breakableStatementCompletion, loopContinues, updateEmpty } from '../lib/evaluation-utils'
 
 // https://tc39.es/ecma262/#sec-for-in-and-for-of-statements
@@ -14,8 +13,6 @@ export function* evaluateForInStatement(
   context: Context,
   labels?: string[],
 ): EvaluateGenerator {
-  DEV: logEvaluating(node, context)
-
   let value: unknown = undefined
 
   const { left, right, body } = node
@@ -48,8 +45,7 @@ export function* evaluateForInStatement(
 
     if (!loopContinues(evaluatedBody, labels)) {
       const evaluated = breakableStatementCompletion(updateEmpty(evaluatedBody, value))
-      DEV: logEvaluated(evaluated, node, context)
-      return yield evaluated
+      return evaluated
     }
 
     if (evaluatedBody.value !== EMPTY) {
@@ -57,7 +53,5 @@ export function* evaluateForInStatement(
     }
   }
 
-  const evaluated: EvaluatedNode = { value }
-  DEV: logEvaluated(evaluated, node, context)
-  return yield evaluated
+  return { value }
 }

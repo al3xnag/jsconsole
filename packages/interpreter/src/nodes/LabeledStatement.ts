@@ -1,7 +1,6 @@
 import { LabeledStatement } from 'acorn'
 import { Context, EvaluateGenerator, Scope } from '../types'
 import { evaluateStatement } from '.'
-import { logEvaluated, logEvaluating } from '../lib/log'
 import { TYPE_BREAK } from '../constants'
 
 export function* evaluateLabeledStatement(
@@ -10,8 +9,6 @@ export function* evaluateLabeledStatement(
   context: Context,
   labels?: string[],
 ): EvaluateGenerator {
-  DEV: logEvaluating(node, context)
-
   const { label, body } = node
   label.parent = node
   body.parent = node
@@ -24,6 +21,5 @@ export function* evaluateLabeledStatement(
     evaluated = { value: evaluated.value }
   }
 
-  DEV: logEvaluated(evaluated, node, context)
-  return yield evaluated
+  return evaluated
 }

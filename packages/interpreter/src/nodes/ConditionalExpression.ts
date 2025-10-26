@@ -1,7 +1,6 @@
 import { ConditionalExpression } from 'acorn'
 import { Context, EvaluateGenerator, Scope } from '../types'
 import { evaluateNode } from '.'
-import { logEvaluated, logEvaluating } from '../lib/log'
 
 // https://tc39.es/ecma262/#sec-conditional-operator
 export function* evaluateConditionalExpression(
@@ -9,8 +8,6 @@ export function* evaluateConditionalExpression(
   scope: Scope,
   context: Context,
 ): EvaluateGenerator {
-  DEV: logEvaluating(node, context)
-
   const { test, consequent, alternate } = node
   test.parent = node
   consequent.parent = node
@@ -21,6 +18,5 @@ export function* evaluateConditionalExpression(
     ? yield* evaluateNode(consequent, scope, context)
     : yield* evaluateNode(alternate, scope, context)
 
-  DEV: logEvaluated(evaluated, node, context)
-  return yield evaluated
+  return evaluated
 }

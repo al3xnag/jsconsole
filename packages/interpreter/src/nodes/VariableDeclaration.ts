@@ -3,25 +3,20 @@ import { evaluateNode } from '.'
 import { EMPTY } from '../constants'
 import { defineVariable } from '../lib/defineVariable'
 import { getVariableDeclaratorIdentifiers } from '../lib/bound-identifiers'
-import { Context, EvaluatedNode, EvaluateGenerator, Scope } from '../types'
+import { Context, EvaluateGenerator, Scope } from '../types'
 import { evaluatePattern } from './Pattern'
-import { logEvaluated, logEvaluating } from '../lib/log'
 
 export function* evaluateVariableDeclaration(
   node: VariableDeclaration,
   scope: Scope,
   context: Context,
 ): EvaluateGenerator {
-  DEV: logEvaluating(node, context)
-
   for (const declaration of node.declarations) {
     declaration.parent = node
     yield* evaluateVariableDeclarator(declaration, scope, context)
   }
 
-  const evaluated: EvaluatedNode = { value: EMPTY }
-  DEV: logEvaluated(evaluated, node, context)
-  return yield evaluated
+  return { value: EMPTY }
 }
 
 export function* evaluateVariableDeclarator(
@@ -29,15 +24,11 @@ export function* evaluateVariableDeclarator(
   scope: Scope,
   context: Context,
 ): EvaluateGenerator {
-  DEV: logEvaluating(node, context)
-
   const { id, init } = node
   const declaration = node.parent as VariableDeclaration
 
   if (declaration.kind === 'var' && !init) {
-    const evaluated: EvaluatedNode = { value: EMPTY }
-    DEV: logEvaluated(evaluated, node, context)
-    return yield evaluated
+    return { value: EMPTY }
   }
 
   let value: unknown = undefined
@@ -51,9 +42,7 @@ export function* evaluateVariableDeclarator(
   id.parent = node
   yield* evaluatePattern(id, value, scope, context, { init: true })
 
-  const evaluated: EvaluatedNode = { value: EMPTY }
-  DEV: logEvaluated(evaluated, node, context)
-  return yield evaluated
+  return { value: EMPTY }
 }
 
 export function hoistVariableDeclaration(

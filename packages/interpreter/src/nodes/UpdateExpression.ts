@@ -5,15 +5,12 @@ import { setVariableValue } from '../lib/setVariableValue'
 import { getVariableValue } from '../lib/getVariableValue'
 import { evaluateMemberExpression, evaluateMemberExpressionParts } from './MemberExpression'
 import { setPropertyValue } from '../lib/setPropertyValue'
-import { logEvaluated, logEvaluating } from '../lib/log'
 
 export function* evaluateUpdateExpression(
   node: UpdateExpression,
   scope: Scope,
   context: Context,
 ): EvaluateGenerator {
-  DEV: logEvaluating(node, context)
-
   const { argument, operator, prefix } = node
   argument.parent = node
 
@@ -21,7 +18,6 @@ export function* evaluateUpdateExpression(
   let setValue: (value: unknown) => void
 
   if (argument.type === 'Identifier') {
-    // eslint-disable-next-line require-yield
     getValue = function* () {
       return getVariableValue(argument.name, scope, context, { throwOnUndefined: true })
     }
@@ -65,8 +61,5 @@ export function* evaluateUpdateExpression(
   }
 
   const resultValue = prefix ? yield* getValue() : oldValue
-
-  const evaluated: EvaluatedNode = { value: resultValue }
-  DEV: logEvaluated(evaluated, node, context)
-  return yield evaluated
+  return { value: resultValue }
 }

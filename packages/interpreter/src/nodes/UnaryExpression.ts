@@ -7,20 +7,14 @@ import { getIdentifier } from '../lib/getIdentifier'
 import { evaluateMemberExpressionParts } from './MemberExpression'
 import { PossibleSideEffectError } from '../lib/PossibleSideEffectError'
 import { syncContext } from '../lib/syncContext'
-import { logEvaluated, logEvaluating } from '../lib/log'
 
 export function* evaluateUnaryExpression(
   node: UnaryExpression,
   scope: Scope,
   context: Context,
 ): EvaluateGenerator {
-  DEV: logEvaluating(node, context)
-
   const value = yield* _evaluateUnaryExpression(node, scope, context)
-
-  const evaluated: EvaluatedNode = { value }
-  DEV: logEvaluated(evaluated, node, context)
-  return yield evaluated
+  return { value }
 }
 
 export function* _evaluateUnaryExpression(

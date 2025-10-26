@@ -6,7 +6,7 @@ import { run } from './lib/run'
 import { SideEffectInfo } from './lib/SideEffectInfo'
 import { setSyncContext } from './lib/syncContext'
 import { wrapObjectLiteral } from './lib/wrapObjectLiteral'
-import { evaluateProgram } from './nodes/Program'
+import { evaluateNode } from './nodes'
 import { Context, EvaluatedNode, EvaluateOptions, EvaluateResult, GlobalScope } from './types'
 
 export type { EvaluateOptions, EvaluateResult, PublicGlobalScope as GlobalScope } from './types'
@@ -66,21 +66,21 @@ export function evaluate(
 
   try {
     const evaluated: EvaluatedNode | Promise<EvaluatedNode> = run(
-      evaluateProgram(ast, context.globalScope, context),
+      evaluateNode(ast, context.globalScope, context),
       context,
     )
 
     if (evaluated instanceof Promise) {
-      DEV: context.debug?.('Result: <top-level await promise>')
+      DEBUG_INT && context.debug?.('Result: <top-level await promise>')
       return evaluated.then((evaluated) => {
         const resultValue = evaluated.value !== EMPTY ? evaluated.value : undefined
-        DEV: context.debug?.('Resolved result:', resultValue)
+        DEBUG_INT && context.debug?.('Resolved result:', resultValue)
         return { value: resultValue }
       })
     }
 
     const resultValue = evaluated.value !== EMPTY ? evaluated.value : undefined
-    DEV: context.debug?.('Result:', resultValue)
+    DEBUG_INT && context.debug?.('Result:', resultValue)
     return { value: resultValue }
   } finally {
     setSyncContext(null)

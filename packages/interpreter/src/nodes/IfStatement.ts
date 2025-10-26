@@ -1,15 +1,12 @@
 import { IfStatement } from 'acorn'
 import { Context, EvaluatedNode, EvaluateGenerator, Scope } from '../types'
 import { evaluateNode } from '.'
-import { logEvaluated, logEvaluating } from '../lib/log'
 
 export function* evaluateIfStatement(
   node: IfStatement,
   scope: Scope,
   context: Context,
 ): EvaluateGenerator {
-  DEV: logEvaluating(node, context)
-
   node.test.parent = node
   const { value: condition } = yield* evaluateNode(node.test, scope, context)
 
@@ -25,6 +22,5 @@ export function* evaluateIfStatement(
     evaluated = { value: undefined }
   }
 
-  DEV: logEvaluated(evaluated, node, context)
-  return yield evaluated
+  return evaluated
 }

@@ -3,7 +3,6 @@ import { evaluateNode } from '.'
 import { BlockScope, Context, EvaluatedNode, EvaluateGenerator, Scope } from '../types'
 import { EMPTY } from '../constants'
 import { initBindings } from '../lib/initBindings'
-import { logEvaluated, logEvaluating } from '../lib/log'
 import { isAbruptCompletion, updateEmpty } from '../lib/evaluation-utils'
 
 export function* evaluateBlockStatement(
@@ -11,8 +10,6 @@ export function* evaluateBlockStatement(
   scope: Scope,
   context: Context,
 ): EvaluateGenerator {
-  DEV: logEvaluating(node, context)
-
   if (!isFunctionBlock(node)) {
     const blockScope: BlockScope = {
       kind: 'block',
@@ -33,8 +30,7 @@ export function* evaluateBlockStatement(
 
     if (isAbruptCompletion(evaluatedBody)) {
       const evaluated = updateEmpty(evaluatedBody, value)
-      DEV: logEvaluated(evaluated, node, context)
-      return yield evaluated
+      return evaluated
     }
 
     if (evaluatedBody.value !== EMPTY) {
@@ -43,8 +39,7 @@ export function* evaluateBlockStatement(
   }
 
   const evaluated: EvaluatedNode = { value }
-  DEV: logEvaluated(evaluated, node, context)
-  return yield evaluated
+  return evaluated
 }
 
 function isFunctionBlock(node: BlockStatement): boolean {

@@ -1,17 +1,14 @@
 import { ThisExpression } from 'acorn'
-import { Context, EvaluatedNode, EvaluateGenerator, Scope } from '../types'
+import { Context, EvaluateGenerator, Scope } from '../types'
 import { findScope } from '../lib/scopes'
 import { UNINITIALIZED } from '../constants'
-import { logEvaluated, logEvaluating } from '../lib/log'
 
 // https://tc39.es/ecma262/multipage/ecmascript-language-expressions.html#sec-this-keyword
 export function* evaluateThisExpression(
-  node: ThisExpression,
+  _node: ThisExpression,
   scope: Scope,
-  context: Context,
+  _context: Context,
 ): EvaluateGenerator {
-  DEV: logEvaluating(node, context)
-
   // Global scope always has this binding.
   const { thisValue } = findScope(scope, (scope) => !!scope.hasThisBinding)!
   if (thisValue === UNINITIALIZED) {
@@ -20,7 +17,5 @@ export function* evaluateThisExpression(
     )
   }
 
-  const evaluated: EvaluatedNode = { value: thisValue }
-  DEV: logEvaluated(evaluated, node, context)
-  return yield evaluated
+  return { value: thisValue }
 }

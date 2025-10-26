@@ -14,4 +14,7 @@ export default defineConfig({
       'ts-blank-space': 'tsBlankSpace',
     },
   },
+  define: {
+    DEBUG_INT: process.env.DEBUG_INT ? 'true' : 'false',
+  },
 })

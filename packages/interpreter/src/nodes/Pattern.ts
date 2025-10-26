@@ -7,7 +7,6 @@ import { Context, EvaluatedNode, Scope } from '../types'
 import { evaluateMemberExpressionParts } from './MemberExpression'
 import { evaluatePropertyKey } from './Property'
 import { syncContext } from '../lib/syncContext'
-import { logEvaluated, logEvaluating } from '../lib/log'
 
 const assign = Object.assign
 const ObjectToString = Object.prototype.toString
@@ -20,8 +19,6 @@ export function* evaluatePattern(
   context: Context,
   { init = false }: { init?: boolean } = {},
 ): Generator<EvaluatedNode, void, EvaluatedNode> {
-  DEV: logEvaluating(node, context)
-
   switch (node.type) {
     case 'Identifier': {
       setVariableValue(node.name, value, scope, context, { init })
@@ -127,8 +124,6 @@ export function* evaluatePattern(
       assertNever(node, 'Unexpected pattern type')
     }
   }
-
-  DEV: logEvaluated(null, node, context)
 }
 
 // https://tc39.es/ecma262/#sec-requireobjectcoercible

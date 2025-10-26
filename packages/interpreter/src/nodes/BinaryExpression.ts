@@ -1,7 +1,6 @@
 import { BinaryExpression, BinaryOperator } from 'acorn'
 import { evaluateNode } from '.'
 import { Context, EvaluatedNode, EvaluateGenerator, Scope } from '../types'
-import { logEvaluated, logEvaluating } from '../lib/log'
 import { UnsupportedOperationError } from '../lib/UnsupportedOperationError'
 
 export function* evaluateBinaryExpression(
@@ -9,8 +8,6 @@ export function* evaluateBinaryExpression(
   scope: Scope,
   context: Context,
 ): EvaluateGenerator {
-  DEV: logEvaluating(node, context)
-
   node.left.parent = node
   const { value: left } = yield* evaluateNode(node.left, scope, context)
 
@@ -21,8 +18,7 @@ export function* evaluateBinaryExpression(
     value: evaluateBinary(node.operator, left, right),
   }
 
-  DEV: logEvaluated(evaluated, node, context)
-  return yield evaluated
+  return evaluated
 }
 
 function evaluateBinary(operator: BinaryOperator, left: any, right: any) {

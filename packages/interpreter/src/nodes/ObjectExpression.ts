@@ -1,10 +1,9 @@
 import { ObjectExpression, Property, SpreadElement } from 'acorn'
-import { Context, EvaluatedNode, EvaluateGenerator, Scope } from '../types'
+import { Context, EvaluateGenerator, Scope } from '../types'
 import { assertNever } from '../lib/assert'
 import { evaluateProperty } from './Property'
 import { evaluateSpreadElement } from './SpreadElement'
 import { syncContext } from '../lib/syncContext'
-import { logEvaluated, logEvaluating } from '../lib/log'
 
 const defineProperty = Object.defineProperty
 const objectCreate = Object.create
@@ -15,8 +14,6 @@ export function* evaluateObjectExpression(
   scope: Scope,
   context: Context,
 ): EvaluateGenerator {
-  DEV: logEvaluating(node, context)
-
   let prototype: object | null = objectPrototype
   const propertyDescriptors: PropertyDescriptorMap = {}
 
@@ -78,7 +75,5 @@ export function* evaluateObjectExpression(
   const object = objectCreate(prototype, propertyDescriptors)
   syncContext?.tmpRefs.add(object)
 
-  const evaluated: EvaluatedNode = { value: object }
-  DEV: logEvaluated(evaluated, node, context)
-  return yield evaluated
+  return { value: object }
 }

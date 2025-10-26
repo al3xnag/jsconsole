@@ -1,9 +1,8 @@
 import { Expression, SwitchCase, SwitchStatement } from 'acorn'
-import { BlockScope, Context, EvaluatedNode, EvaluateGenerator, Scope } from '../types'
+import { BlockScope, Context, EvaluateGenerator, Scope } from '../types'
 import { evaluateNode } from '.'
 import { initBindings } from '../lib/initBindings'
 import { EMPTY } from '../constants'
-import { logEvaluated, logEvaluating } from '../lib/log'
 import {
   breakableStatementCompletion,
   isAbruptCompletion,
@@ -19,8 +18,6 @@ export function* evaluateSwitchStatement(
   scope: Scope,
   context: Context,
 ): EvaluateGenerator {
-  DEV: logEvaluating(node, context)
-
   let result: unknown = undefined
 
   node.discriminant.parent = node
@@ -54,16 +51,13 @@ export function* evaluateSwitchStatement(
 
       if (isAbruptCompletion(evaluatedCase)) {
         const evaluated = breakableStatementCompletion(updateEmpty(evaluatedCase, result))
-        DEV: logEvaluated(evaluated, node, context)
-        return yield evaluated
+        return evaluated
       }
     }
   }
 
   if (!defaultClause) {
-    const evaluated: EvaluatedNode = { value: result }
-    DEV: logEvaluated(evaluated, node, context)
-    return yield evaluated
+    return { value: result }
   }
 
   let foundInTail = false
@@ -85,17 +79,14 @@ export function* evaluateSwitchStatement(
 
         if (isAbruptCompletion(evaluatedCase)) {
           const evaluated = breakableStatementCompletion(updateEmpty(evaluatedCase, result))
-          DEV: logEvaluated(evaluated, node, context)
-          return yield evaluated
+          return evaluated
         }
       }
     }
   }
 
   if (foundInTail) {
-    const evaluated: EvaluatedNode = { value: result }
-    DEV: logEvaluated(evaluated, node, context)
-    return yield evaluated
+    return { value: result }
   }
 
   const evaluatedDefault = yield* evaluateSwitchCase(defaultClause, switchScope, context)
@@ -106,8 +97,7 @@ export function* evaluateSwitchStatement(
 
   if (isAbruptCompletion(evaluatedDefault)) {
     const evaluated = breakableStatementCompletion(updateEmpty(evaluatedDefault, result))
-    DEV: logEvaluated(evaluated, node, context)
-    return yield evaluated
+    return evaluated
   }
 
   for (const caseClause of caseClausesTail) {
@@ -121,14 +111,11 @@ export function* evaluateSwitchStatement(
 
     if (isAbruptCompletion(evaluatedCase)) {
       const evaluated = breakableStatementCompletion(updateEmpty(evaluatedCase, result))
-      DEV: logEvaluated(evaluated, node, context)
-      return yield evaluated
+      return evaluated
     }
   }
 
-  const evaluated: EvaluatedNode = { value: result }
-  DEV: logEvaluated(evaluated, node, context)
-  return yield evaluated
+  return { value: result }
 }
 
 // CaseBlock : { CaseClauses[opt] DefaultClause[opt] CaseClauses[opt] }
@@ -166,7 +153,7 @@ function* evaluateSwitchCase(
     const evaluated = yield* evaluateNode(statement, scope, context)
 
     if (isAbruptCompletion(evaluated)) {
-      return yield updateEmpty(evaluated, value)
+      return updateEmpty(evaluated, value)
     }
 
     if (evaluated.value !== EMPTY) {
@@ -174,7 +161,7 @@ function* evaluateSwitchCase(
     }
   }
 
-  return yield { value }
+  return { value }
 }
 
 // https://tc39.es/ecma262/#sec-runtime-semantics-caseclauseisselected

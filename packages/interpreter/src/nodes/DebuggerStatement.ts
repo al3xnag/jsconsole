@@ -14,5 +14,5 @@ export function* evaluateDebuggerStatement(
     debugger
   }
 
-  return yield { value: EMPTY }
+  return { value: EMPTY }
 }

@@ -1,8 +1,7 @@
 import { DoWhileStatement } from 'acorn'
-import { Context, EvaluatedNode, EvaluateGenerator, Scope } from '../types'
+import { Context, EvaluateGenerator, Scope } from '../types'
 import { evaluateNode } from '.'
 import { EMPTY } from '../constants'
-import { logEvaluated, logEvaluating } from '../lib/log'
 import { breakableStatementCompletion, loopContinues, updateEmpty } from '../lib/evaluation-utils'
 
 // https://tc39.es/ecma262/#sec-do-while-statement
@@ -12,8 +11,6 @@ export function* evaluateDoWhileStatement(
   context: Context,
   labels?: string[],
 ): EvaluateGenerator {
-  DEV: logEvaluating(node, context)
-
   let value: unknown = undefined
 
   node.body.parent = node
@@ -24,8 +21,7 @@ export function* evaluateDoWhileStatement(
 
     if (!loopContinues(evaluatedBody, labels)) {
       const evaluated = breakableStatementCompletion(updateEmpty(evaluatedBody, value))
-      DEV: logEvaluated(evaluated, node, context)
-      return yield evaluated
+      return evaluated
     }
 
     if (evaluatedBody.value !== EMPTY) {
@@ -35,9 +31,7 @@ export function* evaluateDoWhileStatement(
     const evaluatedTest = yield* evaluateNode(node.test, scope, context)
 
     if (!evaluatedTest.value) {
-      const evaluated: EvaluatedNode = { value }
-      DEV: logEvaluated(evaluated, node, context)
-      return yield evaluated
+      return { value }
     }
   }
 }

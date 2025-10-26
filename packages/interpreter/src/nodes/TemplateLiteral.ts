@@ -1,7 +1,6 @@
 import { TemplateLiteral } from 'acorn'
-import { Context, EvaluatedNode, EvaluateGenerator, Scope } from '../types'
+import { Context, EvaluateGenerator, Scope } from '../types'
 import { evaluateNode } from '.'
-import { logEvaluated, logEvaluating } from '../lib/log'
 
 // The string conversion semantics applied to the Expression value are like
 // String.prototype.concat rather than the + operator.
@@ -14,8 +13,6 @@ export function* evaluateTemplateLiteral(
   scope: Scope,
   context: Context,
 ): EvaluateGenerator {
-  DEV: logEvaluating(node, context)
-
   let result = ''
 
   const { quasis, expressions } = node
@@ -39,7 +36,5 @@ export function* evaluateTemplateLiteral(
     }
   }
 
-  const evaluated: EvaluatedNode = { value: result }
-  DEV: logEvaluated(evaluated, node, context)
-  return yield evaluated
+  return { value: result }
 }

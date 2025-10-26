@@ -2,15 +2,12 @@ import { LogicalExpression, LogicalOperator } from 'acorn'
 import { Context, EvaluatedNode, EvaluateGenerator, Scope } from '../types'
 import { evaluateNode } from '.'
 import { UnsupportedOperationError } from '../lib/UnsupportedOperationError'
-import { logEvaluated, logEvaluating } from '../lib/log'
 
 export function* evaluateLogicalExpression(
   node: LogicalExpression,
   scope: Scope,
   context: Context,
 ): EvaluateGenerator {
-  DEV: logEvaluating(node, context)
-
   node.left.parent = node
   node.right.parent = node
 
@@ -25,8 +22,7 @@ export function* evaluateLogicalExpression(
     value: yield* evaluateLogical(node.operator, left, evaluateRight),
   }
 
-  DEV: logEvaluated(evaluated, node, context)
-  return yield evaluated
+  return evaluated
 }
 
 function* evaluateLogical(

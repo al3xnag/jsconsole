@@ -1,7 +1,6 @@
 import { AssignmentProperty, Property } from 'acorn'
 import { evaluateNode } from '.'
 import { Context, EvaluatedNode, Scope } from '../types'
-import { logEvaluatedValue, logEvaluating } from '../lib/log'
 
 export type PropertyValue = {
   key: unknown
@@ -17,15 +16,12 @@ export function* evaluateProperty(
   scope: Scope,
   context: Context,
 ): Generator<EvaluatedNode, PropertyValue, EvaluatedNode> {
-  DEV: logEvaluating(node, context)
-
   const key = yield* evaluatePropertyKey(node, scope, context)
 
   node.value.parent = node
   const { value } = yield* evaluateNode(node.value, scope, context)
 
   const propertyValue: PropertyValue = { key, value }
-  DEV: logEvaluatedValue(propertyValue, node, context)
   return propertyValue
 }
 
