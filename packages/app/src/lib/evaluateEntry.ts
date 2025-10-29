@@ -1,6 +1,6 @@
 import { ConsoleEntryInput, ConsoleEntryResult, ConsoleSession } from '@/types'
-import { INTERPRETER } from '@/constants'
 import type { EvaluateOptions, EvaluateResult } from '@jsconsole/interpreter'
+import { evaluate } from '@jsconsole/interpreter'
 import { nextId } from './nextId'
 
 export function evaluateEntry(
@@ -11,7 +11,6 @@ export function evaluateEntry(
     throw new Error('Session is not initialized')
   }
 
-  const { evaluate } = session.previewWindow[INTERPRETER]
   const options: EvaluateOptions = {
     globalObject: session.previewWindow,
     globalScope: session.globalScope,
@@ -40,8 +39,8 @@ export function evaluateEntry(
     }
   }
 
-  if (result instanceof session.globals.Promise) {
-    return Promise.resolve(result).then<ConsoleEntryResult, ConsoleEntryResult>(
+  if (result instanceof Promise) {
+    return result.then<ConsoleEntryResult, ConsoleEntryResult>(
       (result) => {
         return {
           type: 'result',

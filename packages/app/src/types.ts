@@ -1,14 +1,4 @@
-import type {
-  evaluate,
-  GlobalScope,
-  InternalError,
-  Metadata,
-  PossibleSideEffectError,
-  SideEffectInfo,
-  TimeoutError,
-  UnsupportedOperationError,
-} from '@jsconsole/interpreter'
-import { INTERPRETER } from './constants'
+import type { GlobalScope, Metadata, SideEffectInfo } from '@jsconsole/interpreter'
 import { MarshalledValue } from './lib/marshalled'
 import { AnySyntheticPropertyKey } from './lib/synthetic'
 
@@ -84,18 +74,7 @@ export type PreviewWindowExtra = {
   help: () => void
 }
 
-export type PreviewWindow = PreviewWindowRaw & PreviewWindowExtra
-
-export type PreviewWindowRaw = Window &
-  typeof globalThis & {
-    [INTERPRETER]: {
-      evaluate: typeof evaluate
-      TimeoutError: typeof TimeoutError
-      InternalError: typeof InternalError
-      PossibleSideEffectError: typeof PossibleSideEffectError
-      UnsupportedOperationError: typeof UnsupportedOperationError
-    }
-  }
+export type PreviewWindow = Window & typeof globalThis & PreviewWindowExtra
 
 export interface Store {
   sessions: ConsoleSession[]
@@ -161,6 +140,7 @@ export type Globals = {
   SyntaxError: typeof globalThis.SyntaxError
   TypeError: typeof globalThis.TypeError
   ReferenceError: typeof globalThis.ReferenceError
+  EvalError: typeof globalThis.EvalError
   DOMException: typeof globalThis.DOMException
   Promise: typeof globalThis.Promise
   Map: typeof globalThis.Map

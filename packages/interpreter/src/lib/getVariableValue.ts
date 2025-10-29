@@ -2,6 +2,7 @@ import { UNINITIALIZED } from '../constants'
 import { Context, Scope } from '../types'
 import { assertPropertyReadSideEffectFree } from './assertPropertyReadSideEffectFree'
 import { getIdentifier } from './getIdentifier'
+import { requireGlobal } from './Metadata'
 import { syncContext } from './syncContext'
 
 export function getVariableValue(
@@ -10,6 +11,8 @@ export function getVariableValue(
   context: Context,
   { throwOnUndefined = true }: { throwOnUndefined: boolean },
 ) {
+  const ReferenceError = requireGlobal(context.metadata.globals.ReferenceError, 'ReferenceError')
+
   const identifier = getIdentifier(name, scope)
   if (identifier) {
     const value = identifier.value

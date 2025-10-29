@@ -36,7 +36,7 @@ test('timeout', () => {
 test('reusing globalObject & globalScope', () => {
   const globalObject = {}
   const globalScope: PublicGlobalScope = { bindings: new Map() }
-  const metadata = new Metadata()
+  const metadata = new Metadata(globalThis)
 
   evaluate('function fn() { return 1 }', { globalObject, globalScope, metadata })
   evaluate('let a = 1', { globalObject, globalScope, metadata })

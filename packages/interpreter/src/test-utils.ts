@@ -65,7 +65,7 @@ export function it<T>(
     let result: TestEvaluateResult
     const globalObject: object = options?.globalObject ?? getBasicGlobalObject()
     const globalScope: PublicGlobalScope = options?.globalScope ?? { bindings: new Map() }
-    const metadata: Metadata = options?.metadata ?? new Metadata()
+    const metadata: Metadata = options?.metadata ?? new Metadata(globalObject)
     const debug = this?.debug ?? options?.debug
     try {
       const evalResult = await evaluate(code, {
@@ -146,7 +146,7 @@ function Object2String(this: any) {
 
 const basicGlobalObjectProperties = getBasicGlobalObjectProperties()
 
-function getBasicGlobalObject(): object {
+export function getBasicGlobalObject(): object {
   const obj = {
     get [Symbol.toStringTag]() {
       return 'BasicGlobalObject'
@@ -212,6 +212,7 @@ function getBasicGlobalObjectProperties() {
     DOMException: p('DOMException'),
     RangeError: p('RangeError'),
     ReferenceError: p('ReferenceError'),
+    EvalError: p('EvalError'),
     JSON: p('JSON'),
     Math: p('Math'),
     URL: p('URL'),
@@ -221,6 +222,7 @@ function getBasicGlobalObjectProperties() {
     setInterval: p('setInterval'),
     clearInterval: p('clearInterval'),
     Reflect: p('Reflect'),
+    eval: p('eval'),
   } satisfies Partial<Record<Exclude<keyof typeof globalThis, 'toString'>, PropertyDescriptor>>
 
   return props

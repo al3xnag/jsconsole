@@ -74,7 +74,7 @@ describe('string', () => {
 function runTestCases(cases: TestCase[]) {
   const valueContext: ValueContext = {
     globals: getGlobals(globalThis),
-    metadata: new Metadata(),
+    metadata: new Metadata(globalThis),
     sideEffectInfo: new SideEffectInfo(),
   }
 

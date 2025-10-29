@@ -145,7 +145,7 @@ export function ActionsProvider({ children }: { children: ReactNode }) {
       currentSession.previewWindow = win
       currentSession.globals = getGlobals(win)
       currentSession.globalScope = { bindings: new Map() }
-      currentSession.metadata = new Metadata()
+      currentSession.metadata = new Metadata(win)
       currentSession.sideEffectInfo = SideEffectInfo.withDefaults(win)
 
       storeDispatch({

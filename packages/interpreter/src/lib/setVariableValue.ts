@@ -2,6 +2,7 @@ import { UNINITIALIZED } from '../constants'
 import { Context, Scope } from '../types'
 import { assertNever } from './assert'
 import { findIdentifier } from './findIdentifier'
+import { requireGlobal } from './Metadata'
 import { PossibleSideEffectError } from './PossibleSideEffectError'
 import { syncContext } from './syncContext'
 
@@ -14,6 +15,9 @@ export function setVariableValue(
   context: Context,
   { init = false }: { init?: boolean } = {},
 ) {
+  const ReferenceError = requireGlobal(context.metadata.globals.ReferenceError, 'ReferenceError')
+  const TypeError = requireGlobal(context.metadata.globals.TypeError, 'TypeError')
+
   const { identifier, scope } = findIdentifier(name, outerScope)
   if (identifier) {
     if (!init) {

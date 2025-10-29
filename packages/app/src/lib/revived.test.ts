@@ -14,7 +14,7 @@ describe('toRevived', () => {
 
   const defaultContext: ValueContext = {
     globals: getGlobals(globalThis),
-    metadata: new Metadata(),
+    metadata: new Metadata(globalThis),
     sideEffectInfo: new SideEffectInfo(),
   }
 
@@ -78,7 +78,7 @@ describe('isRevived', () => {
 
   const defaultContext: ValueContext = {
     globals: getGlobals(globalThis),
-    metadata: new Metadata(),
+    metadata: new Metadata(globalThis),
     sideEffectInfo: new SideEffectInfo(),
   }
 
@@ -108,7 +108,7 @@ describe('isRevived', () => {
 describe('RevivedFunction', () => {
   const defaultContext: ValueContext = {
     globals: getGlobals(globalThis),
-    metadata: new Metadata(),
+    metadata: new Metadata(globalThis),
     sideEffectInfo: new SideEffectInfo(),
   }
 
@@ -193,7 +193,7 @@ describe('RevivedFunction', () => {
 describe('RevivedArray', () => {
   const defaultContext: ValueContext = {
     globals: getGlobals(globalThis),
-    metadata: new Metadata(),
+    metadata: new Metadata(globalThis),
     sideEffectInfo: new SideEffectInfo(),
   }
 
@@ -251,7 +251,7 @@ describe('RevivedArray', () => {
 describe('RevivedObject', () => {
   const defaultContext: ValueContext = {
     globals: getGlobals(globalThis),
-    metadata: new Metadata(),
+    metadata: new Metadata(globalThis),
     sideEffectInfo: new SideEffectInfo(),
   }
 
@@ -301,7 +301,7 @@ describe('RevivedObject', () => {
 describe('RevivedUnknownObject', () => {
   const defaultContext: ValueContext = {
     globals: getGlobals(globalThis),
-    metadata: new Metadata(),
+    metadata: new Metadata(globalThis),
     sideEffectInfo: new SideEffectInfo(),
   }
 

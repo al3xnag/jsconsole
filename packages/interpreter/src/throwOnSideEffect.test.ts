@@ -1,7 +1,12 @@
 // @vitest-environment happy-dom
 
 import { describe, expect, test } from 'vitest'
-import { ExpectToThrowPossibleSideEffectError, it, TestWindow } from './test-utils'
+import {
+  ExpectToThrowPossibleSideEffectError,
+  getBasicGlobalObject,
+  it,
+  TestWindow,
+} from './test-utils'
 import { Metadata } from './lib/Metadata'
 import { evaluate, PossibleSideEffectError } from '.'
 
@@ -10,7 +15,7 @@ const sharedTestWindow = new TestWindow()
 test('existing function evaluates with right throwOnSideEffect', () => {
   const globalObject = new TestWindow()
   const globalScope = { bindings: new Map() }
-  const metadata = new Metadata()
+  const metadata = new Metadata(globalThis)
 
   evaluate('function fn() { window.x = 1 }', { globalObject, globalScope, metadata })
   expect(() =>
@@ -56,7 +61,7 @@ describe('Date', () => {
     throwOnSideEffect: true,
   })
   it('a.setDate(19)', ExpectToThrowPossibleSideEffectError, {
-    globalObject: { a: new Date('2025-06-18') },
+    globalObject: Object.assign(getBasicGlobalObject(), { a: new Date('2025-06-18') }),
     throwOnSideEffect: true,
   })
 })
@@ -79,7 +84,7 @@ describe('Array', () => {
     throwOnSideEffect: true,
   })
   it('a.push(4)', ExpectToThrowPossibleSideEffectError, {
-    globalObject: { a: [1, 2, 3] },
+    globalObject: Object.assign(getBasicGlobalObject(), { a: [1, 2, 3] }),
     throwOnSideEffect: true,
   })
   it('[...[1,2,3]]', [1, 2, 3], {

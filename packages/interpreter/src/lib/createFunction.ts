@@ -10,6 +10,7 @@ import { iterateAncestors } from './iterateAncestors'
 import { getNodeText } from './getNodeText'
 import { syncContext } from './syncContext'
 import { hasDirective } from './directive'
+import { requireGlobal } from './Metadata'
 
 const defineProperty = Object.defineProperty
 
@@ -89,35 +90,73 @@ export function createFunction(node: AnyFunction, scope: Scope, context: Context
   // NOTE: generator functions are not supported at the moment.
   const isArrow = isArrowFunction(node)
   if (isArrow) {
-    function evaluate(...args: unknown[]) {
-      return evaluateRunner({
-        type: 'arrow-function',
-        callee: fn,
-        args,
-      })
-    }
+    if (node.async) {
+      const Promise = requireGlobal(context.metadata.globals.Promise, 'Promise')
 
-    fn = node.async
-      ? async (...args: unknown[]) => evaluate(...args)
-      : (...args: unknown[]) => evaluate(...args)
+      function evaluate(...args: unknown[]) {
+        return Promise.resolve(
+          evaluateRunner({
+            type: 'arrow-function',
+            callee: fn,
+            args,
+          }),
+        )
+      }
+
+      fn = (...args: unknown[]) => evaluate(...args)
+    } else {
+      function evaluate(...args: unknown[]) {
+        return evaluateRunner({
+          type: 'arrow-function',
+          callee: fn,
+          args,
+        })
+      }
+
+      fn = (...args: unknown[]) => evaluate(...args)
+    }
   } else {
-    function evaluate(this: unknown, _arguments: IArguments, newTarget: unknown) {
-      return evaluateRunner({
-        type: 'function',
-        callee: fn,
-        this: this,
-        arguments: _arguments,
-        newTarget,
-      })
-    }
+    if (node.async) {
+      const Promise = requireGlobal(context.metadata.globals.Promise, 'Promise')
 
-    fn = node.async
-      ? async function (this: unknown) {
-          return evaluate.call(this, arguments, new.target)
-        }
-      : function (this: unknown) {
-          return evaluate.call(this, arguments, new.target)
-        }
+      function evaluate(this: unknown, _arguments: IArguments, newTarget: unknown) {
+        return Promise.resolve(
+          evaluateRunner({
+            type: 'function',
+            callee: fn,
+            this: this,
+            arguments: _arguments,
+            newTarget,
+          }),
+        )
+      }
+
+      // NOTE: fn defined as "async" will return a Promise from the current realm,
+      // but `context.metadata.globals.Promise` is expected:
+      // `async function foo() { return 1 }; foo() instanceof Promise` must be true.
+      fn = function (this: unknown) {
+        return evaluate.call(this, arguments, new.target)
+      }
+
+      // Since fn is defined as sync function above, its "prototype" property is defined,
+      // but it is expected to be not defined in async functions.
+      // It is configurable: false, so we can't delete it. At least let's make it undefined (not great though).
+      Object.defineProperty(fn, 'prototype', { value: undefined })
+    } else {
+      function evaluate(this: unknown, _arguments: IArguments, newTarget: unknown) {
+        return evaluateRunner({
+          type: 'function',
+          callee: fn,
+          this: this,
+          arguments: _arguments,
+          newTarget,
+        })
+      }
+
+      fn = function (this: unknown) {
+        return evaluate.call(this, arguments, new.target)
+      }
+    }
   }
 
   const fnName = getFnName(node)
@@ -128,6 +167,22 @@ export function createFunction(node: AnyFunction, scope: Scope, context: Context
   // function foo (a, b = 1, ...c) {}; foo.length // 1
   const fnLength = node.params.filter((param) => param.type === 'Identifier').length
   defineProperty(fn, 'length', { value: fnLength, configurable: true })
+
+  if (node.async) {
+    const AsyncFunctionPrototype = requireGlobal(
+      context.metadata.globals.AsyncFunctionPrototype,
+      'AsyncFunction prototype',
+    )
+
+    Object.setPrototypeOf(fn, AsyncFunctionPrototype)
+  } else {
+    const FunctionPrototype = requireGlobal(
+      context.metadata.globals.FunctionPrototype,
+      'Function.prototype',
+    )
+
+    Object.setPrototypeOf(fn, FunctionPrototype)
+  }
 
   const originalFnCode = getFnSourceCode(node, context)
   context.metadata.functions.set(fn, {

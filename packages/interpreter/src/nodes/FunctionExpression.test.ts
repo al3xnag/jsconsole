@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { it } from '../test-utils'
+import { getBasicGlobalObject, it } from '../test-utils'
 import { evaluate } from '..'
 
 it('[1, 2, 3].map(function(x) { return x * 2 })', [2, 4, 6])
@@ -82,26 +82,22 @@ describe('function prototype', () => {
 
 describe('this context', () => {
   test('basic function', async () => {
-    const result = await evaluate('(function() { return this }).call(1)', { globalObject: {} })
+    const result = await evaluate('(function() { return this }).call(1)')
     expect(result.value).toEqual(new Number(1))
   })
 
   test('basic function (script strict)', async () => {
-    const result = await evaluate('"use strict"; (function() { return this }).call(1)', {
-      globalObject: {},
-    })
+    const result = await evaluate('"use strict"; (function() { return this }).call(1)')
     expect(result.value).toBe(1)
   })
 
   test('basic function (fn strict)', async () => {
-    const result = await evaluate('(function() { "use strict"; return this }).call(1)', {
-      globalObject: {},
-    })
+    const result = await evaluate('(function() { "use strict"; return this }).call(1)')
     expect(result.value).toBe(1)
   })
 
   test('arrow function', async () => {
-    const globalObject = {}
+    const globalObject = getBasicGlobalObject()
     const result = await evaluate('(() => { return this }).call(1)', { globalObject })
     expect(result.value).toBe(globalObject)
   })

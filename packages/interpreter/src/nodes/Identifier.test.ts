@@ -1,9 +1,9 @@
 import { describe, expect, test, vi } from 'vitest'
 import { evaluate } from '..'
-import { it } from '../test-utils'
+import { getBasicGlobalObject, it } from '../test-utils'
 
-it('NaN', NaN, { globalObject: { NaN } })
-it('Infinity', Infinity, { globalObject: { Infinity } })
+it('NaN', NaN)
+it('Infinity', Infinity)
 
 // NOTE: window.toString === Object.prototype.toString // true
 //       Object.getOwnPropertyDescriptor(Object.prototype, 'toString')
@@ -39,12 +39,13 @@ describe('re-declare globalThis properties using var', () => {
     { code: '{ var Math = 1; } Math' },
     { code: '"use strict"; { var Math = 1; } Math' },
   ])('writable | $code', async ({ code }) => {
-    const globalObject = Object.defineProperty({}, 'Math', {
-      value: {},
+    const globalObject = getBasicGlobalObject() as any
+    expect(Object.getOwnPropertyDescriptor(globalObject, 'Math')).toEqual({
+      value: globalObject.Math,
       writable: true,
       enumerable: false,
       configurable: true,
-    }) as any
+    })
 
     const result = await evaluate(code, { globalObject })
     expect(result.value).toBe(1)
@@ -55,12 +56,14 @@ describe('re-declare globalThis properties using var', () => {
   test.each(['var NaN = 1; NaN', '{ var NaN = 1; } NaN', 'NaN = 1; NaN'])(
     'non-writable | $code',
     async (code) => {
-      const globalObject = Object.defineProperty({}, 'NaN', {
+      const globalObject = getBasicGlobalObject() as any
+
+      expect(Object.getOwnPropertyDescriptor(globalObject, 'NaN')).toEqual({
         value: NaN,
         writable: false,
         enumerable: false,
         configurable: false,
-      }) as any
+      })
 
       const result = await evaluate(code, { globalObject })
       // toBe uses Object.is, so that's ok to check NaN values here.
@@ -75,12 +78,14 @@ describe('re-declare globalThis properties using var', () => {
     '"use strict"; { var NaN = 1; } NaN',
     '"use strict"; NaN = 1; NaN',
   ])('non-writable | $code', async (code) => {
-    const globalObject = Object.defineProperty({}, 'NaN', {
+    const globalObject = getBasicGlobalObject() as any
+
+    expect(Object.getOwnPropertyDescriptor(globalObject, 'NaN')).toEqual({
       value: NaN,
       writable: false,
       enumerable: false,
       configurable: false,
-    }) as any
+    })
 
     expect(() => evaluate(code, { globalObject })).toThrow(
       new TypeError("Cannot assign to read only property 'NaN' of object '#<Object>'"),
@@ -96,7 +101,7 @@ describe('re-declare globalThis properties using var', () => {
   ])('getter only | $code', async (code) => {
     const __localStorage = {}
     const getter = vi.fn(() => __localStorage)
-    const globalObject = Object.defineProperty({}, 'localStorage', {
+    const globalObject = Object.defineProperty(getBasicGlobalObject(), 'localStorage', {
       set: undefined,
       enumerable: true,
       configurable: true,
@@ -117,7 +122,7 @@ describe('re-declare globalThis properties using var', () => {
   ])('getter only | $code', async (code) => {
     const __localStorage = {}
     const getter = vi.fn(() => __localStorage)
-    const globalObject = Object.defineProperty({}, 'localStorage', {
+    const globalObject = Object.defineProperty(getBasicGlobalObject(), 'localStorage', {
       set: undefined,
       enumerable: true,
       configurable: true,
@@ -145,7 +150,7 @@ describe('re-declare globalThis properties using var', () => {
     const getter = vi.fn(() => __name)
     const setter = vi.fn((value) => (__name = value))
 
-    const globalObject = Object.defineProperty({}, 'name', {
+    const globalObject = Object.defineProperty(getBasicGlobalObject(), 'name', {
       enumerable: true,
       configurable: true,
       get: getter,
@@ -169,28 +174,14 @@ describe('re-declare globalThis properties using var', () => {
 })
 
 it('undefined', undefined)
-it(
-  '"use strict"; x',
-  (x) => expect(() => x.value).toThrow(new ReferenceError('x is not defined')),
-  {
-    globalObject: {},
-  },
-)
-it(
-  'x',
-  ({ thrown }) => {
-    expect(thrown).toThrow(new ReferenceError('x is not defined'))
-  },
-  { globalObject: {} },
-)
-it(
-  '"use strict"; x',
-  ({ thrown }) => {
-    expect(thrown).toThrow(new ReferenceError('x is not defined'))
-  },
-  { globalObject: {} },
-)
-it('x', 123, { globalObject: { x: 123 } })
+it('"use strict"; x', (x) => expect(() => x.value).toThrow(new ReferenceError('x is not defined')))
+it('x', ({ thrown }) => {
+  expect(thrown).toThrow(new ReferenceError('x is not defined'))
+})
+it('"use strict"; x', ({ thrown }) => {
+  expect(thrown).toThrow(new ReferenceError('x is not defined'))
+})
+it('x', 123, { globalObject: Object.assign(getBasicGlobalObject(), { x: 123 }) })
 it('let a = 1; a', 1)
 it('toString', ({ value }) => expect(value).toBe(toString))
 it('toString()', '[object Undefined]')

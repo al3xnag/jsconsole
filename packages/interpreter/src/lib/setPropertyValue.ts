@@ -2,6 +2,8 @@ import { Context } from '../types'
 import { syncContext } from './syncContext'
 import { assertPropertyWriteSideEffectFree } from './assertPropertyWriteSideEffectFree'
 import { getPropertyDescriptor } from './getPropertyDescriptor'
+import { requireGlobal } from './Metadata'
+import { toShortStringTag } from './toShortStringTag'
 
 const getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor
 const isExtensible = Object.isExtensible
@@ -18,15 +20,54 @@ export function setPropertyValue(
     assertPropertyWriteSideEffectFree(object, propertyKey, context)
   }
 
-  if (!context.strict && object != null && !ordinarySetCheck(object, propertyKey, value)) {
-    return
+  if (object == null) {
+    const TypeError = requireGlobal(context.metadata.globals.TypeError, 'TypeError')
+    throw new TypeError(
+      `Cannot set property '${propertyKey.toString()}' of ${toShortStringTag(object)}`,
+    )
+  }
+
+  const checkResult = ordinarySetCheck(object, propertyKey, value)
+
+  if (checkResult !== true) {
+    if (!context.strict) {
+      return
+    }
+
+    const TypeError = requireGlobal(context.metadata.globals.TypeError, 'TypeError')
+
+    if (checkResult === ORDINARY_SET_FAILURE_READ_ONLY) {
+      throw new TypeError(
+        `Cannot assign to read only property '${propertyKey.toString()}' of ${toShortStringTag(object)}`,
+      )
+    }
+
+    if (checkResult === ORDINARY_SET_FAILURE_GETTER_ONLY) {
+      throw new TypeError(
+        `Cannot set property '${propertyKey.toString()}' of ${toShortStringTag(object)} which has only a getter`,
+      )
+    }
+
+    if (checkResult === ORDINARY_DEFINE_OWN_PROPERTY_FAILURE_NOT_EXTENSIBLE) {
+      throw new TypeError(
+        `Cannot add property '${propertyKey.toString()}', ${toShortStringTag(object)} is not extensible`,
+      )
+    }
+
+    throw new TypeError(
+      `Cannot set property '${propertyKey.toString()}' of ${toShortStringTag(object)}`,
+    )
   }
 
   object[propertyKey] = value
 }
 
+const ORDINARY_SET_FAILURE_READ_ONLY = Symbol()
+const ORDINARY_SET_FAILURE_GETTER_ONLY = Symbol()
+const ORDINARY_DEFINE_OWN_PROPERTY_FAILURE_NOT_EXTENSIBLE = Symbol()
+
 // Checks according to the 10.1.9.2 OrdinarySetWithOwnDescriptor (https://tc39.es/ecma262/#sec-ordinarysetwithowndescriptor),
-function ordinarySetCheck(object: any, propertyKey: PropertyKey, value: unknown): boolean {
+function ordinarySetCheck(object: any, propertyKey: PropertyKey, value: unknown): boolean | symbol {
   const desc: PropertyDescriptor = getPropertyDescriptor(object, propertyKey) ?? {
     value: undefined,
     writable: true,
@@ -36,7 +77,7 @@ function ordinarySetCheck(object: any, propertyKey: PropertyKey, value: unknown)
 
   if (isDataDescriptor(desc)) {
     if (!desc.writable) {
-      return false
+      return ORDINARY_SET_FAILURE_READ_ONLY
     }
 
     if (!isObject(object)) {
@@ -68,7 +109,7 @@ function ordinarySetCheck(object: any, propertyKey: PropertyKey, value: unknown)
   }
 
   if (desc.set === undefined) {
-    return false
+    return ORDINARY_SET_FAILURE_GETTER_ONLY
   }
 
   return true
@@ -98,14 +139,15 @@ function isObject(object: unknown): boolean {
   return object != null && (typeof object === 'object' || typeof object === 'function')
 }
 
+// https://tc39.es/ecma262/#sec-ordinary-object-internal-methods-and-internal-slots-defineownproperty-p-desc
 function ordinaryDefineOwnPropertyCheck(
   object: any,
   _propertyKey: PropertyKey,
   desc: PropertyDescriptor,
   currentDesc: PropertyDescriptor | undefined,
-): boolean {
+): boolean | symbol {
   if (currentDesc === undefined) {
-    return isExtensible(object)
+    return isExtensible(object) ? true : ORDINARY_DEFINE_OWN_PROPERTY_FAILURE_NOT_EXTENSIBLE
   }
 
   if (

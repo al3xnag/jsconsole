@@ -1,7 +1,13 @@
-import { INTERPRETER, SPECIAL_RESULTS } from '@/constants'
+import { SPECIAL_RESULTS } from '@/constants'
 import { useStore } from '@/hooks/useStore'
 import { EditorView } from '@codemirror/view'
-import type { EvaluateResult } from '@jsconsole/interpreter'
+import {
+  evaluate,
+  InternalError,
+  PossibleSideEffectError,
+  TimeoutError,
+  type EvaluateResult,
+} from '@jsconsole/interpreter'
 import { useCallback, useDeferredValue, useMemo, useRef, useState } from 'react'
 import { ValueContextProvider } from './ValueContextProvider'
 import { ValuePreview } from './ValuePreview'
@@ -59,9 +65,6 @@ export function ConsoleEagerPreview({ editor }: { editor: EditorView | undefined
         return NO_VALUE
       }
 
-      const { evaluate, InternalError, PossibleSideEffectError, TimeoutError } =
-        currentSession.previewWindow[INTERPRETER]
-
       let result: EvaluateResult | Promise<EvaluateResult>
 
       try {
@@ -77,7 +80,8 @@ export function ConsoleEagerPreview({ editor }: { editor: EditorView | undefined
         })
       } catch (e) {
         if (
-          e instanceof currentSession.globals.SyntaxError ||
+          e instanceof EvalError ||
+          e instanceof SyntaxError ||
           e instanceof PossibleSideEffectError ||
           e instanceof TimeoutError ||
           e instanceof InternalError
@@ -88,7 +92,7 @@ export function ConsoleEagerPreview({ editor }: { editor: EditorView | undefined
         return e
       }
 
-      if (result instanceof currentSession.globals.Promise) {
+      if (result instanceof Promise) {
         return NO_VALUE
       }
 
@@ -100,7 +104,6 @@ export function ConsoleEagerPreview({ editor }: { editor: EditorView | undefined
     },
     [
       currentSession?.globalScope,
-      currentSession?.globals,
       currentSession?.metadata,
       currentSession?.sideEffectInfo,
       currentSession?.previewWindow,

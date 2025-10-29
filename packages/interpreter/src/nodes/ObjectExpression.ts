@@ -4,17 +4,20 @@ import { assertNever } from '../lib/assert'
 import { evaluateProperty } from './Property'
 import { evaluateSpreadElement } from './SpreadElement'
 import { syncContext } from '../lib/syncContext'
+import { requireGlobal } from '../lib/Metadata'
 
 const defineProperty = Object.defineProperty
-const objectCreate = Object.create
-const objectPrototype = Object.prototype
 
 export function* evaluateObjectExpression(
   node: ObjectExpression,
   scope: Scope,
   context: Context,
 ): EvaluateGenerator {
-  let prototype: object | null = objectPrototype
+  let prototype: object | null = requireGlobal(
+    context.metadata.globals.ObjectPrototype,
+    'Object.prototype',
+  )
+
   const propertyDescriptors: PropertyDescriptorMap = {}
 
   function addProperty(key: unknown, value: unknown, property: Property | SpreadElement) {
@@ -71,6 +74,8 @@ export function* evaluateObjectExpression(
       assertNever(property, 'Unhandled property type')
     }
   }
+
+  const objectCreate = requireGlobal(context.metadata.globals.ObjectCreate, 'Object.create')
 
   const object = objectCreate(prototype, propertyDescriptors)
   syncContext?.tmpRefs.add(object)

@@ -36,65 +36,19 @@ describe('delete', () => {
     expect(thrown).toThrow(SyntaxError)
     expect(thrown).toThrow('Deleting local variable in strict mode')
   })
-  it('delete Math', true, {
-    globalObject: Object.defineProperty({}, 'Math', {
-      value: Math,
-      writable: true,
-      enumerable: false,
-      configurable: true,
-    }),
+  it('delete Math', true)
+  it('"use strict"; delete Math', ({ thrown }) => {
+    expect(thrown).toThrow(SyntaxError)
+    expect(thrown).toThrow('Deleting local variable in strict mode')
   })
-  it(
-    '"use strict"; delete Math',
-    ({ thrown }) => {
-      expect(thrown).toThrow(SyntaxError)
-      expect(thrown).toThrow('Deleting local variable in strict mode')
-    },
-    {
-      globalObject: Object.defineProperty({}, 'Math', {
-        value: Math,
-        writable: true,
-        enumerable: false,
-        configurable: true,
-      }),
-    },
-  )
-  it('delete NaN', false, {
-    globalObject: Object.defineProperty({}, 'NaN', {
-      value: NaN,
-      writable: false,
-      enumerable: false,
-      configurable: false,
-    }),
+  it('delete NaN', false)
+  it('delete window.NaN', false)
+  it('"use strict"; delete window.NaN', ({ thrown }) => {
+    expect(thrown).toThrow(new TypeError("Cannot delete property 'NaN' of #<Object>"))
   })
-  it('delete window.NaN', false, {
-    globalObject: (() => {
-      const obj = Object.defineProperty({}, 'NaN', {
-        value: NaN,
-        writable: false,
-        enumerable: false,
-        configurable: false,
-      })
-      return Object.assign(obj, { window: obj })
-    })(),
+  it('"use strict"; delete [].length', ({ thrown }) => {
+    expect(thrown).toThrow(new TypeError("Cannot delete property 'length' of #<Array>"))
   })
-  it(
-    '"use strict"; delete window.NaN',
-    ({ thrown }) => {
-      expect(thrown).toThrow(new TypeError("Cannot delete property 'NaN' of #<Object>"))
-    },
-    {
-      globalObject: (() => {
-        const obj = Object.defineProperty({}, 'NaN', {
-          value: NaN,
-          writable: false,
-          enumerable: false,
-          configurable: false,
-        })
-        return Object.assign(obj, { window: obj })
-      })(),
-    },
-  )
   it('delete ({}).a', true)
   it('"use strict"; delete ({}).a', true)
   it('delete ({a: 1}).a', true)

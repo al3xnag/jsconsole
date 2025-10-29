@@ -41,7 +41,7 @@ export function evaluate(
     thisValue: globalObject,
   }
 
-  const metadata = options?.metadata ?? new Metadata()
+  const metadata = options?.metadata ?? new Metadata(globalObject)
   const sideEffectInfo =
     options?.sideEffectInfo ??
     (options?.throwOnSideEffect ? SideEffectInfo.withDefaults(globalThis) : new SideEffectInfo())

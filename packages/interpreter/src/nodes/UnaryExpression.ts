@@ -7,6 +7,8 @@ import { getIdentifier } from '../lib/getIdentifier'
 import { evaluateMemberExpressionParts } from './MemberExpression'
 import { PossibleSideEffectError } from '../lib/PossibleSideEffectError'
 import { syncContext } from '../lib/syncContext'
+import { requireGlobal } from '../lib/Metadata'
+import { toShortStringTag } from '../lib/toShortStringTag'
 
 export function* evaluateUnaryExpression(
   node: UnaryExpression,
@@ -79,7 +81,14 @@ export function* _evaluateUnaryExpression(
         }
 
         if (context.strict) {
-          const value = delete object[propertyKey]
+          const value = Reflect.deleteProperty(object, propertyKey)
+          if (!value) {
+            const TypeError = requireGlobal(context.metadata.globals.TypeError, 'TypeError')
+            throw new TypeError(
+              `Cannot delete property '${propertyKey.toString()}' of ${toShortStringTag(object)}`,
+            )
+          }
+
           return value
         } else {
           const value = Reflect.deleteProperty(object, propertyKey)

@@ -11,13 +11,13 @@ describe('top-level await', () => {
   })
 
   test('await Promise.resolve(1)', async () => {
-    const result = evaluate('await Promise.resolve(1)', { globalObject: { Promise } })
+    const result = evaluate('await Promise.resolve(1)')
     expect(result).toBeInstanceOf(Promise)
     await expect(result).resolves.toMatchObject({ value: 1 })
   })
 
   test('Promise.resolve(1)', async () => {
-    const result = evaluate('Promise.resolve(1)', { globalObject: { Promise } }) as EvaluatedNode
+    const result = evaluate('Promise.resolve(1)') as EvaluatedNode
     expect(result).not.toBeInstanceOf(Promise)
     expect(result.value).toBeInstanceOf(Promise)
     await expect(result.value).resolves.toBe(1)
@@ -46,7 +46,6 @@ describe('top-level await', () => {
         arr.push(4);
         arr;
       `,
-      { globalObject: { Array, Promise } },
     )
     expect(result.value).toEqual([1, 2, 3, 4])
   })
@@ -63,7 +62,6 @@ describe('top-level await', () => {
         arr.push(4);
         arr;
       `,
-      { globalObject: { Array, Promise } },
     )
     expect(result.value).toEqual([1, 3, 2, 4])
   })
@@ -79,7 +77,6 @@ describe('top-level await', () => {
         arr.push(5);
         arr;
       `,
-      { globalObject: { Array, Promise, setTimeout } },
     )
     expect(result.value).toEqual([1, 2, 3, 4, 5])
   })
@@ -87,25 +84,21 @@ describe('top-level await', () => {
 
 describe('async functions', () => {
   test('(async () => { await 1 })()', async () => {
-    const result = evaluate('(async () => { await 1 })()', { globalObject: {} }) as EvaluatedNode
+    const result = evaluate('(async () => { await 1 })()') as EvaluatedNode
     expect(result).not.toBeInstanceOf(Promise)
     expect(result.value).toBeInstanceOf(Promise)
     await expect(result.value).resolves.toBeUndefined()
   })
 
   test('(async () => { return await 1 })()', async () => {
-    const result = evaluate('(async () => { return await 1 })()', {
-      globalObject: {},
-    }) as EvaluatedNode
+    const result = evaluate('(async () => { return await 1 })()') as EvaluatedNode
     expect(result).not.toBeInstanceOf(Promise)
     expect(result.value).toBeInstanceOf(Promise)
     await expect(result.value).resolves.toBe(1)
   })
 
   test('(async () => { return 1 })()', async () => {
-    const result = evaluate('(async () => { return 1 })()', {
-      globalObject: {},
-    }) as EvaluatedNode
+    const result = evaluate('(async () => { return 1 })()') as EvaluatedNode
     expect(result).not.toBeInstanceOf(Promise)
     expect(result.value).toBeInstanceOf(Promise)
     await expect(result.value).resolves.toBe(1)

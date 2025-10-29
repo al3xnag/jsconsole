@@ -67,7 +67,7 @@ export function createEditor({
   autocompleteOptions ??= {
     globalObject: globalThis,
     globalScope: { bindings: new Map() },
-    metadata: new Metadata(),
+    metadata: new Metadata(globalThis),
     evaluate: globalThis.eval,
     cache: new AutocompleteCache(),
   }

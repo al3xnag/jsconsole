@@ -1,6 +1,7 @@
 import { EMPTY, TYPE_BREAK, TYPE_CONTINUE, TYPE_RETURN } from '../constants'
-import { EvaluatedNode } from '../types'
+import { Context, EvaluatedNode } from '../types'
 import { InternalError } from './InternalError'
+import { requireGlobal } from './Metadata'
 
 // https://tc39.es/ecma262/#sec-completion-record-specification-type
 export function isAbruptCompletion(evaluated: EvaluatedNode): boolean {
@@ -57,4 +58,25 @@ export function loopContinues(evaluated: EvaluatedNode, labels: string[] | undef
   }
 
   return false
+}
+
+// https://tc39.es/ecma262/#sec-toobject
+export function toObject(value: unknown, context: Context): object {
+  if (value == null) {
+    const TypeError = requireGlobal(context.metadata.globals.TypeError, 'TypeError')
+    throw new TypeError('Cannot convert undefined or null to object')
+  }
+
+  if (
+    typeof value === 'boolean' ||
+    typeof value === 'number' ||
+    typeof value === 'string' ||
+    typeof value === 'symbol' ||
+    typeof value === 'bigint'
+  ) {
+    const Object = requireGlobal(context.metadata.globals.Object, 'Object')
+    return Object(value)
+  }
+
+  return value
 }

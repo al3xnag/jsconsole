@@ -26,6 +26,7 @@ export const getGlobals = (globalThis: GlobalThis): Globals => {
     SyntaxError: globalThis.SyntaxError,
     RangeError: globalThis.RangeError,
     ReferenceError: globalThis.ReferenceError,
+    EvalError: globalThis.EvalError,
     URIError: globalThis.URIError,
     AggregateError: globalThis.AggregateError,
     Proxy: globalThis.Proxy,

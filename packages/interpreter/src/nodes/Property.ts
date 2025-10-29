@@ -1,6 +1,7 @@
 import { AssignmentProperty, Property } from 'acorn'
 import { evaluateNode } from '.'
 import { Context, EvaluatedNode, Scope } from '../types'
+import { InternalError } from '../lib/InternalError'
 
 export type PropertyValue = {
   key: unknown
@@ -44,5 +45,5 @@ export function* evaluatePropertyKey(
     return node.key.value
   }
 
-  throw new Error(`Unsupported non-computed property key type: ${node.key.type}`)
+  throw new InternalError(`Unsupported non-computed property key type: ${node.key.type}`)
 }

@@ -1,28 +1,33 @@
 const path = require('node:path')
-const fs = require('node:fs')
 
-const acornPath = path.resolve(__dirname, '../../node_modules/acorn/dist/acorn.js')
-const interpreterPath = path.resolve(__dirname, '../interpreter/dist/index.iife.js')
-const interpreterSource = fs.readFileSync(interpreterPath, 'utf8')
+const interpreterPath = path.resolve(__dirname, '../interpreter/dist/index.js')
 
 /** @type {(test: import("./test262").Test262File) => import("./test262").Test262File} */
 module.exports = function preprocessor(test) {
   test.contents = `
-    function INJECT_INTERPRETER() {
-      globalThis.performance ??= {
-        timeOrigin: Date.now(),
-        now: function now() { return Date.now() - this.timeOrigin; }
-      };
+    const { registerHooks } = require('node:module');
+    registerHooks({
+      load(url, context, nextLoad) {
+        if (url.endsWith('ts-blank-space/out/index.js')) {
+          return {
+            format: 'module',
+            source: 'export default function tsBlankSpace(input) { return input; }',
+            shortCircuit: true,
+          }
+        }
 
-      const acorn = require("${acornPath}")
-      const tsBlankSpace = function tsBlankSpace(input) { return input; }
-      ${interpreterSource}
-      $262.INTERPRETER = interpreter;
+        return nextLoad(url, context)
+      },
+    })
+
+    function LOAD_INTERPRETER() {
+      // NOTE: will be instantiated outside of vm, because require is passed from top context
+      $262.INTERPRETER = require('${interpreterPath}');
     }
 
-    INJECT_INTERPRETER();
+    LOAD_INTERPRETER();
 
-    $262.source += '\\n' + INJECT_INTERPRETER.toString() + '\\nINJECT_INTERPRETER();';
+    $262.source += '\\n' + LOAD_INTERPRETER.toString() + '\\nLOAD_INTERPRETER();';
 
     const origEvalScript = $262.evalScript;
     $262.evalScript = function evalScript(code) {
@@ -43,7 +48,9 @@ module.exports = function preprocessor(test) {
       return realm262;
     }
 
-    $262.INTERPRETER.evaluate(${JSON.stringify(test.contents)});
+    $262.INTERPRETER.evaluate(${JSON.stringify(test.contents)}, {
+      globalObject: $262.global,
+    });
   `
 
   return test

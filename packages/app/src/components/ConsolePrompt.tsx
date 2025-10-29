@@ -1,4 +1,4 @@
-import { INTERPRETER, SPECIAL_RESULTS } from '@/constants'
+import { SPECIAL_RESULTS } from '@/constants'
 import { useActions } from '@/hooks/useActions'
 import { useStore } from '@/hooks/useStore'
 import { editorTheme } from '@/lib/editorTheme'
@@ -11,7 +11,7 @@ import {
   createEditor,
   SubmitHistoryPlugin,
 } from '@jsconsole/code-editor'
-import { EvaluateResult, Metadata, type EvaluateOptions } from '@jsconsole/interpreter'
+import { evaluate, EvaluateResult, Metadata, type EvaluateOptions } from '@jsconsole/interpreter'
 import { ChevronRight } from 'lucide-react'
 import { Ref, useCallback, useImperativeHandle, useLayoutEffect, useRef, useState } from 'react'
 import { ConsoleEagerPreview } from './ConsoleEagerPreview'
@@ -64,13 +64,11 @@ export function ConsolePrompt({ ref, onSubmit, onUpdate }: ConsolePromptProps) {
       Object.assign<AutocompleteOptions, AutocompleteOptions>(autocompleteOptionsRef.current, {
         globalObject: {},
         globalScope: { bindings: new Map() },
-        metadata: new Metadata(),
+        metadata: new Metadata({}),
         evaluate: () => undefined,
       })
       return
     }
-
-    const { evaluate } = currentSession.previewWindow[INTERPRETER]
 
     const evaluateOptions: EvaluateOptions = {
       globalObject: currentSession.previewWindow,

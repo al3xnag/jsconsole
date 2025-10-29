@@ -93,8 +93,8 @@ export function* evaluateNode<T extends AnyNode>(
 
   const evaluated = yield* handler.apply(null, arguments as unknown as Parameters<EvaluateNode<T>>)
 
-  // TODO: move to only those things, which can produce promises first time? (Expressions?)
-  if (evaluated.value instanceof Promise) {
+  const Promise = context.metadata.globals.Promise
+  if (Promise && evaluated.value instanceof Promise) {
     trackPromise(evaluated.value, context)
   }
 

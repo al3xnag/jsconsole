@@ -7,6 +7,7 @@ import { Context, EvaluatedNode, Scope } from '../types'
 import { evaluateMemberExpressionParts } from './MemberExpression'
 import { evaluatePropertyKey } from './Property'
 import { syncContext } from '../lib/syncContext'
+import { requireGlobal } from '../lib/Metadata'
 
 const assign = Object.assign
 const ObjectToString = Object.prototype.toString
@@ -30,7 +31,7 @@ export function* evaluatePattern(
       break
     }
     case 'ObjectPattern': {
-      value = requireObjectCoercible(value)
+      value = requireObjectCoercible(value, context)
 
       const seenKeys: unknown[] = []
       for (let i = 0; i < node.properties.length; i++) {
@@ -72,7 +73,7 @@ export function* evaluatePattern(
       break
     }
     case 'ArrayPattern': {
-      const iterator = getIterator(value)
+      const iterator = getIterator(value, context)
 
       for (let i = 0; i < node.elements.length; i++) {
         const element = node.elements[i]
@@ -127,8 +128,9 @@ export function* evaluatePattern(
 }
 
 // https://tc39.es/ecma262/#sec-requireobjectcoercible
-function requireObjectCoercible(value: unknown): NonNullable<unknown> {
+function requireObjectCoercible(value: unknown, context: Context): NonNullable<unknown> {
   if (value == null) {
+    const TypeError = requireGlobal(context.metadata.globals.TypeError, 'TypeError')
     throw new TypeError(`Cannot destructure '${value}' as it is ${value}`)
   }
 
@@ -136,13 +138,15 @@ function requireObjectCoercible(value: unknown): NonNullable<unknown> {
 }
 
 // https://tc39.es/ecma262/#sec-getiterator
-function getIterator(value: unknown): Iterator<unknown> {
+function getIterator(value: unknown, context: Context): Iterator<unknown> {
   if (value == null) {
+    const TypeError = requireGlobal(context.metadata.globals.TypeError, 'TypeError')
     throw new TypeError(`${value} is not iterable`)
   }
 
   const iteratorMethod = (value as Partial<Iterable<unknown>>)[Symbol.iterator]
   if (typeof iteratorMethod !== 'function') {
+    const TypeError = requireGlobal(context.metadata.globals.TypeError, 'TypeError')
     const valueStr =
       (typeof value === 'object' && value !== null) || typeof value === 'function'
         ? ObjectToString.call(value)

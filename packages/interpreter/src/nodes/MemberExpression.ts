@@ -5,6 +5,8 @@ import { Context, EvaluatedNode, EvaluateGenerator, Scope } from '../types'
 import { assertPropertyReadSideEffectFree } from '../lib/assertPropertyReadSideEffectFree'
 import { syncContext } from '../lib/syncContext'
 import { InternalError } from '../lib/InternalError'
+import { toObject } from '../lib/evaluation-utils'
+import { requireGlobal } from '../lib/Metadata'
 
 type MemberExpressionParts = {
   object: any
@@ -24,7 +26,13 @@ export function* evaluateMemberExpression(
     assertPropertyReadSideEffectFree(object, propertyKey, context)
   }
 
-  const value = node.optional ? object?.[propertyKey] : object[propertyKey]
+  if (object == null && !node.optional) {
+    const TypeError = requireGlobal(context.metadata.globals.TypeError, 'TypeError')
+    throw new TypeError(`Cannot read properties of ${object} (reading '${propertyKey.toString()}')`)
+  }
+
+  const value =
+    object == null && node.optional ? undefined : (toObject(object, context) as any)[propertyKey]
 
   return {
     value,

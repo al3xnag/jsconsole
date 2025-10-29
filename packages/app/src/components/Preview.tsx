@@ -1,10 +1,5 @@
 import { Ref, useCallback, useImperativeHandle, useRef, useState } from 'react'
-import {
-  PreviewWindowRaw,
-  PreviewWindow,
-  PreviewWindowExtra,
-  ConsoleEntryUserAgent,
-} from '../types'
+import { PreviewWindow, PreviewWindowExtra, ConsoleEntryUserAgent } from '../types'
 import { ResizeOverlay } from './ResizeOverlay'
 import { Deferred, deferred } from '@/lib/deferred'
 import { useActions } from '@/hooks/useActions'
@@ -33,8 +28,8 @@ export function Preview({ ref }: PreviewProps) {
   const isFirstLoad = useRef(true)
 
   const setupWindow = useCallback(
-    (win: PreviewWindowRaw, metadata: Metadata): PreviewWindow => {
-      const x = Object.assign<PreviewWindowRaw, PreviewWindowExtra>(win, {
+    (win: typeof window, metadata: Metadata): PreviewWindow => {
+      const x = Object.assign<typeof window, PreviewWindowExtra>(win, {
         help: function help() {
           return SPECIAL_RESULTS.HELP
         }.bind(win),
@@ -163,7 +158,7 @@ export function Preview({ ref }: PreviewProps) {
 
   const handleLoad = useCallback(
     (e: React.SyntheticEvent<HTMLIFrameElement>) => {
-      const win = e.currentTarget.contentWindow as PreviewWindowRaw | null
+      const win = e.currentTarget.contentWindow as typeof window | null
       if (!win) {
         return
       }
@@ -182,7 +177,7 @@ export function Preview({ ref }: PreviewProps) {
         })
       }
 
-      const metadata = new Metadata()
+      const metadata = new Metadata(win)
       const previewWindow = setupWindow(win, metadata)
 
       storeDispatch({

@@ -6,6 +6,7 @@ import { evaluatePattern } from './Pattern'
 import { initBindings } from '../lib/initBindings'
 import { getNodeText } from '../lib/getNodeText'
 import { breakableStatementCompletion, loopContinues, updateEmpty } from '../lib/evaluation-utils'
+import { requireGlobal } from '../lib/Metadata'
 
 // https://tc39.es/ecma262/#sec-for-in-and-for-of-statements
 export function* evaluateForOfStatement(
@@ -79,6 +80,7 @@ function getIterable(
 ): { iterable: Iterable<unknown>; isAsyncIterator: boolean } {
   if (node.await && object != null && Symbol.asyncIterator in object) {
     if (typeof object[Symbol.asyncIterator] !== 'function') {
+      const TypeError = requireGlobal(context.metadata.globals.TypeError, 'TypeError')
       const objStr = getNodeText(node.right, context.code)
       throw new TypeError(`${objStr} is not iterable`)
     }

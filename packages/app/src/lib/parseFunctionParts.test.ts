@@ -5,7 +5,7 @@ import { getGlobals } from './globals'
 import { Metadata, SideEffectInfo } from '@jsconsole/interpreter'
 
 const context: ValueContext = {
-  metadata: new Metadata(),
+  metadata: new Metadata(globalThis),
   globals: getGlobals(globalThis),
   sideEffectInfo: new SideEffectInfo(),
 }

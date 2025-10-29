@@ -6,16 +6,8 @@ import { getOrCreateSharedWeakRef, getSharedWeakRef } from '../lib/sharedWeakRef
 import { syncContext } from '../lib/syncContext'
 import { unbindFunctionCall } from '../lib/unbindFunctionCall'
 import { Context, EvaluatedNode, EvaluateGenerator, Scope } from '../types'
-
-const FunctionPrototypeToString = Function.prototype.toString
-const FunctionPrototypeBind = Function.prototype.bind
-const WeakMapPrototypeSet = WeakMap.prototype.set
-const WeakMapPrototypeDelete = WeakMap.prototype.delete
-const WeakSetPrototypeAdd = WeakSet.prototype.add
-const WeakSetPrototypeDelete = WeakSet.prototype.delete
-
-const FunctionPrototypeCall = Function.prototype.call
-const FunctionPrototypeApply = Function.prototype.apply
+import { requireGlobal } from '../lib/Metadata'
+import { InternalError } from '../lib/InternalError'
 
 export function* evaluateCallExpression(
   node: CallExpression,
@@ -32,6 +24,7 @@ export function* evaluateCallExpression(
 
   if (typeof func !== 'function') {
     const calleeStr = getNodeText(node.callee, context.code)
+    const TypeError = requireGlobal(context.metadata.globals.TypeError, 'TypeError')
     throw new TypeError(`${calleeStr} is not a function`)
   }
 
@@ -57,12 +50,26 @@ export function* evaluateCallExpression(
 
   try {
     const hookFunctionCall = buildFunctionCallHook(func, thisArg, argValues, resultRef, context)
-    hookFunctionCall(FunctionPrototypeBind, functionPrototypeBindHookHandler)
-    hookFunctionCall(FunctionPrototypeToString, functionPrototypeToStringHookHandler)
-    hookFunctionCall(WeakMapPrototypeSet, weakMapPrototypeSetHookHandler)
-    hookFunctionCall(WeakMapPrototypeDelete, weakMapPrototypeDeleteHookHandler)
-    hookFunctionCall(WeakSetPrototypeAdd, weakSetPrototypeAddHookHandler)
-    hookFunctionCall(WeakSetPrototypeDelete, weakSetPrototypeDeleteHookHandler)
+    if (hookFunctionCall) {
+      hookFunctionCall(
+        context.metadata.globals.FunctionPrototypeBind,
+        functionPrototypeBindHookHandler,
+      )
+      hookFunctionCall(
+        context.metadata.globals.FunctionPrototypeToString,
+        functionPrototypeToStringHookHandler,
+      )
+      hookFunctionCall(context.metadata.globals.WeakMapPrototypeSet, weakMapPrototypeSetHookHandler)
+      hookFunctionCall(
+        context.metadata.globals.WeakMapPrototypeDelete,
+        weakMapPrototypeDeleteHookHandler,
+      )
+      hookFunctionCall(context.metadata.globals.WeakSetPrototypeAdd, weakSetPrototypeAddHookHandler)
+      hookFunctionCall(
+        context.metadata.globals.WeakSetPrototypeDelete,
+        weakSetPrototypeDeleteHookHandler,
+      )
+    }
   } catch (error) {
     console.warn('Failed to hook function call', error)
   }
@@ -82,6 +89,13 @@ function buildFunctionCallHook(
 ) {
   let [unboundFn, unboundFnThis, unboundFnArgs] = unbindFunctionCall(fn, fnThis, fnArgs, context)
 
+  const FunctionPrototypeCall = context.metadata.globals.FunctionPrototypeCall
+  const FunctionPrototypeApply = context.metadata.globals.FunctionPrototypeApply
+
+  if (!FunctionPrototypeCall || !FunctionPrototypeApply) {
+    return null
+  }
+
   // WeakMap.prototype.set.call(weakMap, key, value)
   // WeakMap.prototype.set.apply(weakMap, [key, value])
   if (
@@ -94,7 +108,7 @@ function buildFunctionCallHook(
     } else if (unboundFn === FunctionPrototypeApply) {
       ;[fnThis, fnArgs] = unboundFnArgs as [unknown, unknown[]] // [weakMap, [key, value]]
     } else {
-      throw new Error('Invalid value')
+      throw new InternalError('Invalid value')
     }
 
     ;[unboundFn, unboundFnThis, unboundFnArgs] = unbindFunctionCall(fn, fnThis, fnArgs, context)
@@ -188,9 +202,9 @@ function weakMapPrototypeSetHookHandler(
   }
 
   const [key, value] = fnArgs as [WeakKey, unknown]
-  const keyRef = getOrCreateSharedWeakRef(key)
+  const keyRef = getOrCreateSharedWeakRef(key, context)
   const valueRef =
-    value !== null && typeof value === 'object' ? getOrCreateSharedWeakRef(value) : value
+    value !== null && typeof value === 'object' ? getOrCreateSharedWeakRef(value, context) : value
   callerMetadata.entries.set(keyRef, valueRef)
 }
 
@@ -228,7 +242,7 @@ function weakSetPrototypeAddHookHandler(
   }
 
   const [value] = fnArgs as [WeakKey]
-  const valueRef = getOrCreateSharedWeakRef(value)
+  const valueRef = getOrCreateSharedWeakRef(value, context)
   callerMetadata.values.add(valueRef)
 }
 

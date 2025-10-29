@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { it } from '../test-utils'
+import { getBasicGlobalObject, it } from '../test-utils'
 import { evaluate, Metadata } from '..'
 
 describe('toString', () => {
@@ -121,7 +121,7 @@ describe('bind', () => {
       function fn() { return this }
       fn.bind()()
     `
-    const globalObject = {}
+    const globalObject = getBasicGlobalObject()
     const result = await evaluate(code, { globalObject })
     expect(result.value).toBe(globalObject)
   })
@@ -131,7 +131,7 @@ describe('bind', () => {
       function fn() { return this }
       fn.bind(undefined)()
     `
-    const globalObject = { undefined }
+    const globalObject = getBasicGlobalObject()
     const result = await evaluate(code, { globalObject })
     expect(result.value).toBe(globalObject)
   })
@@ -141,7 +141,7 @@ describe('bind', () => {
       function fn() { return this }
       fn.bind(null)()
     `
-    const globalObject = {}
+    const globalObject = getBasicGlobalObject()
     const result = await evaluate(code, { globalObject })
     expect(result.value).toBe(globalObject)
   })
@@ -170,7 +170,7 @@ describe('bind', () => {
     const code = `
       WeakMap.prototype.set.bind(new WeakMap(), { x: 1 }).call(null, { x: 2 })
     `
-    const metadata = new Metadata()
+    const metadata = new Metadata(globalThis)
     const result = await evaluate(code, { metadata })
     const weakMapMetadata = metadata.weakMaps.get(result.value as WeakMap<WeakKey, unknown>)
 
@@ -194,7 +194,7 @@ describe('bind', () => {
       let a = WeakMap.prototype.set.bind(new WeakMap(), { x: 1 });
       a.call.bind(a, null, { x: 2 })()
     `
-    const metadata = new Metadata()
+    const metadata = new Metadata(globalThis)
     const result = await evaluate(code, { metadata })
     const weakMapMetadata = metadata.weakMaps.get(result.value as WeakMap<WeakKey, unknown>)
 

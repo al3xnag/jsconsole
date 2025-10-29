@@ -1,5 +1,3 @@
-export const INTERPRETER = Symbol.for('<interpreter>')
-
 export const HOTKEY_CLEAR_CONSOLE = {
   shortcut: '⌘K',
   test: (e: KeyboardEvent) => e.key === 'k' && e.metaKey,

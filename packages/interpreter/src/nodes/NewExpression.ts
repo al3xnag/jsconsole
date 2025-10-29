@@ -3,14 +3,10 @@ import { evaluateNode } from '.'
 import { Context, EvaluateGenerator, Scope } from '../types'
 import { getOrCreateSharedWeakRef } from '../lib/sharedWeakRefMap'
 import { unbindFunctionCall } from '../lib/unbindFunctionCall'
-import { WeakMapMetadata, WeakSetMetadata } from '../lib/Metadata'
+import { requireGlobal, WeakMapMetadata, WeakSetMetadata } from '../lib/Metadata'
 import { assertFunctionSideEffectFree } from '../lib/assertFunctionSideEffectFree'
 import { syncContext } from '../lib/syncContext'
 import { getNodeText } from '../lib/getNodeText'
-
-const WeakMapInitial = WeakMap
-const WeakSetInitial = WeakSet
-const ProxyInitial = Proxy
 
 // https://tc39.es/ecma262/#sec-new-operator
 export function* evaluateNewExpression(
@@ -34,6 +30,7 @@ export function* evaluateNewExpression(
   }
 
   if (!isConstructor(callee, context)) {
+    const TypeError = requireGlobal(context.metadata.globals.TypeError, 'TypeError')
     const calleeStr = getNodeText(node.callee, context.code)
     throw new TypeError(`${calleeStr} is not a constructor`)
   }
@@ -49,9 +46,9 @@ export function* evaluateNewExpression(
 
   try {
     const hookConstructor = buildConstructorHook(callee, args, instanceRef, context)
-    hookConstructor(WeakMapInitial, weakMapHookHandler)
-    hookConstructor(WeakSetInitial, weakSetHookHandler)
-    hookConstructor(ProxyInitial, proxyHookHandler)
+    hookConstructor(context.metadata.globals.WeakMap, weakMapHookHandler)
+    hookConstructor(context.metadata.globals.WeakSet, weakSetHookHandler)
+    hookConstructor(context.metadata.globals.Proxy, proxyHookHandler)
   } catch (error) {
     console.warn('Failed to hook constructor call', error)
   }
@@ -142,9 +139,11 @@ function weakMapHookHandler(
   if (entriesArg != null && typeof entriesArg === 'object') {
     const entries = entriesArg as [WeakKey, unknown][]
     for (const [key, value] of entries) {
-      const keyRef = getOrCreateSharedWeakRef(key)
+      const keyRef = getOrCreateSharedWeakRef(key, context)
       const valueRef =
-        value !== null && typeof value === 'object' ? getOrCreateSharedWeakRef(value) : value
+        value !== null && typeof value === 'object'
+          ? getOrCreateSharedWeakRef(value, context)
+          : value
       metadata.entries.set(keyRef, valueRef)
     }
   }
@@ -171,7 +170,9 @@ function weakSetHookHandler(
     const values = valuesArg as WeakKey[]
     for (const value of values) {
       const valueRef =
-        value !== null && typeof value === 'object' ? getOrCreateSharedWeakRef(value) : value
+        value !== null && typeof value === 'object'
+          ? getOrCreateSharedWeakRef(value, context)
+          : value
       metadata.values.add(valueRef)
     }
   }

@@ -21,22 +21,10 @@ it('({ ..."abc" })', { 0: 'a', 1: 'b', 2: 'c' })
 it('({ ...[1, 2, 3] })', { 0: 1, 1: 2, 2: 3 })
 it('({ ...{ get foo() { return 1 } } })', { foo: 1 })
 it('({ ...{ set foo(x) {} } })', { foo: undefined })
-it('({ ...Object.defineProperty({}, "foo", { value: 1 }) })', {}, { globalObject: { Object } })
-it(
-  '({ ...Object.defineProperty({}, "foo", { value: 1, enumerable: true }) })',
-  { foo: 1 },
-  { globalObject: { Object } },
-)
-it(
-  '({ ...{ [Symbol.for("a")]: 1 } })',
-  { [Symbol.for('a')]: 1 },
-  { globalObject: { Symbol, Object } },
-)
-it.todo(
-  '({ ...new class { [Symbol.for("a")] = 1 } })',
-  { [Symbol.for('a')]: 1 },
-  { globalObject: { Symbol } },
-)
+it('({ ...Object.defineProperty({}, "foo", { value: 1 }) })', {})
+it('({ ...Object.defineProperty({}, "foo", { value: 1, enumerable: true }) })', { foo: 1 })
+it('({ ...{ [Symbol.for("a")]: 1 } })', { [Symbol.for('a')]: 1 })
+it.todo('({ ...new class { [Symbol.for("a")] = 1 } })', { [Symbol.for('a')]: 1 })
 it.todo('({ ...new class { get x() { return 1 } } })', {})
 it('({ ...{ get x() { return 1 } } })', { x: 1 })
 it('({ get foo() {}, foo: 1, set foo(x) {}, ...{ get foo() { return 2 } } })', ({ value }) => {

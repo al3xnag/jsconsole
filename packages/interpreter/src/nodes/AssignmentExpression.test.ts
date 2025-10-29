@@ -1,5 +1,10 @@
 import { expect } from 'vitest'
-import { ExpectToThrowPossibleSideEffectError, TestWindow, it } from '../test-utils'
+import {
+  ExpectToThrowPossibleSideEffectError,
+  TestWindow,
+  getBasicGlobalObject,
+  it,
+} from '../test-utils'
 
 it('a = 1', 1)
 it('let a = 1', undefined)
@@ -108,7 +113,7 @@ it(`Object.defineProperty(window, 'a', { value: 1 });`, ExpectToThrowPossibleSid
 })
 it(`a = 1;`, ExpectToThrowPossibleSideEffectError, {
   throwOnSideEffect: true,
-  globalObject: Object.defineProperty({}, 'a', { set() {} }),
+  globalObject: Object.defineProperty(getBasicGlobalObject(), 'a', { set() {} }),
 })
 it(
   `
@@ -135,7 +140,7 @@ it(
 )
 
 it('undefined = 1', 1, {
-  globalObject: Object.defineProperty({}, 'undefined', {
+  globalObject: Object.defineProperty(getBasicGlobalObject(), 'undefined', {
     value: undefined,
     configurable: false,
     enumerable: false,
@@ -143,7 +148,7 @@ it('undefined = 1', 1, {
   }),
 })
 it('undefined = 1; undefined', undefined, {
-  globalObject: Object.defineProperty({}, 'undefined', {
+  globalObject: Object.defineProperty(getBasicGlobalObject(), 'undefined', {
     value: undefined,
     configurable: false,
     enumerable: false,
@@ -158,7 +163,7 @@ it(
     )
   },
   {
-    globalObject: Object.defineProperty({}, 'undefined', {
+    globalObject: Object.defineProperty(getBasicGlobalObject(), 'undefined', {
       value: undefined,
       configurable: false,
       enumerable: false,
@@ -169,42 +174,50 @@ it(
 
 it('false.false = true', true)
 it('"use strict"; false.false = true', ({ thrown }) => {
-  expect(thrown).toThrow(new TypeError("Cannot create property 'false' on boolean 'false'"))
+  // Chrome: "Cannot create property 'false' on boolean 'false'"
+  expect(thrown).toThrow(new TypeError("Cannot set property 'false' of #<Boolean>"))
 })
 
 it('"a".b = 1', 1)
 it('"use strict"; "a".b = 1', ({ thrown }) => {
-  expect(thrown).toThrow(new TypeError("Cannot create property 'b' on string 'a'"))
+  // Chrome: "Cannot create property 'b' on string 'a'"
+  expect(thrown).toThrow(new TypeError("Cannot set property 'b' of #<String>"))
 })
 
 it('null.a = 1', ({ thrown }) => {
-  expect(thrown).toThrow(new TypeError("Cannot set properties of null (setting 'a')"))
+  // Chrome: "Cannot set properties of null (setting 'a')"
+  expect(thrown).toThrow(new TypeError("Cannot set property 'a' of null"))
 })
 it('"use strict"; null.a = 1', ({ thrown }) => {
-  expect(thrown).toThrow(new TypeError("Cannot set properties of null (setting 'a')"))
+  // Chrome: "Cannot set properties of null (setting 'a')"
+  expect(thrown).toThrow(new TypeError("Cannot set property 'a' of null"))
 })
 
 it('Object.freeze({}).a = 1', 1)
 it('"use strict"; Object.freeze({}).a = 1', ({ thrown }) => {
-  expect(thrown).toThrow(new TypeError('Cannot add property a, object is not extensible'))
+  // Chrome: 'Cannot add property a, object is not extensible'
+  expect(thrown).toThrow(new TypeError("Cannot add property 'a', #<Object> is not extensible"))
 })
 
 it('Object.seal({}).a = 1', 1)
 it('"use strict"; Object.seal({}).a = 1', ({ thrown }) => {
-  expect(thrown).toThrow(new TypeError('Cannot add property a, object is not extensible'))
+  // Chrome: 'Cannot add property a, object is not extensible'
+  expect(thrown).toThrow(new TypeError("Cannot add property 'a', #<Object> is not extensible"))
 })
 
 it('Object.freeze({a: 0}).a = 1', 1)
 it('"use strict"; Object.freeze({a: 0}).a = 1', ({ thrown }) => {
   expect(thrown).toThrow(
-    new TypeError("Cannot assign to read only property 'a' of object '#<Object>'"),
+    // Chrome: "Cannot assign to read only property 'a' of object '#<Object>'"
+    new TypeError("Cannot assign to read only property 'a' of #<Object>"),
   )
 })
 
 it('Object.defineProperty({}, "a", { writable: false }).a = 1', 1)
 it('"use strict"; Object.defineProperty({}, "a", { writable: false }).a = 1', ({ thrown }) => {
   expect(thrown).toThrow(
-    new TypeError("Cannot assign to read only property 'a' of object '#<Object>'"),
+    // Chrome: "Cannot assign to read only property 'a' of object '#<Object>'"
+    new TypeError("Cannot assign to read only property 'a' of #<Object>"),
   )
 })
 
@@ -213,7 +226,8 @@ it('"use strict"; Object(false).a = 1', 1)
 
 it('"a".toString = 1', 1)
 it('"use strict"; "a".toString = 1', ({ thrown }) => {
-  expect(thrown).toThrow(new TypeError("Cannot create property 'toString' on string 'a'"))
+  // Chrome: "Cannot create property 'toString' on string 'a'"
+  expect(thrown).toThrow(new TypeError("Cannot set property 'toString' of #<String>"))
 })
 
 it('"a".__proto__ = Number.prototype', Number.prototype)
@@ -312,7 +326,11 @@ it(
     
     steps
   `,
-  ['fn called', new TypeError("Cannot set properties of undefined (setting 'not_defined_prop')")],
+  [
+    'fn called',
+    // Chrome: "Cannot set properties of undefined (setting 'not_defined_prop')"
+    new TypeError("Cannot set property 'not_defined_prop' of undefined"),
+  ],
 )
 
 it(
@@ -329,5 +347,8 @@ it(
     
     steps
   `,
-  [new TypeError("Cannot read properties of undefined (reading 'not_defined_prop')")],
+  [
+    // Chrome: "Cannot read properties of undefined (reading 'not_defined_prop')"
+    new TypeError("Cannot read properties of undefined (reading 'not_defined_prop')"),
+  ],
 )

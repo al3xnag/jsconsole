@@ -2,16 +2,18 @@ import { ThisExpression } from 'acorn'
 import { Context, EvaluateGenerator, Scope } from '../types'
 import { findScope } from '../lib/scopes'
 import { UNINITIALIZED } from '../constants'
+import { requireGlobal } from '../lib/Metadata'
 
 // https://tc39.es/ecma262/multipage/ecmascript-language-expressions.html#sec-this-keyword
 export function* evaluateThisExpression(
   _node: ThisExpression,
   scope: Scope,
-  _context: Context,
+  context: Context,
 ): EvaluateGenerator {
   // Global scope always has this binding.
   const { thisValue } = findScope(scope, (scope) => !!scope.hasThisBinding)!
   if (thisValue === UNINITIALIZED) {
+    const ReferenceError = requireGlobal(context.metadata.globals.ReferenceError, 'ReferenceError')
     throw new ReferenceError(
       "Must call super constructor in derived class before accessing 'this' or returning from derived constructor",
     )
