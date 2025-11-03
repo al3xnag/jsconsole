@@ -16,26 +16,26 @@ it('new Set([1, 2]).size', 2)
 it('Array.from(new Set([1, 1]))', [1])
 it('new (Array.bind(1, 2, 3))()', [2, 3])
 it('new (Array.bind(1, 2, 3))', [2, 3])
-it('new WeakMap([[{}, {}]])', ({ value, metadata }) => {
-  expect(value).toBeInstanceOf(WeakMap)
+it('new WeakMap([[{}, {}]])', ({ value, metadata, globalObject }) => {
+  expect(value).toBeInstanceOf(globalObject.WeakMap)
   expect(metadata.weakMaps.get(value)).toEqual<WeakMapMetadata>({
-    entries: new Map([[new WeakRef({}), new WeakRef({})]]),
+    entries: new Map([[new globalObject.WeakRef({}), new globalObject.WeakRef({})]]),
   })
 })
-it('new (WeakMap.bind(null, [[{}, {}]]))', ({ value, metadata }) => {
-  expect(value).toBeInstanceOf(WeakMap)
+it('new (WeakMap.bind(null, [[{}, {}]]))', ({ value, metadata, globalObject }) => {
+  expect(value).toBeInstanceOf(globalObject.WeakMap)
   expect(metadata.weakMaps.get(value)).toEqual<WeakMapMetadata>({
-    entries: new Map([[new WeakRef({}), new WeakRef({})]]),
+    entries: new Map([[new globalObject.WeakRef({}), new globalObject.WeakRef({})]]),
   })
 })
-it('new WeakSet([{}, {}])', ({ value, metadata }) => {
-  expect(value).toBeInstanceOf(WeakSet)
+it('new WeakSet([{}, {}])', ({ value, metadata, globalObject }) => {
+  expect(value).toBeInstanceOf(globalObject.WeakSet)
   expect(metadata.weakSets.get(value)).toEqual<WeakSetMetadata>({
-    values: new Set([new WeakRef({}), new WeakRef({})]),
+    values: new Set([new globalObject.WeakRef({}), new globalObject.WeakRef({})]),
   })
 })
-it('new Proxy({ x: 1 }, { get() { return 2 } })', ({ value, metadata }) => {
-  expect(value).toBeInstanceOf(Object)
+it('new Proxy({ x: 1 }, { get() { return 2 } })', ({ value, metadata, globalObject }) => {
+  expect(value).toBeInstanceOf(globalObject.Object)
   expect(value).toEqual({ x: 2 })
   expect(metadata.proxies.get(value)).toEqual<ProxyMetadata>({
     target: { x: 1 },
@@ -103,5 +103,7 @@ describe('TypeError: ... is not a constructor', () => {
   it('new Symbol()', ({ thrown }) => {
     expect(thrown).toThrow(new TypeError('Symbol is not a constructor'))
   })
-  it('new URL("https://example.com")', new URL('https://example.com'))
+  it('new Set([1, 2])', ({ value, globalObject }) => {
+    expect(value).toEqual(new globalObject.Set([1, 2]))
+  })
 })

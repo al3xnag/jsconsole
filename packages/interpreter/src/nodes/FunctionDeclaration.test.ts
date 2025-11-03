@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { getBasicGlobalObject, it } from '../test-utils'
+import { getTestGlobalObject, it } from '../test-utils'
 import { evaluate, Metadata } from '..'
 
 describe('toString', () => {
@@ -121,7 +121,7 @@ describe('bind', () => {
       function fn() { return this }
       fn.bind()()
     `
-    const globalObject = getBasicGlobalObject()
+    const globalObject = getTestGlobalObject()
     const result = await evaluate(code, { globalObject })
     expect(result.value).toBe(globalObject)
   })
@@ -131,7 +131,7 @@ describe('bind', () => {
       function fn() { return this }
       fn.bind(undefined)()
     `
-    const globalObject = getBasicGlobalObject()
+    const globalObject = getTestGlobalObject()
     const result = await evaluate(code, { globalObject })
     expect(result.value).toBe(globalObject)
   })
@@ -141,7 +141,7 @@ describe('bind', () => {
       function fn() { return this }
       fn.bind(null)()
     `
-    const globalObject = getBasicGlobalObject()
+    const globalObject = getTestGlobalObject()
     const result = await evaluate(code, { globalObject })
     expect(result.value).toBe(globalObject)
   })

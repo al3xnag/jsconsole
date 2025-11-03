@@ -17,28 +17,33 @@ it('[...(Object.defineProperty([], 2, { get() { return "a" } })).values()]', [
 it('[...(Object.defineProperty([], "a", { get() { return 1 } }))]', [])
 it('[...(Object.defineProperty([], "a", { get() { return 1 }, enumerable: true }))]', [])
 it('[...(Object.defineProperty({}, "a", { get() { return 1 } }))]', ({ thrown }) => {
-  // TODO: message should be "<...> is not iterable" instead of "Spread syntax requires ...iterable[Symbol.iterator] to be a function"
-  expect(thrown).toThrow(TypeError)
+  expect(thrown).toThrow(
+    new TypeError('Object.defineProperty({}, "a", { get() { return 1 } }) is not iterable'),
+  )
 })
 it('[...{ a: 1 }]', ({ thrown }) => {
-  // TODO: message should be "<...> is not iterable" instead of "Spread syntax requires ...iterable[Symbol.iterator] to be a function"
-  expect(thrown).toThrow(TypeError)
+  expect(thrown).toThrow(new TypeError('{ a: 1 } is not iterable'))
 })
 it('[...new Map()]', [])
 it('console.log(...{ a: 1 })', ({ thrown }) => {
-  expect(thrown).toThrow(
-    new TypeError('Spread syntax requires ...iterable[Symbol.iterator] to be a function'),
-  )
+  // It's 'Spread syntax requires ...iterable[Symbol.iterator] to be a function' in V8,
+  // and '({a:1}) is not iterable' in SpiderMonkey.
+  expect(thrown).toThrow(new TypeError('{ a: 1 } is not iterable'))
 })
+it('new Array(...{})', ({ thrown }) => {
+  // It's 'Spread syntax requires ...iterable[Symbol.iterator] to be a function' in V8,
+  // and '({}) is not iterable' in SpiderMonkey.
+  expect(thrown).toThrow(new TypeError('{} is not iterable'))
+})
+it('new Array(...[1,2])', [1, 2])
 it('({...null})', {})
 it('({...undefined})', {})
 it('[...null]', ({ thrown }) => {
-  // TODO: message should be "null is not iterable" instead of "items is not iterable (cannot read property undefined)"
-  // (see getIterator in Pattern.ts)
-  expect(thrown).toThrow(TypeError)
+  expect(thrown).toThrow(new TypeError('null is not iterable'))
 })
 it('[...undefined]', ({ thrown }) => {
-  // TODO: message should be "undefined is not iterable" instead of "items is not iterable (cannot read property undefined)"
-  // (see getIterator in Pattern.ts)
-  expect(thrown).toThrow(TypeError)
+  expect(thrown).toThrow(new TypeError('undefined is not iterable'))
+})
+it('const a = undefined; [...a]', ({ thrown }) => {
+  expect(thrown).toThrow(new TypeError('a is not iterable'))
 })

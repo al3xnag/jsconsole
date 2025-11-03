@@ -11,7 +11,7 @@ it('function foo() { if (0) return 1 } foo();', undefined)
 it('function foo() { 1 } foo();', undefined)
 it('return 1', (x) =>
   expect(x.thrown).toThrow(
-    Object.assign(new SyntaxError("'return' outside of function (1:0)"), {
+    Object.assign(new SyntaxError("'return' outside of function"), {
       loc: { line: 1, column: 0 },
       pos: 0,
       raisedAt: 6,

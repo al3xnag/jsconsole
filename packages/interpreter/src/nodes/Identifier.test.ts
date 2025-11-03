@@ -1,24 +1,27 @@
 import { describe, expect, test, vi } from 'vitest'
 import { evaluate } from '..'
-import { getBasicGlobalObject, it } from '../test-utils'
+import { getTestGlobalObject, it } from '../test-utils'
 
 it('NaN', NaN)
 it('Infinity', Infinity)
 
-// NOTE: window.toString === Object.prototype.toString // true
+// NOTE: globalThis.toString === Object.prototype.toString // true
 //       Object.getOwnPropertyDescriptor(Object.prototype, 'toString')
 //       // -> {writable: true, enumerable: false, configurable: true, value: ƒ}
 describe('toString', () => {
-  it('toString', ({ value }) => expect(value).toBe(toString))
+  it('toString', ({ value, globalObject }) => {
+    expect(value).toBe(globalObject.toString)
+    expect(value).toBe(globalObject.Object.prototype.toString)
+  })
   it('toString = 1', 1)
   it('"use strict"; toString = 1', 1)
   it('const toString = 1; toString', ({ value, globalObject }) => {
     expect(value).toBe(1)
-    expect(globalObject.toString).toBe(toString)
+    expect(globalObject.toString).toBeInstanceOf(globalObject.Function)
   })
   it('"use strict"; const toString = 1; toString', ({ value, globalObject }) => {
     expect(value).toBe(1)
-    expect(globalObject.toString).toBe(toString)
+    expect(globalObject.toString).toBeInstanceOf(globalObject.Function)
   })
   it('var toString = 1; toString', ({ value, globalObject }) => {
     expect(value).toBe(1)
@@ -31,7 +34,7 @@ describe('toString', () => {
 })
 
 describe('re-declare globalThis properties using var', () => {
-  // NOTE: Object.getOwnPropertyDescriptor(window, 'Math')
+  // NOTE: Object.getOwnPropertyDescriptor(globalThis, 'Math')
   //       -> {value: Math, writable: true, enumerable: false, configurable: true}
   test.each([
     { code: 'var Math = 1; Math' },
@@ -39,7 +42,7 @@ describe('re-declare globalThis properties using var', () => {
     { code: '{ var Math = 1; } Math' },
     { code: '"use strict"; { var Math = 1; } Math' },
   ])('writable | $code', async ({ code }) => {
-    const globalObject = getBasicGlobalObject() as any
+    const globalObject = getTestGlobalObject() as any
     expect(Object.getOwnPropertyDescriptor(globalObject, 'Math')).toEqual({
       value: globalObject.Math,
       writable: true,
@@ -51,12 +54,12 @@ describe('re-declare globalThis properties using var', () => {
     expect(result.value).toBe(1)
   })
 
-  // NOTE: Object.getOwnPropertyDescriptor(window, 'NaN')
+  // NOTE: Object.getOwnPropertyDescriptor(globalThis, 'NaN')
   //       -> {value: NaN, writable: false, enumerable: false, configurable: false}
   test.each(['var NaN = 1; NaN', '{ var NaN = 1; } NaN', 'NaN = 1; NaN'])(
-    'non-writable | $code',
+    'non-writable | $0',
     async (code) => {
-      const globalObject = getBasicGlobalObject() as any
+      const globalObject = getTestGlobalObject() as any
 
       expect(Object.getOwnPropertyDescriptor(globalObject, 'NaN')).toEqual({
         value: NaN,
@@ -71,14 +74,14 @@ describe('re-declare globalThis properties using var', () => {
     },
   )
 
-  // NOTE: Object.getOwnPropertyDescriptor(window, 'NaN')
+  // NOTE: Object.getOwnPropertyDescriptor(globalThis, 'NaN')
   //       -> {value: NaN, writable: false, enumerable: false, configurable: false}
   test.each([
     '"use strict"; var NaN = 1; NaN',
     '"use strict"; { var NaN = 1; } NaN',
     '"use strict"; NaN = 1; NaN',
-  ])('non-writable | $code', async (code) => {
-    const globalObject = getBasicGlobalObject() as any
+  ])('non-writable | $0', async (code) => {
+    const globalObject = getTestGlobalObject()
 
     expect(Object.getOwnPropertyDescriptor(globalObject, 'NaN')).toEqual({
       value: NaN,
@@ -88,20 +91,20 @@ describe('re-declare globalThis properties using var', () => {
     })
 
     expect(() => evaluate(code, { globalObject })).toThrow(
-      new TypeError("Cannot assign to read only property 'NaN' of object '#<Object>'"),
+      new TypeError("Cannot assign to read only property 'NaN' of #<Object>"),
     )
   })
 
-  // NOTE: Object.getOwnPropertyDescriptor(window, 'localStorage')
+  // NOTE: Object.getOwnPropertyDescriptor(globalThis, 'localStorage')
   //       -> {set: undefined, enumerable: true, configurable: true, get: ƒ}
   test.each([
     'var localStorage = 1; localStorage',
     '{ var localStorage = 1; } localStorage',
     'localStorage = 1; localStorage',
-  ])('getter only | $code', async (code) => {
+  ])('getter only | $0', async (code) => {
     const __localStorage = {}
     const getter = vi.fn(() => __localStorage)
-    const globalObject = Object.defineProperty(getBasicGlobalObject(), 'localStorage', {
+    const globalObject = Object.defineProperty(getTestGlobalObject(), 'localStorage', {
       set: undefined,
       enumerable: true,
       configurable: true,
@@ -113,16 +116,16 @@ describe('re-declare globalThis properties using var', () => {
     expect(getter).toHaveBeenCalledTimes(1)
   })
 
-  // NOTE: Object.getOwnPropertyDescriptor(window, 'localStorage')
+  // NOTE: Object.getOwnPropertyDescriptor(globalThis, 'localStorage')
   //       -> {set: undefined, enumerable: true, configurable: true, get: ƒ}
   test.each([
     '"use strict"; var localStorage = 1; localStorage',
     '"use strict"; { var localStorage = 1; } localStorage',
     '"use strict"; localStorage = 1; localStorage',
-  ])('getter only | $code', async (code) => {
+  ])('getter only | $0', async (code) => {
     const __localStorage = {}
     const getter = vi.fn(() => __localStorage)
-    const globalObject = Object.defineProperty(getBasicGlobalObject(), 'localStorage', {
+    const globalObject = Object.defineProperty(getTestGlobalObject(), 'localStorage', {
       set: undefined,
       enumerable: true,
       configurable: true,
@@ -130,13 +133,13 @@ describe('re-declare globalThis properties using var', () => {
     }) as any
 
     expect(() => evaluate(code, { globalObject })).toThrow(
-      new TypeError('Cannot set property localStorage of #<Object> which has only a getter'),
+      new TypeError(`Cannot set property 'localStorage' of #<Object> which has only a getter`),
     )
 
     expect(getter).not.toHaveBeenCalled()
   })
 
-  // NOTE: Object.getOwnPropertyDescriptor(window, 'name')
+  // NOTE: Object.getOwnPropertyDescriptor(globalThis, 'name')
   //       -> {enumerable: true, configurable: true, get: ƒ, set: ƒ}
   test.each([
     'var name = "test"; name',
@@ -150,7 +153,7 @@ describe('re-declare globalThis properties using var', () => {
     const getter = vi.fn(() => __name)
     const setter = vi.fn((value) => (__name = value))
 
-    const globalObject = Object.defineProperty(getBasicGlobalObject(), 'name', {
+    const globalObject = Object.defineProperty(getTestGlobalObject(), 'name', {
       enumerable: true,
       configurable: true,
       get: getter,
@@ -181,15 +184,15 @@ it('x', ({ thrown }) => {
 it('"use strict"; x', ({ thrown }) => {
   expect(thrown).toThrow(new ReferenceError('x is not defined'))
 })
-it('x', 123, { globalObject: Object.assign(getBasicGlobalObject(), { x: 123 }) })
+it('x', 123, { globalObject: Object.assign(getTestGlobalObject(), { x: 123 }) })
 it('let a = 1; a', 1)
-it('toString', ({ value }) => expect(value).toBe(toString))
+it('toString', ({ value, globalObject }) => expect(value).toBe(globalObject.toString))
 it('toString()', '[object Undefined]')
 
 describe('hoisting', () => {
   it(
     `
-      const desc = Object.getOwnPropertyDescriptor(window, 'x');
+      const desc = Object.getOwnPropertyDescriptor(globalThis, 'x');
       var x = 1;
       desc;
     `,
@@ -198,7 +201,7 @@ describe('hoisting', () => {
 
   it(
     `
-      const desc = Object.getOwnPropertyDescriptor(window, 'x');
+      const desc = Object.getOwnPropertyDescriptor(globalThis, 'x');
       let x = 1;
       desc;
     `,
@@ -207,7 +210,7 @@ describe('hoisting', () => {
 
   it(
     `
-      const desc = Object.getOwnPropertyDescriptor(window, 'x');
+      const desc = Object.getOwnPropertyDescriptor(globalThis, 'x');
       const x = 1;
       desc;
     `,
@@ -216,7 +219,7 @@ describe('hoisting', () => {
 
   it(
     `
-      const desc = Object.getOwnPropertyDescriptor(window, 'x');
+      const desc = Object.getOwnPropertyDescriptor(globalThis, 'x');
       function x() {}
       desc;
     `,
@@ -495,9 +498,9 @@ describe('hoisting', () => {
     `
     let a, b;
     { 
-      a = window.foo;
+      a = globalThis.foo;
       function foo() {};
-      b = window.foo;
+      b = globalThis.foo;
     }
     [a, b];
     `,
@@ -509,9 +512,9 @@ describe('hoisting', () => {
     'use strict';
     let a, b;
     { 
-      a = window.foo;
+      a = globalThis.foo;
       function foo() {};
-      b = window.foo;
+      b = globalThis.foo;
     }
     [a, b];
     `,
@@ -520,9 +523,9 @@ describe('hoisting', () => {
 
   it(
     `
-    let a = window.foo;
+    let a = globalThis.foo;
     function foo() {};
-    let b = window.foo;
+    let b = globalThis.foo;
     [a, b];
     `,
     [expect.any(Function), expect.any(Function)],
@@ -531,9 +534,9 @@ describe('hoisting', () => {
   it(
     `
     'use strict';
-    let a = window.foo;
+    let a = globalThis.foo;
     function foo() {};
-    let b = window.foo;
+    let b = globalThis.foo;
     [a, b];
     `,
     [expect.any(Function), expect.any(Function)],
@@ -584,7 +587,7 @@ describe('hoisting', () => {
     }
     `, ({ thrown }) => {
     expect(thrown).toThrow(
-      Object.assign(new SyntaxError("Identifier 'foo' has already been declared (4:10)"), {
+      Object.assign(new SyntaxError("Identifier 'foo' has already been declared"), {
         loc: { line: 4, column: 10 },
         pos: 42,
         raisedAt: 46,
@@ -607,7 +610,7 @@ describe('hoisting', () => {
     `
     function foo() {};
     foo = 1;
-    [foo, window.foo];
+    [foo, globalThis.foo];
     `,
     [1, 1],
   )
@@ -617,7 +620,7 @@ describe('hoisting', () => {
     'use strict';
     function foo() {};
     foo = 1;
-    [foo, window.foo];
+    [foo, globalThis.foo];
     `,
     [1, 1],
   )
@@ -628,7 +631,7 @@ describe('hoisting', () => {
       function foo() {};
       foo = 1;
     }
-    [foo, window.foo];
+    [foo, globalThis.foo];
     `,
     [expect.any(Function), expect.any(Function)],
   )
@@ -641,7 +644,7 @@ describe('hoisting', () => {
       foo = 1;
       a = foo;
     }
-    [foo, window.foo, a];
+    [foo, globalThis.foo, a];
     `,
     [expect.any(Function), expect.any(Function), 1],
   )
@@ -652,7 +655,7 @@ describe('hoisting', () => {
       function foo() {};
       foo = 1;
     }
-    [foo, window.foo];
+    [foo, globalThis.foo];
     `, ({ thrown }) => {
     expect(thrown).toThrow(new ReferenceError('foo is not defined'))
   })
@@ -660,8 +663,8 @@ describe('hoisting', () => {
   it(
     `
       function foo() {};
-      window.foo = 1;
-      [foo, window.foo];
+      globalThis.foo = 1;
+      [foo, globalThis.foo];
     `,
     [1, 1],
   )
@@ -670,8 +673,8 @@ describe('hoisting', () => {
     `
       'use strict';
       function foo() {};
-      window.foo = 1;
-      [foo, window.foo];
+      globalThis.foo = 1;
+      [foo, globalThis.foo];
     `,
     [1, 1],
   )
@@ -680,8 +683,8 @@ describe('hoisting', () => {
     `
     {
       function foo() {};
-      window.foo = 1;
-      [foo, window.foo];
+      globalThis.foo = 1;
+      [foo, globalThis.foo];
     }
     `,
     [expect.any(Function), 1],
@@ -692,8 +695,8 @@ describe('hoisting', () => {
     'use strict';
     {
       function foo() {};
-      window.foo = 1;
-      [foo, window.foo];
+      globalThis.foo = 1;
+      [foo, globalThis.foo];
     }
     `,
     [expect.any(Function), 1],
@@ -702,8 +705,8 @@ describe('hoisting', () => {
   it(
     `
       var foo = 1;
-      window.foo = 2;
-      [foo, window.foo];
+      globalThis.foo = 2;
+      [foo, globalThis.foo];
     `,
     [2, 2],
   )
@@ -712,8 +715,8 @@ describe('hoisting', () => {
     `
       'use strict';
       var foo = 1;
-      window.foo = 2;
-      [foo, window.foo];
+      globalThis.foo = 2;
+      [foo, globalThis.foo];
     `,
     [2, 2],
   )
@@ -722,8 +725,8 @@ describe('hoisting', () => {
     `
     {
       var foo = 1;
-      window.foo = 2;
-      [foo, window.foo];
+      globalThis.foo = 2;
+      [foo, globalThis.foo];
     }
     `,
     [2, 2],
@@ -734,8 +737,8 @@ describe('hoisting', () => {
     'use strict';
     {
       var foo = 1;
-      window.foo = 2;
-      [foo, window.foo];
+      globalThis.foo = 2;
+      [foo, globalThis.foo];
     }
     `,
     [2, 2],
@@ -754,14 +757,14 @@ describe('hoisting', () => {
   it(
     `
     { var v = 1; }
-    Object.getOwnPropertyDescriptor(window, 'v')
+    Object.getOwnPropertyDescriptor(globalThis, 'v')
     `,
     { configurable: false, enumerable: true, value: 1, writable: true },
   )
 
   it(
     `
-    Object.getOwnPropertyDescriptor(window, 'v')
+    Object.getOwnPropertyDescriptor(globalThis, 'v')
     { var v = 1; }
     `,
     { configurable: false, enumerable: true, value: undefined, writable: true },
@@ -769,7 +772,7 @@ describe('hoisting', () => {
 
   it(
     `
-    Object.getOwnPropertyDescriptor(window, 'v')
+    Object.getOwnPropertyDescriptor(globalThis, 'v')
     // { var v = 1; }
     `,
     undefined,
@@ -778,7 +781,7 @@ describe('hoisting', () => {
   it(
     `
       { function x() {} }
-      Object.getOwnPropertyDescriptor(window, 'x');
+      Object.getOwnPropertyDescriptor(globalThis, 'x');
     `,
     { value: expect.any(Function), writable: true, enumerable: true, configurable: false },
   )
@@ -847,7 +850,7 @@ describe('hoisting', () => {
     `
     var a;
     function a() {}
-    [a, window.a];
+    [a, globalThis.a];
     `,
     [expect.any(Function), expect.any(Function)],
   )
@@ -857,7 +860,7 @@ describe('hoisting', () => {
     'use strict';
     var a;
     function a() {}
-    [a, window.a];
+    [a, globalThis.a];
     `,
     [expect.any(Function), expect.any(Function)],
   )
@@ -866,7 +869,7 @@ describe('hoisting', () => {
     `
     function a() {}
     var a;
-    [a, window.a];
+    [a, globalThis.a];
     `,
     [expect.any(Function), expect.any(Function)],
   )
@@ -876,7 +879,7 @@ describe('hoisting', () => {
     'use strict';
     function a() {}
     var a;
-    [a, window.a];
+    [a, globalThis.a];
     `,
     [expect.any(Function), expect.any(Function)],
   )
@@ -1029,6 +1032,27 @@ describe('hoisting', () => {
   it(`var a = 1; var a; a;`, 1)
   it(`function fn() { var a = 1; var a; return a; } fn();`, 1)
   it(`function fn() { var a = 1; {var a;} return a; } fn();`, 1)
+
+  it(`const fn = function() { arguments.callee = () => {} }; fn()`, undefined)
+  it(`"use strict"; const fn = function() { arguments.callee = () => {} }; fn()`, ({ thrown }) => {
+    // It's `Cannot assign to read only property 'callee' of #<Object>` in Chrome,
+    // and `'caller', 'callee', and 'arguments' properties may not be accessed...` in Firefox.
+    expect(thrown).toThrow(
+      new TypeError(
+        `'caller', 'callee', and 'arguments' properties may not be accessed on strict mode functions or the arguments objects for calls to them`,
+      ),
+    )
+  })
+  it(`const fn = function() { "use strict"; arguments.callee = () => {} }; fn()`, ({ thrown }) => {
+    // It's `Cannot assign to read only property 'callee' of #<Object>` in Chrome,
+    // and `'caller', 'callee', and 'arguments' properties may not be accessed...` in Firefox.
+    expect(thrown).toThrow(
+      new TypeError(
+        `'caller', 'callee', and 'arguments' properties may not be accessed on strict mode functions or the arguments objects for calls to them`,
+      ),
+    )
+  })
+
   it(`function fn(a = arguments) { return a; } fn();`, ({ value }) => {
     expect(value).toHaveLength(0)
     expect(Array.from(value as any)).toEqual([])

@@ -1,5 +1,5 @@
 import { expect } from 'vitest'
-import { it, TestWindow, ExpectToThrowPossibleSideEffectError } from '../test-utils'
+import { it, ExpectToThrowPossibleSideEffectError } from '../test-utils'
 
 it('var x', undefined)
 it('var x = 1', undefined)
@@ -25,7 +25,7 @@ it('x = 1; let x; x', (x) =>
   expect(() => x.value).toThrow(new ReferenceError("Cannot access 'x' before initialization")))
 it('x; let x; x', (x) =>
   expect(() => x.value).toThrow(new ReferenceError("Cannot access 'x' before initialization")))
-it('window.x = 1; var x = 2; x', 2, { globalObject: new TestWindow() })
+it('globalThis.x = 1; var x = 2; x', 2)
 it('x = 1; var x = 2; x', 2)
 it('x = 1; var x; x', 1)
 it('var x = 1; var x = 2; x', 2)
@@ -37,13 +37,13 @@ it('function fn() { throw 0 }; let [x = fn()] = [null]; x', null)
 it('undefined = 1; undefined', undefined)
 it('"use strict"; undefined = 1; undefined', ({ thrown }) => {
   expect(thrown).toThrow(
-    new TypeError("Cannot assign to read only property 'undefined' of object '#<Object>'"),
+    new TypeError("Cannot assign to read only property 'undefined' of #<Object>"),
   )
 })
 it('var undefined = 1; undefined', undefined)
 it('"use strict"; var undefined = 1; undefined', ({ thrown }) => {
   expect(thrown).toThrow(
-    new TypeError("Cannot assign to read only property 'undefined' of object '#<Object>'"),
+    new TypeError("Cannot assign to read only property 'undefined' of #<Object>"),
   )
 })
 it('let undefined = 1', ({ thrown }) => {

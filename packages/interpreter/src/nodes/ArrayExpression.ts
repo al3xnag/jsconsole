@@ -2,7 +2,7 @@ import { ArrayExpression } from 'acorn'
 import { evaluateNode } from '.'
 import { Context, EvaluateGenerator, Scope } from '../types'
 import { syncContext } from '../lib/syncContext'
-import { requireGlobal } from '../lib/Metadata'
+import { getNodeText } from '../lib/getNodeText'
 
 const create = Object.create
 const defineProperties = Object.defineProperties
@@ -26,7 +26,19 @@ export function* evaluateArrayExpression(
     const { value } = yield* evaluateNode(element, scope, context)
 
     if (element.type === 'SpreadElement') {
-      const items = [...(value as unknown[])]
+      let items: unknown[]
+      try {
+        items = [...(value as unknown[])]
+      } catch (error) {
+        if (error instanceof TypeError) {
+          throw new context.metadata.globals.TypeError(
+            `${getNodeText(element.argument, context.code)} is not iterable`,
+          )
+        }
+
+        throw error
+      }
+
       for (let j = 0; j < items.length; j++) {
         props[length++] = { value: items[j], enumerable: true, configurable: true, writable: true }
       }
@@ -35,9 +47,7 @@ export function* evaluateArrayExpression(
     }
   }
 
-  const Array = requireGlobal(context.metadata.globals.Array, 'Array')
-
-  const array: unknown[] = Array(length)
+  const array: unknown[] = context.metadata.globals.Array(length)
   defineProperties(array, props)
 
   syncContext?.tmpRefs.add(array)

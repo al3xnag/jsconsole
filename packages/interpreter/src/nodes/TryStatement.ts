@@ -4,6 +4,7 @@ import { evaluateNode } from '.'
 import { evaluatePattern } from './Pattern'
 import { EMPTY, UNINITIALIZED, TYPE_RETURN } from '../constants'
 import { getLeftHandPatternIdentifiers } from '../lib/bound-identifiers'
+import { InternalError } from '../lib/InternalError'
 
 // https://tc39.es/ecma262/#sec-try-statement
 export function* evaluateTryStatement(
@@ -18,10 +19,14 @@ export function* evaluateTryStatement(
   if (handler) handler.parent = node
   if (finalizer) finalizer.parent = node
 
+  let thrownError: unknown
+
   try {
     result = yield* evaluateNode(block, scope, context)
   } catch (error) {
-    if (handler) {
+    thrownError = error
+
+    if (handler && !(error instanceof InternalError)) {
       const catchScope: BlockScope = {
         kind: 'block',
         parent: scope,
@@ -48,7 +53,7 @@ export function* evaluateTryStatement(
       throw error
     }
   } finally {
-    if (finalizer) {
+    if (finalizer && !(thrownError instanceof InternalError)) {
       const finalizerResult = yield* evaluateNode(finalizer, scope, context)
       if (finalizerResult.type === TYPE_RETURN) {
         result = finalizerResult

@@ -12,7 +12,7 @@ export function toShortStringTag(value: unknown): string {
     const constructorDescriptor = Object.getOwnPropertyDescriptor(proto, 'constructor')
     if (constructorDescriptor) {
       if (typeof constructorDescriptor.value === 'function') {
-        return `#<${constructorDescriptor.value.name}>`
+        return `#<${constructorDescriptor.value.name || 'Object'}>`
       } else {
         break
       }

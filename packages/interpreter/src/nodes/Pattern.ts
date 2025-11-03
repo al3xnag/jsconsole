@@ -7,7 +7,6 @@ import { Context, EvaluatedNode, Scope } from '../types'
 import { evaluateMemberExpressionParts } from './MemberExpression'
 import { evaluatePropertyKey } from './Property'
 import { syncContext } from '../lib/syncContext'
-import { requireGlobal } from '../lib/Metadata'
 
 const assign = Object.assign
 const ObjectToString = Object.prototype.toString
@@ -58,7 +57,7 @@ export function* evaluatePattern(
             var {c, d, ...y} = x;
             console.log(c, d, y); // 3, undefined, { a: 1, b: 2 }
           */
-          const restValue = assign({}, value)
+          const restValue = assign(context.metadata.globals.Object(), value)
           for (const key of seenKeys) {
             delete (restValue as any)[key as PropertyKey]
           }
@@ -86,7 +85,7 @@ export function* evaluatePattern(
 
         let elValue: unknown
         if (element.type === 'RestElement') {
-          const arr = iteratorToArray(iterator)
+          const arr = iteratorToArray(iterator, context)
           syncContext?.tmpRefs.add(arr)
           elValue = arr
         } else {
@@ -130,8 +129,7 @@ export function* evaluatePattern(
 // https://tc39.es/ecma262/#sec-requireobjectcoercible
 function requireObjectCoercible(value: unknown, context: Context): NonNullable<unknown> {
   if (value == null) {
-    const TypeError = requireGlobal(context.metadata.globals.TypeError, 'TypeError')
-    throw new TypeError(`Cannot destructure '${value}' as it is ${value}`)
+    throw new context.metadata.globals.TypeError(`Cannot destructure '${value}' as it is ${value}`)
   }
 
   return value
@@ -140,26 +138,24 @@ function requireObjectCoercible(value: unknown, context: Context): NonNullable<u
 // https://tc39.es/ecma262/#sec-getiterator
 function getIterator(value: unknown, context: Context): Iterator<unknown> {
   if (value == null) {
-    const TypeError = requireGlobal(context.metadata.globals.TypeError, 'TypeError')
-    throw new TypeError(`${value} is not iterable`)
+    throw new context.metadata.globals.TypeError(`${value} is not iterable`)
   }
 
   const iteratorMethod = (value as Partial<Iterable<unknown>>)[Symbol.iterator]
   if (typeof iteratorMethod !== 'function') {
-    const TypeError = requireGlobal(context.metadata.globals.TypeError, 'TypeError')
     const valueStr =
       (typeof value === 'object' && value !== null) || typeof value === 'function'
         ? ObjectToString.call(value)
         : String(value)
-    throw new TypeError(`${valueStr} is not iterable`)
+    throw new context.metadata.globals.TypeError(`${valueStr} is not iterable`)
   }
 
   return iteratorMethod.call(value)
 }
 
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Iterator/toArray
-function iteratorToArray(iterator: Iterator<unknown>): unknown[] {
-  const arr: unknown[] = []
+function iteratorToArray(iterator: Iterator<unknown>, context: Context): unknown[] {
+  const arr: unknown[] = context.metadata.globals.Array()
 
   while (true) {
     const { done, value } = iterator.next()

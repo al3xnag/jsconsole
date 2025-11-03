@@ -64,7 +64,7 @@ export function ConsolePrompt({ ref, onSubmit, onUpdate }: ConsolePromptProps) {
       Object.assign<AutocompleteOptions, AutocompleteOptions>(autocompleteOptionsRef.current, {
         globalObject: {},
         globalScope: { bindings: new Map() },
-        metadata: new Metadata({}),
+        metadata: new Metadata(globalThis),
         evaluate: () => undefined,
       })
       return

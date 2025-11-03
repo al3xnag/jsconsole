@@ -1,5 +1,5 @@
 import { describe, expect } from 'vitest'
-import { it, TestWindow } from '../test-utils'
+import { it } from '../test-utils'
 
 // var a = 1; ({ ...a }) // {}
 // var a = null; ({ ...a }) // {}
@@ -90,42 +90,38 @@ describe('__proto__', () => {
   it('typeof Object.getPrototypeOf({ __proto__: function () {} })', 'function')
   it('typeof Object.getPrototypeOf({ __proto__: function __proto__() {} })', 'function')
   it('typeof Object.getPrototypeOf({ __proto__() {} })', 'object')
-  it('Object.getPrototypeOf({ __proto__: () => {} })', ({ value }) => {
-    expect(value).toBeInstanceOf(Function)
+  it('Object.getPrototypeOf({ __proto__: () => {} })', ({ value, globalObject }) => {
+    expect(value).toBeInstanceOf(globalObject.Function)
   })
-  it('Object.getPrototypeOf({ __proto__: function () {} })', ({ value }) => {
-    expect(value).toBeInstanceOf(Function)
+  it('Object.getPrototypeOf({ __proto__: function () {} })', ({ value, globalObject }) => {
+    expect(value).toBeInstanceOf(globalObject.Function)
   })
-  it('Object.getPrototypeOf({ __proto__: function __proto__() {} })', ({ value }) => {
-    expect(value).toBeInstanceOf(Function)
+  it('Object.getPrototypeOf({ __proto__: function __proto__() {} })', ({ value, globalObject }) => {
+    expect(value).toBeInstanceOf(globalObject.Function)
   })
-  it('Object.getPrototypeOf({ __proto__() {} })', ({ value }) => {
-    expect(value).not.toBeInstanceOf(Function)
-    expect(value).toBe(Object.prototype)
+  it('Object.getPrototypeOf({ __proto__() {} })', ({ value, globalObject }) => {
+    expect(value).not.toBeInstanceOf(globalObject.Function)
+    expect(value).toBe(globalObject.Object.prototype)
   })
-  it('const __proto__ = { x: 1 }; ({ __proto__ })', ({ value }) => {
+  it('const __proto__ = { x: 1 }; ({ __proto__ })', ({ value, globalObject }) => {
     expect(value).toEqual({ ['__proto__']: { x: 1 } })
-    expect(Object.getPrototypeOf(value)).toBe(Object.prototype)
+    expect(Object.getPrototypeOf(value)).toBe(globalObject.Object.prototype)
   })
-  it('const __proto__ = { x: 1 }; ({ ...{ __proto__ } })', ({ value }) => {
+  it('const __proto__ = { x: 1 }; ({ ...{ __proto__ } })', ({ value, globalObject }) => {
     expect(value).toEqual({ ['__proto__']: { x: 1 } })
-    expect(Object.getPrototypeOf(value)).toBe(Object.prototype)
+    expect(Object.getPrototypeOf(value)).toBe(globalObject.Object.prototype)
   })
-  it(
-    'var __proto__ = { x: 1 }; Object.getPrototypeOf(window)',
-    { x: 1 },
-    { globalObject: new TestWindow() },
-  )
-  it("({ ['__proto__']: { x: 1 } })", ({ value }) => {
+  it('var __proto__ = { x: 1 }; Object.getPrototypeOf(globalThis)', { x: 1 })
+  it("({ ['__proto__']: { x: 1 } })", ({ value, globalObject }) => {
     expect(value).toEqual({ ['__proto__']: { x: 1 } })
-    expect(Object.getPrototypeOf(value)).toBe(Object.prototype)
+    expect(Object.getPrototypeOf(value)).toBe(globalObject.Object.prototype)
   })
   it('({ __proto__: { x: 1 } })', ({ value }) => {
     expect(value).toEqual({})
     expect(Object.getPrototypeOf(value)).toEqual({ x: 1 })
   })
-  it('({ __proto__: 1 })', ({ value }) => {
+  it('({ __proto__: 1 })', ({ value, globalObject }) => {
     expect(value).toEqual({})
-    expect(Object.getPrototypeOf(value)).toBe(Object.prototype)
+    expect(Object.getPrototypeOf(value)).toBe(globalObject.Object.prototype)
   })
 })

@@ -33,21 +33,25 @@ describe('delete', () => {
   it('"use strict"; delete 1', true)
   it('delete a', true)
   it('"use strict"; delete a', ({ thrown }) => {
-    expect(thrown).toThrow(SyntaxError)
-    expect(thrown).toThrow('Deleting local variable in strict mode')
+    expect(thrown).toThrow(new SyntaxError('Deleting local variable in strict mode'))
   })
   it('delete Math', true)
   it('"use strict"; delete Math', ({ thrown }) => {
-    expect(thrown).toThrow(SyntaxError)
-    expect(thrown).toThrow('Deleting local variable in strict mode')
+    expect(thrown).toThrow(new SyntaxError('Deleting local variable in strict mode'))
   })
   it('delete NaN', false)
-  it('delete window.NaN', false)
-  it('"use strict"; delete window.NaN', ({ thrown }) => {
+  it('delete globalThis.NaN', false)
+  it('"use strict"; delete globalThis.NaN', ({ thrown }) => {
     expect(thrown).toThrow(new TypeError("Cannot delete property 'NaN' of #<Object>"))
   })
   it('"use strict"; delete [].length', ({ thrown }) => {
     expect(thrown).toThrow(new TypeError("Cannot delete property 'length' of #<Array>"))
+  })
+  it('delete foo.NaN', ({ thrown }) => {
+    expect(thrown).toThrow(new ReferenceError('foo is not defined'))
+  })
+  it('"use strict"; delete foo.NaN', ({ thrown }) => {
+    expect(thrown).toThrow(new ReferenceError('foo is not defined'))
   })
   it('delete ({}).a', true)
   it('"use strict"; delete ({}).a', true)

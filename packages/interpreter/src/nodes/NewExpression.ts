@@ -3,7 +3,7 @@ import { evaluateNode } from '.'
 import { Context, EvaluateGenerator, Scope } from '../types'
 import { getOrCreateSharedWeakRef } from '../lib/sharedWeakRefMap'
 import { unbindFunctionCall } from '../lib/unbindFunctionCall'
-import { requireGlobal, WeakMapMetadata, WeakSetMetadata } from '../lib/Metadata'
+import { type WeakMapMetadata, type WeakSetMetadata } from '../lib/Metadata'
 import { assertFunctionSideEffectFree } from '../lib/assertFunctionSideEffectFree'
 import { syncContext } from '../lib/syncContext'
 import { getNodeText } from '../lib/getNodeText'
@@ -22,7 +22,19 @@ export function* evaluateNewExpression(
     const { value } = yield* evaluateNode(arg, scope, context)
 
     if (arg.type === 'SpreadElement') {
-      const items = value as unknown[]
+      let items: unknown[]
+      try {
+        items = [...(value as unknown[])]
+      } catch (error) {
+        if (error instanceof TypeError) {
+          throw new context.metadata.globals.TypeError(
+            `${getNodeText(arg.argument, context.code)} is not iterable`,
+          )
+        }
+
+        throw error
+      }
+
       args.push(...items)
     } else {
       args.push(value)
@@ -30,9 +42,8 @@ export function* evaluateNewExpression(
   }
 
   if (!isConstructor(callee, context)) {
-    const TypeError = requireGlobal(context.metadata.globals.TypeError, 'TypeError')
     const calleeStr = getNodeText(node.callee, context.code)
-    throw new TypeError(`${calleeStr} is not a constructor`)
+    throw new context.metadata.globals.TypeError(`${calleeStr} is not a constructor`)
   }
 
   if (syncContext?.throwOnSideEffect) {

@@ -19,15 +19,15 @@ export function* evaluateProgram(node: Program, scope: Scope, context: Context):
     const evaluatedChild = yield* evaluateNode(child, scope, context)
 
     if (evaluatedChild.type === TYPE_RETURN) {
-      throw new SyntaxError('Illegal return statement')
+      throw new context.metadata.globals.SyntaxError('Illegal return statement')
     }
 
     if (evaluatedChild.type === TYPE_BREAK) {
-      throw new SyntaxError('Illegal break statement')
+      throw new context.metadata.globals.SyntaxError('Illegal break statement')
     }
 
     if (evaluatedChild.type === TYPE_CONTINUE) {
-      throw new SyntaxError('Illegal continue statement')
+      throw new context.metadata.globals.SyntaxError('Illegal continue statement')
     }
 
     if (evaluatedChild.value !== EMPTY) {

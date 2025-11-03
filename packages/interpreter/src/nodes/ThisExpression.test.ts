@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
 import { evaluate } from '..'
-import { getBasicGlobalObject } from '../test-utils'
+import { getTestGlobalObject } from '../test-utils'
 
 test('global this (strict: false)', async () => {
   const globalObject = {}
@@ -17,7 +17,7 @@ test('global this (strict: true)', async () => {
 })
 
 test('fn() { return this } (strict: false)', async () => {
-  const globalObject = getBasicGlobalObject()
+  const globalObject = getTestGlobalObject()
   const code = `
     function fn() { return this }
     fn()
@@ -27,7 +27,7 @@ test('fn() { return this } (strict: false)', async () => {
 })
 
 test('fn() { return this } (strict: true)', async () => {
-  const globalObject = getBasicGlobalObject()
+  const globalObject = getTestGlobalObject()
   const code = `
     "use strict";
     function fn() { return this }
@@ -38,18 +38,18 @@ test('fn() { return this } (strict: true)', async () => {
 })
 
 test('fn.call(1) (strict: false)', async () => {
-  const globalObject = getBasicGlobalObject()
+  const globalObject = getTestGlobalObject()
   const code = `
     function fn() { return this }
     fn.call(1)
   `
   const result = await evaluate(code, { globalObject })
   expect(result.value).toEqual(new Number(1))
-  expect(result.value).toBeInstanceOf(Number)
+  expect(result.value).toBeInstanceOf(globalObject.Number)
 })
 
 test('fn.call(1) (strict: true)', async () => {
-  const globalObject = getBasicGlobalObject()
+  const globalObject = getTestGlobalObject()
   const code = `
     "use strict";
     function fn() { return this }
@@ -61,7 +61,7 @@ test('fn.call(1) (strict: true)', async () => {
 })
 
 test('fn() | inner() (strict: false)', async () => {
-  const globalObject = getBasicGlobalObject()
+  const globalObject = getTestGlobalObject()
   const code = `
     function fn() {
       function inner() {
@@ -76,7 +76,7 @@ test('fn() | inner() (strict: false)', async () => {
 })
 
 test('fn() | inner() (strict: true)', async () => {
-  const globalObject = getBasicGlobalObject()
+  const globalObject = getTestGlobalObject()
   const code = `
     "use strict";
     function fn() {
@@ -92,7 +92,7 @@ test('fn() | inner() (strict: true)', async () => {
 })
 
 test('fn.call(1) | inner() (strict: false)', async () => {
-  const globalObject = getBasicGlobalObject()
+  const globalObject = getTestGlobalObject()
   const code = `
     function fn() {
       function inner() {
@@ -107,7 +107,7 @@ test('fn.call(1) | inner() (strict: false)', async () => {
 })
 
 test('fn.call(1) | inner() (strict: true)', async () => {
-  const globalObject = getBasicGlobalObject()
+  const globalObject = getTestGlobalObject()
   const code = `
     "use strict";
     function fn() {
@@ -123,7 +123,7 @@ test('fn.call(1) | inner() (strict: true)', async () => {
 })
 
 test('this in arrow function', async () => {
-  const globalObject = getBasicGlobalObject()
+  const globalObject = getTestGlobalObject()
   const code = `
     const fn = () => this
     fn()
@@ -133,7 +133,7 @@ test('this in arrow function', async () => {
 })
 
 test('this in arrow function 2', async () => {
-  const globalObject = getBasicGlobalObject()
+  const globalObject = getTestGlobalObject()
   const code = `
     const fn = () => this
     fn.call(1)
@@ -143,7 +143,7 @@ test('this in arrow function 2', async () => {
 })
 
 test('this in arrow function 3', async () => {
-  const globalObject = getBasicGlobalObject()
+  const globalObject = getTestGlobalObject()
   const code = `
     const fn = () => this
     fn.bind(1)()

@@ -10,7 +10,6 @@ import { iterateAncestors } from './iterateAncestors'
 import { getNodeText } from './getNodeText'
 import { syncContext } from './syncContext'
 import { hasDirective } from './directive'
-import { requireGlobal } from './Metadata'
 
 const defineProperty = Object.defineProperty
 
@@ -91,10 +90,9 @@ export function createFunction(node: AnyFunction, scope: Scope, context: Context
   const isArrow = isArrowFunction(node)
   if (isArrow) {
     if (node.async) {
-      const Promise = requireGlobal(context.metadata.globals.Promise, 'Promise')
-
       function evaluate(...args: unknown[]) {
-        return Promise.resolve(
+        return context.metadata.globals.PromiseResolve.call(
+          context.metadata.globals.Promise,
           evaluateRunner({
             type: 'arrow-function',
             callee: fn,
@@ -117,10 +115,9 @@ export function createFunction(node: AnyFunction, scope: Scope, context: Context
     }
   } else {
     if (node.async) {
-      const Promise = requireGlobal(context.metadata.globals.Promise, 'Promise')
-
       function evaluate(this: unknown, _arguments: IArguments, newTarget: unknown) {
-        return Promise.resolve(
+        return context.metadata.globals.PromiseResolve.call(
+          context.metadata.globals.Promise,
           evaluateRunner({
             type: 'function',
             callee: fn,
@@ -156,6 +153,20 @@ export function createFunction(node: AnyFunction, scope: Scope, context: Context
       fn = function (this: unknown) {
         return evaluate.call(this, arguments, new.target)
       }
+
+      const fnPrototype = context.metadata.globals.ObjectCreate(
+        context.metadata.globals.ObjectPrototype,
+        {
+          constructor: {
+            configurable: true,
+            enumerable: false,
+            value: fn,
+            writable: true,
+          },
+        },
+      )
+
+      Object.defineProperty(fn, 'prototype', { value: fnPrototype, writable: true })
     }
   }
 
@@ -169,19 +180,9 @@ export function createFunction(node: AnyFunction, scope: Scope, context: Context
   defineProperty(fn, 'length', { value: fnLength, configurable: true })
 
   if (node.async) {
-    const AsyncFunctionPrototype = requireGlobal(
-      context.metadata.globals.AsyncFunctionPrototype,
-      'AsyncFunction prototype',
-    )
-
-    Object.setPrototypeOf(fn, AsyncFunctionPrototype)
+    Object.setPrototypeOf(fn, context.metadata.globals.AsyncFunctionPrototype)
   } else {
-    const FunctionPrototype = requireGlobal(
-      context.metadata.globals.FunctionPrototype,
-      'Function.prototype',
-    )
-
-    Object.setPrototypeOf(fn, FunctionPrototype)
+    Object.setPrototypeOf(fn, context.metadata.globals.FunctionPrototype)
   }
 
   const originalFnCode = getFnSourceCode(node, context)
@@ -264,6 +265,7 @@ function isArrowFunction(node: AnyFunction): boolean {
   return node.type === 'ArrowFunctionExpression'
 }
 
+// https://tc39.es/ecma262/multipage/ordinary-and-exotic-objects-behaviours.html#sec-functiondeclarationinstantiation
 function* initScope(
   node: AnyFunction,
   parentScope: Scope,
@@ -321,15 +323,20 @@ function* initScope(
   if (meta.type === 'function') {
     // NOTE: function foo(a, b = arguments[0], [c] = [], ...d) { console.log(a,b,c,d) }
     //       foo(1) // 1 1 undefined []
-    // TODO: in non-strict mode, `arguments` (IArguments values) is in sync with argument values
-    scope.bindings.set('arguments', { kind: 'var', value: meta.arguments })
+    // TODO: in non-strict mode, `arguments` (IArguments values) is in sync with argument values (https://tc39.es/ecma262/multipage/ordinary-and-exotic-objects-behaviours.html#sec-createmappedargumentsobject)
+    scope.bindings.set('arguments', {
+      kind: context.strict ? 'const' : 'var',
+      value: createArgumentsObject(node, meta, context),
+    })
     scope.hasThisBinding = true
     // https://tc39.es/ecma262/multipage/ordinary-and-exotic-objects-behaviours.html#sec-ordinarycallbindthis
     scope.thisValue = getThisValue(meta.this, context)
     scope.newTarget = meta.newTarget
   }
 
-  const args: unknown[] = meta.type === 'function' ? [...meta.arguments] : meta.args
+  const args: unknown[] = context.metadata.globals.ArrayFrom(
+    meta.type === 'function' ? meta.arguments : meta.args,
+  )
 
   // function foo(a, {b} = {}, [c] = [], ...d) {}
   // TODO: in non-strict mode, `arguments` (IArguments values) is in sync with argument values
@@ -369,5 +376,115 @@ function getThisValue(thisArg: unknown, context: Context): unknown {
     return thisArg
   }
 
-  return Object(thisArg)
+  return context.metadata.globals.Object(thisArg)
+}
+
+// https://tc39.es/ecma262/multipage/ordinary-and-exotic-objects-behaviours.html#sec-functiondeclarationinstantiation
+// 22. If argumentsObjectNeeded is true, then
+function createArgumentsObject(node: AnyFunction, meta: FunctionCallMeta, context: Context) {
+  if (context.strict || !isSimpleParameterList(node)) {
+    return createUnmappedArgumentsObject(meta, context)
+  } else {
+    return createMappedArgumentsObject(meta, context)
+  }
+}
+
+// https://tc39.es/ecma262/multipage/ordinary-and-exotic-objects-behaviours.html#sec-createunmappedargumentsobject
+function createUnmappedArgumentsObject(meta: FunctionCallMeta, context: Context) {
+  const props: PropertyDescriptorMap = {
+    length: {
+      value: meta.arguments.length,
+      writable: true,
+      enumerable: false,
+      configurable: true,
+    },
+    [Symbol.iterator]: {
+      value: context.metadata.globals.ArrayPrototypeValues,
+      writable: true,
+      enumerable: false,
+      configurable: true,
+    },
+    callee: {
+      get() {
+        throw new context.metadata.globals.TypeError(
+          `'caller', 'callee', and 'arguments' properties may not be accessed on strict mode functions or the arguments objects for calls to them`,
+        )
+      },
+      set() {
+        throw new context.metadata.globals.TypeError(
+          `'caller', 'callee', and 'arguments' properties may not be accessed on strict mode functions or the arguments objects for calls to them`,
+        )
+      },
+      enumerable: false,
+      configurable: false,
+    },
+    // Instead of [[ParameterMap]].
+    // https://tc39.es/ecma262/multipage/fundamental-objects.html#sec-object.prototype.tostring
+    // 6. Else if O has a [[ParameterMap]] internal slot, let builtinTag be "Arguments".
+    // `Object.prototype.toString.call(arguments)` -> "[object Arguments]"
+    [Symbol.toStringTag]: {
+      value: 'Arguments',
+    },
+  }
+
+  Object.setPrototypeOf(props.callee.get, context.metadata.globals.FunctionPrototype)
+  Object.setPrototypeOf(props.callee.set, context.metadata.globals.FunctionPrototype)
+
+  for (let i = 0; i < meta.arguments.length; i++) {
+    props[i] = {
+      value: meta.arguments[i],
+      writable: true,
+      enumerable: true,
+      configurable: true,
+    }
+  }
+
+  return context.metadata.globals.ObjectCreate(context.metadata.globals.ObjectPrototype, props)
+}
+
+// https://tc39.es/ecma262/multipage/ordinary-and-exotic-objects-behaviours.html#sec-createmappedargumentsobject
+function createMappedArgumentsObject(meta: FunctionCallMeta, context: Context) {
+  const props: PropertyDescriptorMap = {
+    length: {
+      value: meta.arguments.length,
+      writable: true,
+      enumerable: false,
+      configurable: true,
+    },
+    [Symbol.iterator]: {
+      value: context.metadata.globals.ArrayPrototypeValues,
+      writable: true,
+      enumerable: false,
+      configurable: true,
+    },
+    callee: {
+      value: meta.callee,
+      writable: true,
+      enumerable: false,
+      configurable: true,
+    },
+    // Instead of [[ParameterMap]].
+    // https://tc39.es/ecma262/multipage/fundamental-objects.html#sec-object.prototype.tostring
+    // 6. Else if O has a [[ParameterMap]] internal slot, let builtinTag be "Arguments".
+    // `Object.prototype.toString.call(arguments)` -> "[object Arguments]"
+    [Symbol.toStringTag]: {
+      value: 'Arguments',
+    },
+  }
+
+  for (let i = 0; i < meta.arguments.length; i++) {
+    props[i] = {
+      value: meta.arguments[i],
+      writable: true,
+      enumerable: true,
+      configurable: true,
+    }
+  }
+
+  return context.metadata.globals.ObjectCreate(context.metadata.globals.ObjectPrototype, props)
+}
+
+// https://tc39.es/ecma262/multipage/ecmascript-language-functions-and-classes.html#sec-static-semantics-issimpleparameterlist
+function isSimpleParameterList(node: AnyFunction) {
+  return node.params.every((param) => param.type === 'Identifier')
 }

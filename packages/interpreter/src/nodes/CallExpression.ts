@@ -6,7 +6,6 @@ import { getOrCreateSharedWeakRef, getSharedWeakRef } from '../lib/sharedWeakRef
 import { syncContext } from '../lib/syncContext'
 import { unbindFunctionCall } from '../lib/unbindFunctionCall'
 import { Context, EvaluatedNode, EvaluateGenerator, Scope } from '../types'
-import { requireGlobal } from '../lib/Metadata'
 import { InternalError } from '../lib/InternalError'
 
 export function* evaluateCallExpression(
@@ -24,8 +23,7 @@ export function* evaluateCallExpression(
 
   if (typeof func !== 'function') {
     const calleeStr = getNodeText(node.callee, context.code)
-    const TypeError = requireGlobal(context.metadata.globals.TypeError, 'TypeError')
-    throw new TypeError(`${calleeStr} is not a function`)
+    throw new context.metadata.globals.TypeError(`${calleeStr} is not a function`)
   }
 
   const argValues: unknown[] = []
@@ -34,7 +32,19 @@ export function* evaluateCallExpression(
     const { value } = yield* evaluateNode(arg, scope, context)
 
     if (arg.type === 'SpreadElement') {
-      const items = value as unknown[]
+      let items: unknown[]
+      try {
+        items = [...(value as unknown[])]
+      } catch (error) {
+        if (error instanceof TypeError) {
+          throw new context.metadata.globals.TypeError(
+            `${getNodeText(arg.argument, context.code)} is not iterable`,
+          )
+        }
+
+        throw error
+      }
+
       argValues.push(...items)
     } else {
       argValues.push(value)

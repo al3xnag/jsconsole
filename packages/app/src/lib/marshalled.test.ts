@@ -817,7 +817,7 @@ describe('toMarshalled', () => {
       const handler: ProxyHandler<object> = eval(`({ get() { return 1 } })`)
       const proxy = new Proxy(target, handler)
 
-      const metadata = new Metadata({})
+      const metadata = new Metadata(globalThis)
       metadata.proxies.set(proxy, { target, handler })
 
       const context: ValueContext = {
@@ -893,7 +893,7 @@ describe('toMarshalled', () => {
   describe('Promise', () => {
     test('known resolved promise', () => {
       const promise = Promise.resolve('test')
-      const metadata = new Metadata({})
+      const metadata = new Metadata(globalThis)
       metadata.promises.set(promise, { state: 'fulfilled', result: 'test' })
       const context: ValueContext = {
         ...defaultContext,
@@ -914,7 +914,7 @@ describe('toMarshalled', () => {
   describe('WeakMap', () => {
     test('known WeakMap', () => {
       const weakMap = new WeakMap([[{}, 1]])
-      const metadata = new Metadata({})
+      const metadata = new Metadata(globalThis)
       metadata.weakMaps.set(weakMap, { entries: new Map([[new WeakRef({}), 1]]) })
       const context: ValueContext = {
         ...defaultContext,

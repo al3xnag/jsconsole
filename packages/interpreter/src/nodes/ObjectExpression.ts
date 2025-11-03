@@ -4,7 +4,6 @@ import { assertNever } from '../lib/assert'
 import { evaluateProperty } from './Property'
 import { evaluateSpreadElement } from './SpreadElement'
 import { syncContext } from '../lib/syncContext'
-import { requireGlobal } from '../lib/Metadata'
 
 const defineProperty = Object.defineProperty
 
@@ -13,10 +12,7 @@ export function* evaluateObjectExpression(
   scope: Scope,
   context: Context,
 ): EvaluateGenerator {
-  let prototype: object | null = requireGlobal(
-    context.metadata.globals.ObjectPrototype,
-    'Object.prototype',
-  )
+  let prototype: object | null = context.metadata.globals.ObjectPrototype
 
   const propertyDescriptors: PropertyDescriptorMap = {}
 
@@ -75,9 +71,7 @@ export function* evaluateObjectExpression(
     }
   }
 
-  const objectCreate = requireGlobal(context.metadata.globals.ObjectCreate, 'Object.create')
-
-  const object = objectCreate(prototype, propertyDescriptors)
+  const object = context.metadata.globals.ObjectCreate(prototype, propertyDescriptors)
   syncContext?.tmpRefs.add(object)
 
   return { value: object }

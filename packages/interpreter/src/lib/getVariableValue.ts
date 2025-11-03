@@ -2,7 +2,6 @@ import { UNINITIALIZED } from '../constants'
 import { Context, Scope } from '../types'
 import { assertPropertyReadSideEffectFree } from './assertPropertyReadSideEffectFree'
 import { getIdentifier } from './getIdentifier'
-import { requireGlobal } from './Metadata'
 import { syncContext } from './syncContext'
 
 export function getVariableValue(
@@ -11,13 +10,13 @@ export function getVariableValue(
   context: Context,
   { throwOnUndefined = true }: { throwOnUndefined: boolean },
 ) {
-  const ReferenceError = requireGlobal(context.metadata.globals.ReferenceError, 'ReferenceError')
-
   const identifier = getIdentifier(name, scope)
   if (identifier) {
     const value = identifier.value
     if (value === UNINITIALIZED) {
-      throw new ReferenceError(`Cannot access '${name}' before initialization`)
+      throw new context.metadata.globals.ReferenceError(
+        `Cannot access '${name}' before initialization`,
+      )
     }
 
     return value
@@ -25,7 +24,7 @@ export function getVariableValue(
 
   if (!(name in context.globalObject)) {
     if (throwOnUndefined) {
-      throw new ReferenceError(`${name} is not defined`)
+      throw new context.metadata.globals.ReferenceError(`${name} is not defined`)
     } else {
       return undefined
     }

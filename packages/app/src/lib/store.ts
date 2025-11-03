@@ -30,7 +30,7 @@ function getEmptySession(): ConsoleSession {
     previewWindow: null,
     globals: getGlobals(globalThis),
     globalScope: { bindings: new Map() },
-    metadata: new Metadata({}),
+    metadata: new Metadata(globalThis),
     sideEffectInfo: new SideEffectInfo(),
   }
 }
@@ -153,7 +153,7 @@ export function initStoreFromUrlOrLocalStorage(): Store {
         })
         .map((sessionJson) => {
           const globals = getGlobals(globalThis)
-          const metadata = new Metadata({})
+          const metadata = new Metadata(globalThis)
           const sideEffectInfo = new SideEffectInfo()
           const globalScope = { kind: 'global' as const, bindings: new Map(), parent: null }
           const valueContext: ValueContext = { globals, metadata, sideEffectInfo }

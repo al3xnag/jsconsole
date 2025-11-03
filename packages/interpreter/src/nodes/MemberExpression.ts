@@ -6,7 +6,6 @@ import { assertPropertyReadSideEffectFree } from '../lib/assertPropertyReadSideE
 import { syncContext } from '../lib/syncContext'
 import { InternalError } from '../lib/InternalError'
 import { toObject } from '../lib/evaluation-utils'
-import { requireGlobal } from '../lib/Metadata'
 
 type MemberExpressionParts = {
   object: any
@@ -27,8 +26,9 @@ export function* evaluateMemberExpression(
   }
 
   if (object == null && !node.optional) {
-    const TypeError = requireGlobal(context.metadata.globals.TypeError, 'TypeError')
-    throw new TypeError(`Cannot read properties of ${object} (reading '${propertyKey.toString()}')`)
+    throw new context.metadata.globals.TypeError(
+      `Cannot read properties of ${object} (reading '${propertyKey.toString()}')`,
+    )
   }
 
   const value =

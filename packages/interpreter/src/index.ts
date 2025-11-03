@@ -1,6 +1,8 @@
 import { parse, Program } from 'acorn'
 import tsBlankSpace from 'ts-blank-space'
 import { EMPTY } from './constants'
+import './lib/acorn-tweaks'
+import { isProbablyGlobalThis } from './lib/isProbablyGlobalThis'
 import { Metadata } from './lib/Metadata'
 import { run } from './lib/run'
 import { SideEffectInfo } from './lib/SideEffectInfo'
@@ -33,6 +35,8 @@ export function evaluate(
   const ast = options?.stripTypes ? parseCodeStripTypes(code) : parseCode(code)
 
   const globalObject = (options?.globalObject ?? globalThis) as Record<PropertyKey, unknown>
+  const _globalThis = isProbablyGlobalThis(globalObject) ? globalObject : globalThis
+
   const globalScope: GlobalScope = {
     kind: 'global',
     bindings: options?.globalScope?.bindings ?? new Map(),
@@ -41,10 +45,10 @@ export function evaluate(
     thisValue: globalObject,
   }
 
-  const metadata = options?.metadata ?? new Metadata(globalObject)
+  const metadata = options?.metadata ?? new Metadata(_globalThis)
   const sideEffectInfo =
     options?.sideEffectInfo ??
-    (options?.throwOnSideEffect ? SideEffectInfo.withDefaults(globalThis) : new SideEffectInfo())
+    (options?.throwOnSideEffect ? SideEffectInfo.withDefaults(_globalThis) : new SideEffectInfo())
 
   const context: Context = {
     type: 'script',

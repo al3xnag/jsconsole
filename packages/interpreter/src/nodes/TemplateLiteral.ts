@@ -1,6 +1,7 @@
 import { TemplateLiteral } from 'acorn'
-import { Context, EvaluateGenerator, Scope } from '../types'
 import { evaluateNode } from '.'
+import { toString } from '../lib/evaluation-utils'
+import { Context, EvaluateGenerator, Scope } from '../types'
 
 // The string conversion semantics applied to the Expression value are like
 // String.prototype.concat rather than the + operator.
@@ -32,7 +33,8 @@ export function* evaluateTemplateLiteral(
       const expression = expressions[i]!
       expression.parent = node
       const { value: exprValue } = yield* evaluateNode(expression, scope, context)
-      result = concat.call(result, cooked, exprValue)
+      const exprValueStr = toString(exprValue, context)
+      result = concat.call(result, cooked, exprValueStr)
     }
   }
 

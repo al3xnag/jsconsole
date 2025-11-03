@@ -8,7 +8,7 @@ it('let x = 0; x--', 0)
 it('let x = 0; --x', -1)
 it(
   `
-    Object.defineProperty(window, "x", { get() { return 1 }, set(v) {} })
+    Object.defineProperty(globalThis, "x", { get() { return 1 }, set(v) {} })
     ;[++x, ++x, x++, x++, x]
   `,
   [1, 1, 1, 1, 1],
@@ -25,8 +25,8 @@ it('let a = { x: 0 }; ++a.x', 1)
 it(
   `
     const calls = []
-    function fn() { calls.push('fn'); return window; }
-    Object.defineProperty(window, 'x', { get() { calls.push('x get'); return 1 }, set(v) { calls.push('x set') } })
+    function fn() { calls.push('fn'); return globalThis; }
+    Object.defineProperty(globalThis, 'x', { get() { calls.push('x get'); return 1 }, set(v) { calls.push('x set') } })
     const result = fn().x++;
     [result, ...calls];
   `,

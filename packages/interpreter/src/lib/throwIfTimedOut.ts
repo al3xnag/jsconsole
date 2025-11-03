@@ -6,6 +6,6 @@ export function throwIfTimedOut(): void {
     syncContext?.timeout &&
     performance.now() - syncContext.startTimestamp > syncContext.timeout
   ) {
-    throw new TimeoutError('Evaluation timed out')
+    throw new TimeoutError()
   }
 }

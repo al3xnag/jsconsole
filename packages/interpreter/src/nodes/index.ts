@@ -93,8 +93,8 @@ export function* evaluateNode<T extends AnyNode>(
 
   const evaluated = yield* handler.apply(null, arguments as unknown as Parameters<EvaluateNode<T>>)
 
-  const Promise = context.metadata.globals.Promise
-  if (Promise && evaluated.value instanceof Promise) {
+  const _Promise = context.metadata.globals.Promise
+  if (_Promise && evaluated.value instanceof _Promise) {
     trackPromise(evaluated.value, context)
   }
 

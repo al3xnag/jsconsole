@@ -1,10 +1,10 @@
 import { expect } from 'vitest'
-import { it, TestWindow } from '../test-utils'
+import { it } from '../test-utils'
 import { WeakMapMetadata, WeakSetMetadata } from '../lib/Metadata'
 
 it("Number('1')", 1)
 it('String(123)', '123')
-it('window.String(123)', '123', { globalObject: new TestWindow() })
+it('globalThis.String(123)', '123')
 it('Math.max(1, ...[2, 3], ...[4, 5])', 5)
 it(
   `
@@ -16,12 +16,12 @@ it(
   w.delete(obj3)
   w
 `,
-  ({ value, metadata }) => {
-    expect(value).toBeInstanceOf(WeakMap)
+  ({ value, metadata, globalObject }) => {
+    expect(value).toBeInstanceOf(globalObject.WeakMap)
     expect(metadata.weakMaps.get(value)).toEqual<WeakMapMetadata>({
       entries: new Map([
-        [new WeakRef({}), 1],
-        [new WeakRef({}), 2],
+        [new globalObject.WeakRef({}), 1],
+        [new globalObject.WeakRef({}), 2],
       ]),
     })
   },
@@ -38,10 +38,10 @@ it(
   w.delete(obj3)
   w
   `,
-  ({ value, metadata }) => {
-    expect(value).toBeInstanceOf(WeakSet)
+  ({ value, metadata, globalObject }) => {
+    expect(value).toBeInstanceOf(globalObject.WeakSet)
     expect(metadata.weakSets.get(value)).toEqual<WeakSetMetadata>({
-      values: new Set([new WeakRef({}), new WeakRef({})]),
+      values: new Set([new globalObject.WeakRef({}), new globalObject.WeakRef({})]),
     })
   },
   undefined,

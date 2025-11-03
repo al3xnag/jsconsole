@@ -7,7 +7,6 @@ import { getIdentifier } from '../lib/getIdentifier'
 import { evaluateMemberExpressionParts } from './MemberExpression'
 import { PossibleSideEffectError } from '../lib/PossibleSideEffectError'
 import { syncContext } from '../lib/syncContext'
-import { requireGlobal } from '../lib/Metadata'
 import { toShortStringTag } from '../lib/toShortStringTag'
 
 export function* evaluateUnaryExpression(
@@ -59,7 +58,9 @@ export function* _evaluateUnaryExpression(
       if (arg.type === 'Identifier') {
         if (context.strict) {
           // acorn checks this itself, and throws `new SyntaxError('Deleting local variable in strict mode')`.
-          throw new SyntaxError('Delete of an unqualified identifier in strict mode.')
+          throw new context.metadata.globals.SyntaxError(
+            'Delete of an unqualified identifier in strict mode.',
+          )
         } else {
           const identifier = getIdentifier(arg.name, scope)
           if (identifier) {
@@ -83,8 +84,7 @@ export function* _evaluateUnaryExpression(
         if (context.strict) {
           const value = Reflect.deleteProperty(object, propertyKey)
           if (!value) {
-            const TypeError = requireGlobal(context.metadata.globals.TypeError, 'TypeError')
-            throw new TypeError(
+            throw new context.metadata.globals.TypeError(
               `Cannot delete property '${propertyKey.toString()}' of ${toShortStringTag(object)}`,
             )
           }

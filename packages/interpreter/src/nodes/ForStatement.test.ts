@@ -54,7 +54,7 @@ it(
     const steps = [];
     let __i = undefined;
 
-    Object.defineProperty(window, 'i', {
+    Object.defineProperty(globalThis, 'i', {
       get() {
         steps.push(__i + ' get')
         return __i;

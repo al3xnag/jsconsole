@@ -27,6 +27,9 @@ describe('string conversion semantics', () => {
   it('`${Object.create(null)}`', ({ thrown }) => {
     expect(thrown).toThrow(new TypeError('Cannot convert object to primitive value'))
   })
+  it('`${Symbol()}`', ({ thrown }) => {
+    expect(thrown).toThrow(new TypeError('Cannot convert a Symbol value to a string'))
+  })
   it('`${Object.create(null, { valueOf: { value: () => "1" } })}`', '1')
   it('`${Object.create(null, { valueOf: { value: () => 1 } })}`', '1')
   it('`${{ [Symbol.toPrimitive]: () => 1, toString: () => 2, valueOf: () => 3 }}`', '1')

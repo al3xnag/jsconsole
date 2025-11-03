@@ -1,25 +1,52 @@
-import { inspect, InspectOptions } from 'node:util'
-import { GlobalWindow } from 'happy-dom'
+import { TesterContext } from '@vitest/expect'
+import util, { inspect } from 'node:util'
+import vm from 'node:vm'
 import { expect, test } from 'vitest'
-import { evaluate, EvaluateResult, Metadata } from '.'
+import { evaluate, EvaluateResult, InternalError, Metadata } from '.'
+import { isProbablyGlobalThis } from './lib/isProbablyGlobalThis'
 import { PossibleSideEffectError } from './lib/PossibleSideEffectError'
 import { EvaluateOptions, PublicGlobalScope } from './types'
 
-inspect.defaultOptions.showProxy = true
-setCustomInspect(Object.getPrototypeOf(globalThis), Object2String)
-
 type NotFunction<T> = T extends Function ? never : T
 type TestEvaluateResult = EvaluateResult<any> & {
+  error?: unknown
   /**
    * Rethrow the error thrown by `evaluate`.
    * noop if `evaluate` didn't throw an error.
    */
   thrown: () => void | never
-  globalObject: object
+  globalObject: any
   globalScope: PublicGlobalScope
   metadata: Metadata
 }
+
 type TAssert = (result: TestEvaluateResult) => void | Promise<void>
+
+inspect.defaultOptions.showProxy = true
+
+const setGlobalObjectScript = new vm.Script('globalThis = this')
+
+class WrongValueRealmError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'WrongRealmError'
+  }
+}
+
+function areErrorsEqual(this: TesterContext, a: Error, b: Error): boolean {
+  return a.name === b.name && a.message === b.message && this.equals(a.cause, b.cause)
+}
+
+function customTester(this: TesterContext, a: unknown, b: unknown): boolean | undefined {
+  // https://github.com/vitest-dev/vitest/issues/8898
+  if (util.types.isNativeError(a) && util.types.isNativeError(b)) {
+    return areErrorsEqual.call(this, a, b)
+  }
+
+  return undefined
+}
+
+expect.addEqualityTesters([customTester])
 
 /**
  * Test `evaluate`.
@@ -63,9 +90,10 @@ export function it<T>(
   const testFn = this?.testFn ?? test
   testFn(testName ?? defaultTestName(), async () => {
     let result: TestEvaluateResult
-    const globalObject: object = options?.globalObject ?? getBasicGlobalObject()
+    const globalObject: object = options?.globalObject ?? getTestGlobalObject()
     const globalScope: PublicGlobalScope = options?.globalScope ?? { bindings: new Map() }
-    const metadata: Metadata = options?.metadata ?? new Metadata(globalObject)
+    const _globalThis = isProbablyGlobalThis(globalObject) ? globalObject : getTestGlobalObject()
+    const metadata: Metadata = options?.metadata ?? new Metadata(_globalThis)
     const debug = this?.debug ?? options?.debug
     try {
       const evalResult = await evaluate(code, {
@@ -84,6 +112,7 @@ export function it<T>(
       })
     } catch (error) {
       result = {
+        error,
         get value() {
           throw error
         },
@@ -94,6 +123,24 @@ export function it<T>(
         globalScope,
         metadata,
       }
+    }
+
+    if (result.error instanceof Object) {
+      const isAcornParseError = result.error instanceof SyntaxError && 'raisedAt' in result.error
+      const isInternalError = result.error instanceof InternalError
+      if (!isAcornParseError && !isInternalError) {
+        const error = new WrongValueRealmError(
+          `It is not expected that the result error instance is of the topmost realm. Original error: ${inspect(result.error)}`,
+        )
+        error.cause = result.error
+        throw error
+      }
+    }
+
+    if (!result.error && result.value instanceof Object) {
+      throw new WrongValueRealmError(
+        `It is not expected that the result value instance is of the topmost realm. Result value: ${inspect(result.value)}`,
+      )
     }
 
     if (typeof assert === 'function') {
@@ -115,115 +162,25 @@ it.todo = it.bind({ testFn: test.todo }) as typeof it
 it.fails = it.bind({ testFn: test.fails }) as typeof it
 it.debug = it.bind({ debug: console.debug }) as typeof it
 
-export function ExpectToThrowPossibleSideEffectError(x: TestEvaluateResult) {
-  expect(x.thrown).toThrow(PossibleSideEffectError)
-}
-
-export class TestWindow extends GlobalWindow {
-  constructor(...args: ConstructorParameters<typeof GlobalWindow>) {
-    super(...args)
-
-    setCustomInspect(Object.getPrototypeOf(this), Object2String)
-    setCustomInspect(Object.getPrototypeOf(this.document), Object2String)
-    setCustomInspect(this.HTMLElement.prototype, Object2String)
-  }
-
-  get [Symbol.toStringTag]() {
-    return 'TestWindow'
-  }
-}
-
-function setCustomInspect(
-  target: any,
-  fn: (this: any, depth: number, inspectOptions: InspectOptions, inspect_: typeof inspect) => any,
-) {
-  target[inspect.custom] = fn
-}
-
-function Object2String(this: any) {
-  return Object.prototype.toString.call(this)
-}
-
-const basicGlobalObjectProperties = getBasicGlobalObjectProperties()
-
-export function getBasicGlobalObject(): object {
-  const obj = {
-    get [Symbol.toStringTag]() {
-      return 'BasicGlobalObject'
-    },
-    [inspect.custom]: Object2String,
-  }
-
-  Object.defineProperties(obj, basicGlobalObjectProperties)
-  Object.defineProperties(obj, {
-    globalThis: {
-      value: obj,
-      configurable: true,
-      enumerable: false,
-      writable: true,
-    },
-    window: {
-      get: () => obj,
-      configurable: false,
-      enumerable: true,
+export function getTestGlobalObject(): typeof globalThis & Record<PropertyKey, unknown> {
+  const context: any = Object.create(null, {
+    setTimeout: { value: setTimeout, configurable: true, enumerable: true, writable: true },
+    clearTimeout: { value: clearTimeout, configurable: true, enumerable: true, writable: true },
+    setInterval: { value: setInterval, configurable: true, enumerable: true, writable: true },
+    clearInterval: { value: clearInterval, configurable: true, enumerable: true, writable: true },
+    [Symbol.toStringTag]: { value: 'global' },
+    [inspect.custom]: {
+      value(this: any) {
+        return '[TestGlobalObject]'
+      },
     },
   })
 
-  return obj
+  vm.createContext(context)
+  setGlobalObjectScript.runInContext(context)
+  return context.globalThis
 }
 
-function getBasicGlobalObjectProperties() {
-  const p = (key: PropertyKey): PropertyDescriptor => {
-    const desc = Object.getOwnPropertyDescriptor(globalThis, key)
-    if (!desc) {
-      throw new Error(`globalThis['${String(key)}'] is expected to be defined in tests`)
-    }
-    return desc
-  }
-
-  const props: PropertyDescriptorMap = {
-    undefined: p('undefined'),
-    Infinity: p('Infinity'),
-    NaN: p('NaN'),
-    isNaN: p('isNaN'),
-    isFinite: p('isFinite'),
-    parseFloat: p('parseFloat'),
-    parseInt: p('parseInt'),
-    String: p('String'),
-    Number: p('Number'),
-    Boolean: p('Boolean'),
-    BigInt: p('BigInt'),
-    Symbol: p('Symbol'),
-    RegExp: p('RegExp'),
-    Date: p('Date'),
-    Array: p('Array'),
-    Object: p('Object'),
-    Function: p('Function'),
-    Promise: p('Promise'),
-    Map: p('Map'),
-    Set: p('Set'),
-    WeakMap: p('WeakMap'),
-    WeakSet: p('WeakSet'),
-    WeakRef: p('WeakRef'),
-    Proxy: p('Proxy'),
-    Error: p('Error'),
-    TypeError: p('TypeError'),
-    SyntaxError: p('SyntaxError'),
-    DOMException: p('DOMException'),
-    RangeError: p('RangeError'),
-    ReferenceError: p('ReferenceError'),
-    EvalError: p('EvalError'),
-    JSON: p('JSON'),
-    Math: p('Math'),
-    URL: p('URL'),
-    console: p('console'),
-    setTimeout: p('setTimeout'),
-    clearTimeout: p('clearTimeout'),
-    setInterval: p('setInterval'),
-    clearInterval: p('clearInterval'),
-    Reflect: p('Reflect'),
-    eval: p('eval'),
-  } satisfies Partial<Record<Exclude<keyof typeof globalThis, 'toString'>, PropertyDescriptor>>
-
-  return props
+export function ExpectToThrowPossibleSideEffectError(x: TestEvaluateResult) {
+  expect(x.thrown).toThrow(PossibleSideEffectError)
 }

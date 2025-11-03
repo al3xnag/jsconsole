@@ -28,11 +28,12 @@ describe('scope', () => {
   it('for (var i of ["a", "b"]) {} i', 'b')
   it('i; for (var i of ["a", "b"]) {}', undefined)
   it('const r = []; for (let a of [1, 2, 3]) { r.push(a); } r', [1, 2, 3])
-  it('const r = []; for (let a of [1, 2, Promise.resolve(3)]) { r.push(a); } r', [
-    1,
-    2,
-    expect.any(Promise),
-  ])
+  it('const r = []; for (let a of [1, 2, Promise.resolve(3)]) { r.push(a); } r', ({
+    value,
+    globalObject,
+  }) => {
+    expect(value).toEqual([1, 2, expect.any(globalObject.Promise)])
+  })
   it(
     `
       const a = [];

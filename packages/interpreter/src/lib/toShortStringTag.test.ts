@@ -24,6 +24,7 @@ test('toShortStringTag', () => {
   expect(toShortStringTag(new String('hello'))).toBe('#<String>')
   expect(toShortStringTag(new Boolean(true))).toBe('#<Boolean>')
   expect(toShortStringTag(Object.create(null))).toBe('[object Object]')
+  expect(toShortStringTag(globalThis)).toBe('#<Object>')
 
   expect(
     toShortStringTag(

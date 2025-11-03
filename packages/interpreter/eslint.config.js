@@ -25,6 +25,7 @@ export default defineConfig([
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-unsafe-function-type': 'off',
       '@typescript-eslint/no-unused-expressions': ['error', { allowShortCircuit: true }],
+      '@typescript-eslint/no-array-constructor': 'off',
       'prefer-rest-params': 'off',
       'no-unused-labels': 'off',
       'require-yield': 'off',

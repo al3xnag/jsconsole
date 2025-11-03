@@ -1,3 +1,5 @@
+import { InternalError } from './InternalError'
+
 export type FunctionMetadata = {
   sourceCode?: string
   bound?: boolean
@@ -40,29 +42,36 @@ export type ClassMetadata = {
 }
 
 export type MetadataGlobals = {
-  Object?: ObjectConstructor
-  ObjectPrototype?: ObjectConstructor['prototype']
-  ObjectCreate?: ObjectConstructor['create']
-  Array?: ArrayConstructor
-  FunctionPrototype?: FunctionConstructor['prototype']
-  AsyncFunctionPrototype?: FunctionConstructor['prototype']
-  FunctionPrototypeToString?: FunctionConstructor['prototype']['toString']
-  FunctionPrototypeCall?: FunctionConstructor['prototype']['call']
-  FunctionPrototypeApply?: FunctionConstructor['prototype']['apply']
-  FunctionPrototypeBind?: FunctionConstructor['prototype']['bind']
-  TypeError?: TypeErrorConstructor
-  ReferenceError?: ReferenceErrorConstructor
-  EvalError?: EvalErrorConstructor
-  Promise?: PromiseConstructor
-  RegExp?: RegExpConstructor
-  WeakMap?: WeakMapConstructor
-  WeakSet?: WeakSetConstructor
-  WeakRef?: WeakRefConstructor
-  WeakMapPrototypeSet?: WeakMapConstructor['prototype']['set']
-  WeakMapPrototypeDelete?: WeakMapConstructor['prototype']['delete']
-  WeakSetPrototypeAdd?: WeakSetConstructor['prototype']['add']
-  WeakSetPrototypeDelete?: WeakSetConstructor['prototype']['delete']
-  Proxy?: ProxyConstructor
+  String: StringConstructor
+  Number: NumberConstructor
+  RegExp: RegExpConstructor
+  Object: ObjectConstructor
+  ObjectPrototype: ObjectConstructor['prototype']
+  ObjectCreate: ObjectConstructor['create']
+  Array: ArrayConstructor
+  ArrayFrom: ArrayConstructor['from']
+  ArrayPrototypeValues: ArrayConstructor['prototype']['values']
+  Function: FunctionConstructor
+  FunctionPrototype: FunctionConstructor['prototype']
+  AsyncFunction: FunctionConstructor
+  AsyncFunctionPrototype: FunctionConstructor['prototype']
+  FunctionPrototypeToString: FunctionConstructor['prototype']['toString']
+  FunctionPrototypeCall: FunctionConstructor['prototype']['call']
+  FunctionPrototypeApply: FunctionConstructor['prototype']['apply']
+  FunctionPrototypeBind: FunctionConstructor['prototype']['bind']
+  SyntaxError: SyntaxErrorConstructor
+  TypeError: TypeErrorConstructor
+  ReferenceError: ReferenceErrorConstructor
+  Promise: PromiseConstructor
+  PromiseResolve: PromiseConstructor['resolve']
+  WeakMap: WeakMapConstructor
+  WeakSet: WeakSetConstructor
+  WeakRef: WeakRefConstructor
+  WeakMapPrototypeSet: WeakMapConstructor['prototype']['set']
+  WeakMapPrototypeDelete: WeakMapConstructor['prototype']['delete']
+  WeakSetPrototypeAdd: WeakSetConstructor['prototype']['add']
+  WeakSetPrototypeDelete: WeakSetConstructor['prototype']['delete']
+  Proxy: ProxyConstructor
 }
 
 export class Metadata {
@@ -74,41 +83,56 @@ export class Metadata {
   classes: WeakMap<object, ClassMetadata> = new WeakMap()
   globals: MetadataGlobals = Object.create(null)
 
-  constructor(globalObject: Partial<typeof globalThis>) {
-    this.globals.Object = globalObject.Object
-    this.globals.ObjectPrototype = globalObject.Object?.prototype
-    this.globals.ObjectCreate = globalObject.Object?.create
-    this.globals.Array = globalObject.Array
-    this.globals.FunctionPrototype = globalObject.Function?.prototype
-    if (typeof globalObject.eval === 'function') {
-      const asyncFunction = globalObject.eval('(async function(){})') as Function
-      this.globals.AsyncFunctionPrototype = Object.getPrototypeOf(asyncFunction)
-    }
-
-    this.globals.FunctionPrototypeToString = globalObject.Function?.prototype.toString
-    this.globals.FunctionPrototypeCall = globalObject.Function?.prototype.call
-    this.globals.FunctionPrototypeApply = globalObject.Function?.prototype.apply
-    this.globals.FunctionPrototypeBind = globalObject.Function?.prototype.bind
-    this.globals.TypeError = globalObject.TypeError
-    this.globals.ReferenceError = globalObject.ReferenceError
-    this.globals.EvalError = globalObject.EvalError
-    this.globals.Promise = globalObject.Promise
-    this.globals.RegExp = globalObject.RegExp
-    this.globals.WeakMap = globalObject.WeakMap
-    this.globals.WeakSet = globalObject.WeakSet
-    this.globals.WeakRef = globalObject.WeakRef
-    this.globals.WeakMapPrototypeSet = globalObject.WeakMap?.prototype.set
-    this.globals.WeakMapPrototypeDelete = globalObject.WeakMap?.prototype.delete
-    this.globals.WeakSetPrototypeAdd = globalObject.WeakSet?.prototype.add
-    this.globals.WeakSetPrototypeDelete = globalObject.WeakSet?.prototype.delete
-    this.globals.Proxy = globalObject.Proxy
+  constructor(global: typeof globalThis) {
+    this.globals.String = global.String
+    this.globals.Number = global.Number
+    this.globals.RegExp = global.RegExp
+    this.globals.Object = global.Object
+    this.globals.ObjectPrototype = global.Object.prototype
+    this.globals.ObjectCreate = global.Object.create
+    this.globals.Array = global.Array
+    this.globals.ArrayFrom = global.Array.from
+    this.globals.ArrayPrototypeValues = global.Array.prototype.values
+    this.globals.Function = global.Function
+    this.globals.FunctionPrototype = global.Function.prototype
+    this.globals.AsyncFunction = getAsyncFunctionConstructor(global)
+    this.globals.AsyncFunctionPrototype = this.globals.AsyncFunction.prototype
+    this.globals.FunctionPrototypeToString = global.Function.prototype.toString
+    this.globals.FunctionPrototypeCall = global.Function.prototype.call
+    this.globals.FunctionPrototypeApply = global.Function.prototype.apply
+    this.globals.FunctionPrototypeBind = global.Function.prototype.bind
+    this.globals.SyntaxError = global.SyntaxError
+    this.globals.TypeError = global.TypeError
+    this.globals.ReferenceError = global.ReferenceError
+    this.globals.Promise = global.Promise
+    this.globals.PromiseResolve = global.Promise.resolve
+    this.globals.WeakMap = global.WeakMap
+    this.globals.WeakSet = global.WeakSet
+    this.globals.WeakRef = global.WeakRef
+    this.globals.WeakMapPrototypeSet = global.WeakMap.prototype.set
+    this.globals.WeakMapPrototypeDelete = global.WeakMap.prototype.delete
+    this.globals.WeakSetPrototypeAdd = global.WeakSet.prototype.add
+    this.globals.WeakSetPrototypeDelete = global.WeakSet.prototype.delete
+    this.globals.Proxy = global.Proxy
   }
 }
 
-export function requireGlobal<T>(value: T, name: string): NonNullable<T> {
-  if (value == null) {
-    throw new EvalError(`Unable to obtain ${name} from the global object`)
+function getAsyncFunctionConstructor(global: typeof globalThis): FunctionConstructor {
+  if (global === globalThis) {
+    const fn = async function () {}
+    return fn.constructor as FunctionConstructor
   }
 
-  return value
+  if ('AsyncFunction' in global && typeof global.AsyncFunction === 'function') {
+    return global.AsyncFunction as FunctionConstructor
+  }
+
+  try {
+    const fn = new global.Function('return async function() {}')()
+    return fn.constructor as FunctionConstructor
+  } catch (cause) {
+    const err = new InternalError('Failed to obtain async function prototype')
+    err.cause = cause
+    throw err
+  }
 }

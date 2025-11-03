@@ -2,7 +2,6 @@ import { Context } from '../types'
 import { syncContext } from './syncContext'
 import { assertPropertyWriteSideEffectFree } from './assertPropertyWriteSideEffectFree'
 import { getPropertyDescriptor } from './getPropertyDescriptor'
-import { requireGlobal } from './Metadata'
 import { toShortStringTag } from './toShortStringTag'
 
 const getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor
@@ -21,8 +20,7 @@ export function setPropertyValue(
   }
 
   if (object == null) {
-    const TypeError = requireGlobal(context.metadata.globals.TypeError, 'TypeError')
-    throw new TypeError(
+    throw new context.metadata.globals.TypeError(
       `Cannot set property '${propertyKey.toString()}' of ${toShortStringTag(object)}`,
     )
   }
@@ -34,27 +32,25 @@ export function setPropertyValue(
       return
     }
 
-    const TypeError = requireGlobal(context.metadata.globals.TypeError, 'TypeError')
-
     if (checkResult === ORDINARY_SET_FAILURE_READ_ONLY) {
-      throw new TypeError(
+      throw new context.metadata.globals.TypeError(
         `Cannot assign to read only property '${propertyKey.toString()}' of ${toShortStringTag(object)}`,
       )
     }
 
     if (checkResult === ORDINARY_SET_FAILURE_GETTER_ONLY) {
-      throw new TypeError(
+      throw new context.metadata.globals.TypeError(
         `Cannot set property '${propertyKey.toString()}' of ${toShortStringTag(object)} which has only a getter`,
       )
     }
 
     if (checkResult === ORDINARY_DEFINE_OWN_PROPERTY_FAILURE_NOT_EXTENSIBLE) {
-      throw new TypeError(
+      throw new context.metadata.globals.TypeError(
         `Cannot add property '${propertyKey.toString()}', ${toShortStringTag(object)} is not extensible`,
       )
     }
 
-    throw new TypeError(
+    throw new context.metadata.globals.TypeError(
       `Cannot set property '${propertyKey.toString()}' of ${toShortStringTag(object)}`,
     )
   }

@@ -6,13 +6,13 @@ import { UnsupportedOperationError } from '../lib/UnsupportedOperationError'
 export function* evaluateMetaProperty(
   node: MetaProperty,
   scope: Scope,
-  _context: Context,
+  context: Context,
 ): EvaluateGenerator {
   if (node.meta.name === 'new' && node.property.name === 'target') {
     const thisScope = findScope(scope, (scope) => !!scope.hasThisBinding)
     if (!thisScope || thisScope.kind !== 'function') {
       // Acorn catches this, so it shouldn't happen during the evaluation stage.
-      throw new SyntaxError('new.target expression is not allowed here')
+      throw new context.metadata.globals.SyntaxError('new.target expression is not allowed here')
     }
 
     return { value: thisScope.newTarget }

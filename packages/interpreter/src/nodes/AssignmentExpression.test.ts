@@ -1,10 +1,5 @@
 import { expect } from 'vitest'
-import {
-  ExpectToThrowPossibleSideEffectError,
-  TestWindow,
-  getBasicGlobalObject,
-  it,
-} from '../test-utils'
+import { ExpectToThrowPossibleSideEffectError, getTestGlobalObject, it } from '../test-utils'
 
 it('a = 1', 1)
 it('let a = 1', undefined)
@@ -39,7 +34,7 @@ it('let {x = 0} = {x: 1}; x', 1)
 it('let {x = 0} = {x: undefined}; x', 0)
 
 it('({x: xx} = { x: 1 }); xx', 1)
-it('({x: xx} = { x: 1 }); window.xx', 1)
+it('({x: xx} = { x: 1 }); globalThis.xx', 1)
 it('({"x": xx} = { x: 1 }); xx', 1)
 it('({["x"]: xx} = { x: 1 }); xx', 1)
 it('({[x()]: xx} = { x: () => 1 }); xx', ({ thrown }) => {
@@ -48,14 +43,14 @@ it('({[x()]: xx} = { x: () => 1 }); xx', ({ thrown }) => {
 it('function key() {return "x"}; ({[key()]: xx} = { x: 1 }); xx', 1)
 it('({x: [xx]} = { x: [1] }); xx', 1)
 it('let xx = {}; ({x: xx.a} = { x: 1 }); xx', { a: 1 })
-it('let xx = {}; ({x: xx.a} = { x: 1 }); [window.xx, window.a, window.x]', [
+it('let xx = {}; ({x: xx.a} = { x: 1 }); [globalThis.xx, globalThis.a, globalThis.x]', [
   undefined,
   undefined,
   undefined,
 ])
 
 it('let {x: xx} = { x: 1 }; xx', 1)
-it('let {x: xx} = { x: 1 }; window.xx', undefined)
+it('let {x: xx} = { x: 1 }; globalThis.xx', undefined)
 it('let {"x": xx} = { x: 1 }; xx', 1)
 it('let {["x"]: xx} = { x: 1 }; xx', 1)
 it('let {[x()]: xx} = { x: () => 1 }; xx', ({ thrown }) => {
@@ -63,57 +58,45 @@ it('let {[x()]: xx} = { x: () => 1 }; xx', ({ thrown }) => {
 })
 it('function key() {return "x"}; let {[key()]: xx} = { x: 1 }; xx', 1)
 it('let {x: [xx]} = { x: [1] }; xx', 1)
-it('let {x: [xx]} = { x: [1] }; window.x', undefined)
-it('let {x: [xx]} = { x: [1] }; window.xx', undefined)
+it('let {x: [xx]} = { x: [1] }; globalThis.x', undefined)
+it('let {x: [xx]} = { x: [1] }; globalThis.xx', undefined)
 
 it('a = 1; a', ExpectToThrowPossibleSideEffectError, { throwOnSideEffect: true })
 it('var a = {}; a.b = 1; a.b', 1)
 it('var a = { b: 1 }; a.b = 2; a.b', 2)
-it('{ var a = 1 }; window.a', 1, { globalObject: new TestWindow() })
-it('{ var a = 1 }; a *= 2; [a, window.a]', [2, 2], { globalObject: new TestWindow() })
-it('window.a = 1; var a; a', 1, { globalObject: new TestWindow() })
-it('window.a = 1; var a = 2; a', 2, { globalObject: new TestWindow() })
-it('window.a = 1; var a = 2; window.a', 2, { globalObject: new TestWindow() })
-it('var a; "a" in window', true, { globalObject: new TestWindow() })
+it('{ var a = 1 }; globalThis.a', 1)
+it('{ var a = 1 }; a *= 2; [a, globalThis.a]', [2, 2])
+it('globalThis.a = 1; var a; a', 1)
+it('globalThis.a = 1; var a = 2; a', 2)
+it('globalThis.a = 1; var a = 2; globalThis.a', 2)
+it('var a; "a" in globalThis', true)
 it('{ let a = 1; a = 2; a }', 2, { throwOnSideEffect: true })
-it('{ let a = 1; window.a = 2; }', ExpectToThrowPossibleSideEffectError, {
+it('{ let a = 1; globalThis.a = 2; }', ExpectToThrowPossibleSideEffectError, {
   throwOnSideEffect: true,
-  globalObject: new TestWindow(),
 })
 it('{ let a = 1; globalThis.a = 2; }', ExpectToThrowPossibleSideEffectError, {
   throwOnSideEffect: true,
-  globalObject: new TestWindow(),
 })
-it('window.a = 1; window.a', 1, { globalObject: new TestWindow() })
-it('window.a = 1', 1, { globalObject: new TestWindow() })
-it('window.a = 1; a = 2; window.a', 2, { globalObject: new TestWindow() })
-it('window.a = 1; window.a', ExpectToThrowPossibleSideEffectError, {
+it('globalThis.a = 1; globalThis.a', 1)
+it('globalThis.a = 1', 1)
+it('globalThis.a = 1; a = 2; globalThis.a', 2)
+it('globalThis.a = 1; globalThis.a', ExpectToThrowPossibleSideEffectError, {
   throwOnSideEffect: true,
-  globalObject: new TestWindow(),
 })
 it('(function(x) { x = x + 2; return x; })(2)', 4, { throwOnSideEffect: true })
 it('(function(x) { a = x })(2)', ExpectToThrowPossibleSideEffectError, {
   throwOnSideEffect: true,
 })
-it(`Object.defineProperty(window, 'a', { set(x) { this.b = x } }); a = 1; b`, 1, {
-  globalObject: new TestWindow(),
-})
-it(`Object.defineProperty(window, 'a', { set(x) { this.b = x } }); a = 1`, 1, {
-  globalObject: new TestWindow(),
-})
-it(`Object.defineProperty(window, 'a', { set(x) {} }); a = 1`, 1, {
-  globalObject: new TestWindow(),
-})
-it(`Object.defineProperty(window, 'a', { set(x) {} }); [a = 1, a] `, [1, undefined], {
-  globalObject: new TestWindow(),
-})
-it(`Object.defineProperty(window, 'a', { value: 1 });`, ExpectToThrowPossibleSideEffectError, {
+it(`Object.defineProperty(globalThis, 'a', { set(x) { this.b = x } }); a = 1; b`, 1)
+it(`Object.defineProperty(globalThis, 'a', { set(x) { this.b = x } }); a = 1`, 1)
+it(`Object.defineProperty(globalThis, 'a', { set(x) {} }); a = 1`, 1)
+it(`Object.defineProperty(globalThis, 'a', { set(x) {} }); [a = 1, a] `, [1, undefined])
+it(`Object.defineProperty(globalThis, 'a', { value: 1 });`, ExpectToThrowPossibleSideEffectError, {
   throwOnSideEffect: true,
-  globalObject: new TestWindow(),
 })
 it(`a = 1;`, ExpectToThrowPossibleSideEffectError, {
   throwOnSideEffect: true,
-  globalObject: Object.defineProperty(getBasicGlobalObject(), 'a', { set() {} }),
+  globalObject: Object.defineProperty(getTestGlobalObject(), 'a', { set() {} }),
 })
 it(
   `
@@ -140,7 +123,7 @@ it(
 )
 
 it('undefined = 1', 1, {
-  globalObject: Object.defineProperty(getBasicGlobalObject(), 'undefined', {
+  globalObject: Object.defineProperty(getTestGlobalObject(), 'undefined', {
     value: undefined,
     configurable: false,
     enumerable: false,
@@ -148,7 +131,7 @@ it('undefined = 1', 1, {
   }),
 })
 it('undefined = 1; undefined', undefined, {
-  globalObject: Object.defineProperty(getBasicGlobalObject(), 'undefined', {
+  globalObject: Object.defineProperty(getTestGlobalObject(), 'undefined', {
     value: undefined,
     configurable: false,
     enumerable: false,
@@ -159,11 +142,11 @@ it(
   '"use strict"; undefined = 1; undefined',
   ({ thrown }) => {
     expect(thrown).toThrow(
-      new TypeError("Cannot assign to read only property 'undefined' of object '#<Object>'"),
+      new TypeError("Cannot assign to read only property 'undefined' of #<Object>"),
     )
   },
   {
-    globalObject: Object.defineProperty(getBasicGlobalObject(), 'undefined', {
+    globalObject: Object.defineProperty(getTestGlobalObject(), 'undefined', {
       value: undefined,
       configurable: false,
       enumerable: false,

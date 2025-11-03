@@ -24,7 +24,9 @@ export function defineVariable(
 
       // NOTE: acorn checks this itself.
       if (scope.bindings.has(name) && scope.bindings.get(name)!.kind !== 'var') {
-        throw new SyntaxError(`Identifier '${name}' has already been declared`)
+        throw new context.metadata.globals.SyntaxError(
+          `Identifier '${name}' has already been declared`,
+        )
       }
 
       if (!scope.bindings.has(name) || initialValue !== UNSET) {
@@ -55,14 +57,18 @@ export function defineVariable(
 
     // NOTE: acorn checks this itself.
     if (scope.bindings.has(name)) {
-      throw new SyntaxError(`Identifier '${name}' has already been declared`)
+      throw new context.metadata.globals.SyntaxError(
+        `Identifier '${name}' has already been declared`,
+      )
     }
 
     if (
       scope.kind === 'global' &&
       getOwnPropertyDescriptor(context.globalObject, name)?.configurable === false
     ) {
-      throw new SyntaxError(`Identifier '${name}' has already been declared`)
+      throw new context.metadata.globals.SyntaxError(
+        `Identifier '${name}' has already been declared`,
+      )
     }
 
     if (syncContext?.throwOnSideEffect && (scope.kind === 'global' || scope.kind === 'module')) {

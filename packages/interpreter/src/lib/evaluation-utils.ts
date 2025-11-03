@@ -1,7 +1,6 @@
 import { EMPTY, TYPE_BREAK, TYPE_CONTINUE, TYPE_RETURN } from '../constants'
 import { Context, EvaluatedNode } from '../types'
 import { InternalError } from './InternalError'
-import { requireGlobal } from './Metadata'
 
 // https://tc39.es/ecma262/#sec-completion-record-specification-type
 export function isAbruptCompletion(evaluated: EvaluatedNode): boolean {
@@ -63,8 +62,7 @@ export function loopContinues(evaluated: EvaluatedNode, labels: string[] | undef
 // https://tc39.es/ecma262/#sec-toobject
 export function toObject(value: unknown, context: Context): object {
   if (value == null) {
-    const TypeError = requireGlobal(context.metadata.globals.TypeError, 'TypeError')
-    throw new TypeError('Cannot convert undefined or null to object')
+    throw new context.metadata.globals.TypeError('Cannot convert undefined or null to object')
   }
 
   if (
@@ -74,9 +72,21 @@ export function toObject(value: unknown, context: Context): object {
     typeof value === 'symbol' ||
     typeof value === 'bigint'
   ) {
-    const Object = requireGlobal(context.metadata.globals.Object, 'Object')
-    return Object(value)
+    return context.metadata.globals.Object(value)
   }
 
   return value
+}
+
+// https://tc39.es/ecma262/#sec-tostring
+export function toString(value: unknown, context: Context): string {
+  if (typeof value === 'string') {
+    return value
+  }
+
+  if (typeof value === 'symbol') {
+    throw new context.metadata.globals.TypeError('Cannot convert a Symbol value to a string')
+  }
+
+  return context.metadata.globals.String(value)
 }

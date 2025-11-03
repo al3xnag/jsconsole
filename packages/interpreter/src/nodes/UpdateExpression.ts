@@ -35,7 +35,9 @@ export function* evaluateUpdateExpression(
     }
   } else {
     // Acorn should not allow this.
-    throw new SyntaxError('Invalid left-hand side expression in postfix operation')
+    throw new context.metadata.globals.SyntaxError(
+      'Invalid left-hand side expression in postfix operation',
+    )
   }
 
   const oldValue = yield* getValue()
