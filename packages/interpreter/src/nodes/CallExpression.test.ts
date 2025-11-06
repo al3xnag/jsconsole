@@ -47,3 +47,6 @@ it(
   undefined,
   'WeakSet metadata',
 )
+it('Map()', ({ thrown }) => {
+  expect(thrown).toThrow(new TypeError("Constructor Map requires 'new'"))
+})
