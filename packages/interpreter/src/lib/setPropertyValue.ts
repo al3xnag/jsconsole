@@ -3,6 +3,7 @@ import { syncContext } from './syncContext'
 import { assertPropertyWriteSideEffectFree } from './assertPropertyWriteSideEffectFree'
 import { getPropertyDescriptor } from './getPropertyDescriptor'
 import { toShortStringTag } from './toShortStringTag'
+import { toObject } from './evaluation-utils'
 
 const getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor
 const isExtensible = Object.isExtensible
@@ -55,7 +56,19 @@ export function setPropertyValue(
     )
   }
 
-  object[propertyKey] = value
+  // https://tc39.es/ecma262/multipage/indexed-collections.html#sec-properties-of-array-instances-length
+  // > Reducing the value of the "length" property has the side-effect of deleting own array elements
+  // > whose array index is between the old and new length values. However, non-configurable properties can not be deleted.
+  // In this case: in non-strict mode, `arr.length = N` is silently ignored; in strict mode, a TypeError is thrown:
+  // "Failed to set the 'length' property on 'Array': Cannot delete property 'N' of [object Array]".
+  // This is covered by several tests in test262, e.g. test262/test/built-ins/Array/prototype/some/15.4.4.17-7-b-16.js
+  // and test262/test/built-ins/Array/prototype/reduceRight/15.4.4.22-9-b-29.js.
+
+  if (context.strict) {
+    object[propertyKey] = value
+  } else {
+    Reflect.set(toObject(object, context), propertyKey, value)
+  }
 }
 
 const ORDINARY_SET_FAILURE_READ_ONLY = Symbol()
