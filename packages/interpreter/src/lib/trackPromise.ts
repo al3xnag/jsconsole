@@ -1,5 +1,7 @@
 import { Context } from '../types'
 
+const then = Promise.prototype.then
+
 export function trackPromise(promise: Promise<unknown>, context: Context) {
   const {
     metadata: { promises },
@@ -9,14 +11,17 @@ export function trackPromise(promise: Promise<unknown>, context: Context) {
     return
   }
 
-  promises.set(promise, { state: 'pending', result: undefined })
+  try {
+    then.call(
+      promise,
+      (result) => promises.set(promise, { state: 'fulfilled', result }),
+      (result) => promises.set(promise, { state: 'rejected', result }),
+    )
 
-  promise.then(
-    (result) => {
-      promises.set(promise, { state: 'fulfilled', result })
-    },
-    (result) => {
-      promises.set(promise, { state: 'rejected', result })
-    },
-  )
+    promises.set(promise, { state: 'pending', result: undefined })
+  } catch {
+    // NOTE: Reflect.construct(function(){}, [], Promise).then(() => 999)
+    // throws TypeError: Method Promise.prototype.then called on incompatible receiver #<Promise>
+    // See also test262/test/built-ins/Promise/is-a-constructor.js.
+  }
 }
