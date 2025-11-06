@@ -1,3 +1,4 @@
+import { expect } from 'vitest'
 import { it } from '../test-utils'
 
 // string
@@ -19,3 +20,8 @@ it('true && false', false)
 it('null', null)
 // regex
 it('/abc/', /abc/)
+// test262/test/built-ins/RegExp/prototype/exec/duplicate-named-indices-groups-properties.js
+// acorn bug?
+it.fails('/(?:(?<x>a)|(?<y>a)(?<x>b))(?:(?<z>c)|(?<z>d))/d', ({ value }) => {
+  expect(value).not.toBeNull()
+})
