@@ -50,6 +50,7 @@ module.exports = function preprocessor(test) {
 
     $262.INTERPRETER.evaluate(${JSON.stringify(test.contents)}, {
       globalObject: $262.global,
+      metadata: new $262.INTERPRETER.Metadata($262.global),
     });
   `
 
