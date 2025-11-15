@@ -4,7 +4,7 @@ import { assertNever } from '../lib/assert'
 import { setPropertyValue } from '../lib/setPropertyValue'
 import { setVariableValue } from '../lib/setVariableValue'
 import { Context, EvaluatedNode, Scope } from '../types'
-import { evaluateMemberExpressionParts } from './MemberExpression'
+import { evaluatePropertyReference } from './MemberExpression'
 import { evaluatePropertyKey } from './Property'
 import { syncContext } from '../lib/syncContext'
 
@@ -25,8 +25,8 @@ export function* evaluatePattern(
       break
     }
     case 'MemberExpression': {
-      const parts = yield* evaluateMemberExpressionParts(node, scope, context)
-      setPropertyValue(parts.object, parts.propertyKey, value, context)
+      const ref = yield* evaluatePropertyReference(node, scope, context)
+      setPropertyValue(ref.object, ref.propertyName, ref.thisValue, value, context)
       break
     }
     case 'ObjectPattern': {

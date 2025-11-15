@@ -7,6 +7,6 @@ export function* evaluateFunctionExpression(
   scope: Scope,
   context: Context,
 ): EvaluateGenerator {
-  const fn = createFunction(node, scope, context)
+  const { fn } = createFunction(node, scope, context)
   return { value: fn }
 }

@@ -7,6 +7,7 @@ import { syncContext } from '../lib/syncContext'
 import { unbindFunctionCall } from '../lib/unbindFunctionCall'
 import { Context, EvaluatedNode, EvaluateGenerator, Scope } from '../types'
 import { InternalError } from '../lib/InternalError'
+import { evaluateSuperCall } from './Super'
 
 export function* evaluateCallExpression(
   node: CallExpression,
@@ -14,18 +15,73 @@ export function* evaluateCallExpression(
   context: Context,
 ): EvaluateGenerator {
   node.callee.parent = node
-  const { value: func, base: thisArg } = yield* evaluateNode(node.callee, scope, context)
 
-  if (node.optional && func == null) {
-    const evaluated: EvaluatedNode = { value: undefined }
+  if (node.callee.type !== 'Super') {
+    const { value: func, base, thisValue } = yield* evaluateNode(node.callee, scope, context)
+    const thisArg = thisValue !== undefined ? thisValue : base
+
+    if (node.optional && func == null) {
+      const evaluated: EvaluatedNode = { value: undefined }
+      return evaluated
+    }
+
+    if (typeof func !== 'function') {
+      const calleeStr = getNodeText(node.callee, context.code)
+      throw new context.metadata.globals.TypeError(`${calleeStr} is not a function`)
+    }
+
+    const argValues = yield* evaluateArguments(node, scope, context)
+
+    if (syncContext?.throwOnSideEffect) {
+      assertFunctionCallSideEffectFree(func, thisArg, argValues, context)
+    }
+
+    const result = Reflect.apply(func, thisArg, argValues)
+
+    const resultRef = { value: result }
+
+    try {
+      const hookFunctionCall = buildFunctionCallHook(func, thisArg, argValues, resultRef, context)
+      if (hookFunctionCall) {
+        hookFunctionCall(
+          context.metadata.globals.FunctionPrototypeBind,
+          functionPrototypeBindHookHandler,
+        )
+        hookFunctionCall(
+          context.metadata.globals.FunctionPrototypeToString,
+          functionPrototypeToStringHookHandler,
+        )
+        hookFunctionCall(
+          context.metadata.globals.WeakMapPrototypeSet,
+          weakMapPrototypeSetHookHandler,
+        )
+        hookFunctionCall(
+          context.metadata.globals.WeakMapPrototypeDelete,
+          weakMapPrototypeDeleteHookHandler,
+        )
+        hookFunctionCall(
+          context.metadata.globals.WeakSetPrototypeAdd,
+          weakSetPrototypeAddHookHandler,
+        )
+        hookFunctionCall(
+          context.metadata.globals.WeakSetPrototypeDelete,
+          weakSetPrototypeDeleteHookHandler,
+        )
+      }
+    } catch (error) {
+      console.warn('Failed to hook function call', error)
+    }
+
+    const evaluated: EvaluatedNode = { value: resultRef.value }
     return evaluated
+  } else {
+    const argValues = yield* evaluateArguments(node, scope, context)
+    const result = yield* evaluateSuperCall(node.callee, scope, context, argValues)
+    return { value: result }
   }
+}
 
-  if (typeof func !== 'function') {
-    const calleeStr = getNodeText(node.callee, context.code)
-    throw new context.metadata.globals.TypeError(`${calleeStr} is not a function`)
-  }
-
+function* evaluateArguments(node: CallExpression, scope: Scope, context: Context) {
   const argValues: unknown[] = []
   for (const arg of node.arguments) {
     arg.parent = node
@@ -51,41 +107,7 @@ export function* evaluateCallExpression(
     }
   }
 
-  if (syncContext?.throwOnSideEffect) {
-    assertFunctionCallSideEffectFree(func, thisArg, argValues, context)
-  }
-
-  const result = Reflect.apply(func, thisArg, argValues)
-  const resultRef = { value: result }
-
-  try {
-    const hookFunctionCall = buildFunctionCallHook(func, thisArg, argValues, resultRef, context)
-    if (hookFunctionCall) {
-      hookFunctionCall(
-        context.metadata.globals.FunctionPrototypeBind,
-        functionPrototypeBindHookHandler,
-      )
-      hookFunctionCall(
-        context.metadata.globals.FunctionPrototypeToString,
-        functionPrototypeToStringHookHandler,
-      )
-      hookFunctionCall(context.metadata.globals.WeakMapPrototypeSet, weakMapPrototypeSetHookHandler)
-      hookFunctionCall(
-        context.metadata.globals.WeakMapPrototypeDelete,
-        weakMapPrototypeDeleteHookHandler,
-      )
-      hookFunctionCall(context.metadata.globals.WeakSetPrototypeAdd, weakSetPrototypeAddHookHandler)
-      hookFunctionCall(
-        context.metadata.globals.WeakSetPrototypeDelete,
-        weakSetPrototypeDeleteHookHandler,
-      )
-    }
-  } catch (error) {
-    console.warn('Failed to hook function call', error)
-  }
-
-  const evaluated: EvaluatedNode = { value: resultRef.value }
-  return evaluated
+  return argValues
 }
 
 // TODO: Reflect.apply(WeakMap.prototype.set/delete, weakMap, args)

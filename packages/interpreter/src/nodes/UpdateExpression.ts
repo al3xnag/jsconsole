@@ -3,7 +3,7 @@ import { Context, EvaluatedNode, EvaluateGenerator, Scope } from '../types'
 import { assertNever } from '../lib/assert'
 import { setVariableValue } from '../lib/setVariableValue'
 import { getVariableValue } from '../lib/getVariableValue'
-import { evaluateMemberExpression, evaluateMemberExpressionParts } from './MemberExpression'
+import { evaluateMemberExpression, evaluatePropertyReference } from './MemberExpression'
 import { setPropertyValue } from '../lib/setPropertyValue'
 
 export function* evaluateUpdateExpression(
@@ -25,13 +25,13 @@ export function* evaluateUpdateExpression(
       setVariableValue(argument.name, value, scope, context)
     }
   } else if (argument.type === 'MemberExpression') {
-    const parts = yield* evaluateMemberExpressionParts(argument, scope, context)
+    const ref = yield* evaluatePropertyReference(argument, scope, context)
     getValue = function* () {
-      const { value } = yield* evaluateMemberExpression(argument, scope, context, parts)
+      const { value } = yield* evaluateMemberExpression(argument, scope, context, ref)
       return value
     }
     setValue = (value: unknown) => {
-      setPropertyValue(parts.object, parts.propertyKey, value, context)
+      setPropertyValue(ref.object, ref.propertyName, ref.thisValue, value, context)
     }
   } else {
     // Acorn should not allow this.

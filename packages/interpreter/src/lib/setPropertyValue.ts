@@ -1,29 +1,82 @@
-import { Context } from '../types'
+import { Context, PrivateName } from '../types'
 import { syncContext } from './syncContext'
 import { assertPropertyWriteSideEffectFree } from './assertPropertyWriteSideEffectFree'
 import { getPropertyDescriptor } from './getPropertyDescriptor'
 import { toShortStringTag } from './toShortStringTag'
-import { toObject } from './evaluation-utils'
+import { isObject, isPropertyKey, toObject, toPropertyKey } from './evaluation-utils'
+import { assertNever } from './assert'
 
 const getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor
 const isExtensible = Object.isExtensible
 
+// https://tc39.es/ecma262/#sec-putvalue
 // 7.3.4 Set (O,P,V,Throw): https://tc39.es/ecma262/#sec-set-o-p-v-throw
 // 10.1.9 [[Set]] (P,V,Receiver): https://tc39.es/ecma262/#sec-ordinary-object-internal-methods-and-internal-slots-set-p-v-receiver
 export function setPropertyValue(
   object: any,
-  propertyKey: PropertyKey,
+  propertyName: PropertyKey | PrivateName | unknown,
+  receiver: unknown,
   value: unknown,
   context: Context,
 ): void {
-  if (syncContext?.throwOnSideEffect) {
-    assertPropertyWriteSideEffectFree(object, propertyKey, context)
+  if (object == null) {
+    // NOTE: about propertyName and toPropertyKey:
+    // In Chrome:
+    //   - null['a'] = 1 // TypeError: Cannot set properties of null (setting 'a')
+    //   - null[{ toString: 1 }] = 1 // TypeError: Cannot set properties of null
+    //   - null.#a = 1 // TypeError: Cannot access private name #a from null
+    if (isPropertyKey(propertyName)) {
+      throw new context.metadata.globals.TypeError(
+        `Cannot set properties of ${object} (setting '${propertyName.toString()}')`,
+      )
+    } else if (propertyName instanceof PrivateName) {
+      throw new context.metadata.globals.TypeError(
+        `Cannot access private name #${propertyName.name} from ${object}`,
+      )
+    } else {
+      throw new context.metadata.globals.TypeError(`Cannot set properties of ${object}`)
+    }
   }
 
-  if (object == null) {
-    throw new context.metadata.globals.TypeError(
-      `Cannot set property '${propertyKey.toString()}' of ${toShortStringTag(object)}`,
-    )
+  receiver = receiver !== undefined ? receiver : object
+  object = toObject(object, context)
+
+  // https://tc39.es/ecma262/#sec-privateset
+  if (propertyName instanceof PrivateName) {
+    const privateElement = context.metadata.privateElements.get(object)?.[propertyName.name]
+    if (!privateElement) {
+      throw new context.metadata.globals.TypeError(
+        `Private member '#${propertyName.name}' is not declared in ${toShortStringTag(object)}`,
+      )
+    }
+
+    if (privateElement.kind === 'field') {
+      privateElement.value = value
+    } else if (privateElement.kind === 'method') {
+      throw new context.metadata.globals.TypeError(
+        `Private method '#${propertyName.name}' is not writable`,
+      )
+    } else if (privateElement.kind === 'accessor') {
+      if (!privateElement.set) {
+        throw new context.metadata.globals.TypeError(
+          `'#${propertyName.name}' was defined without a setter`,
+        )
+      }
+
+      Reflect.apply(privateElement.set, object, [value])
+    } else {
+      assertNever(privateElement.kind, 'Unexpected private element kind')
+    }
+
+    return
+  }
+
+  const propertyKey = isPropertyKey(propertyName)
+    ? propertyName
+    : toPropertyKey(propertyName, context)
+
+  if (syncContext?.throwOnSideEffect) {
+    assertPropertyWriteSideEffectFree(object, propertyKey, context)
   }
 
   const checkResult = ordinarySetCheck(object, propertyKey, value)
@@ -64,10 +117,12 @@ export function setPropertyValue(
   // This is covered by several tests in test262, e.g. test262/test/built-ins/Array/prototype/some/15.4.4.17-7-b-16.js
   // and test262/test/built-ins/Array/prototype/reduceRight/15.4.4.22-9-b-29.js.
 
-  if (context.strict) {
-    object[propertyKey] = value
-  } else {
-    Reflect.set(toObject(object, context), propertyKey, value)
+  const success = Reflect.set(object, propertyKey, value, receiver)
+
+  if (!success && context.strict) {
+    throw new context.metadata.globals.TypeError(
+      `Cannot set property '${propertyKey.toString()}' of ${toShortStringTag(object)}`,
+    )
   }
 }
 
@@ -142,10 +197,6 @@ function isGenericDescriptor(desc: PropertyDescriptor): boolean {
   }
 
   return true
-}
-
-function isObject(object: unknown): boolean {
-  return object != null && (typeof object === 'object' || typeof object === 'function')
 }
 
 // https://tc39.es/ecma262/#sec-ordinary-object-internal-methods-and-internal-slots-defineownproperty-p-desc

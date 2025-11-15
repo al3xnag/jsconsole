@@ -20,8 +20,9 @@ describe('classic function', () => {
         isGenerator: false,
         isArrow: false,
         name: '',
-        args: '()',
+        args: '',
         body: '{}',
+        isClassConstructor: false,
       },
     ],
     [
@@ -32,8 +33,9 @@ describe('classic function', () => {
         isGenerator: false,
         isArrow: false,
         name: '',
-        args: '()',
+        args: '',
         body: '{}',
+        isClassConstructor: false,
       },
     ],
     [
@@ -44,8 +46,9 @@ describe('classic function', () => {
         isGenerator: false,
         isArrow: false,
         name: 'foo',
-        args: '()',
+        args: '',
         body: '{}',
+        isClassConstructor: false,
       },
     ],
     [
@@ -56,8 +59,9 @@ describe('classic function', () => {
         isGenerator: false,
         isArrow: false,
         name: 'foo',
-        args: '()',
+        args: '',
         body: '{}',
+        isClassConstructor: false,
       },
     ],
     [
@@ -68,8 +72,9 @@ describe('classic function', () => {
         isGenerator: false,
         isArrow: false,
         name: '',
-        args: '(a, b)',
+        args: 'a, b',
         body: '{}',
+        isClassConstructor: false,
       },
     ],
     [
@@ -80,8 +85,9 @@ describe('classic function', () => {
         isGenerator: false,
         isArrow: false,
         name: '',
-        args: '(a, b = [a], c = { x: 1 }, ...d)',
+        args: 'a, b = [a], c = { x: 1 }, ...d',
         body: '{}',
+        isClassConstructor: false,
       },
     ],
     [
@@ -92,8 +98,9 @@ describe('classic function', () => {
         isGenerator: false,
         isArrow: false,
         name: '',
-        args: '()',
+        args: '',
         body: '{ return "foo" }',
+        isClassConstructor: false,
       },
     ],
     [
@@ -104,8 +111,9 @@ describe('classic function', () => {
         isGenerator: false,
         isArrow: false,
         name: 'toString',
-        args: '()',
+        args: '',
         body: '{ [native code] }',
+        isClassConstructor: false,
       },
     ],
   ])('%s', (_description, fn, expected) => {
@@ -124,8 +132,9 @@ describe('arrow function', () => {
         isGenerator: false,
         isArrow: true,
         name: '',
-        args: '()',
+        args: '',
         body: '{}',
+        isClassConstructor: false,
       },
     ],
     [
@@ -136,8 +145,9 @@ describe('arrow function', () => {
         isGenerator: false,
         isArrow: true,
         name: '',
-        args: '()',
+        args: '',
         body: '{}',
+        isClassConstructor: false,
       },
     ],
     [
@@ -148,8 +158,9 @@ describe('arrow function', () => {
         isGenerator: false,
         isArrow: true,
         name: '',
-        args: '(a, b)',
+        args: 'a, b',
         body: '{ return "foo" }',
+        isClassConstructor: false,
       },
     ],
     [
@@ -162,6 +173,7 @@ describe('arrow function', () => {
         name: '',
         args: 'a',
         body: '{}',
+        isClassConstructor: false,
       },
     ],
     [
@@ -174,6 +186,7 @@ describe('arrow function', () => {
         name: '',
         args: 'a',
         body: '1',
+        isClassConstructor: false,
       },
     ],
   ])('%s', (_description, fn, expected) => {
@@ -192,8 +205,9 @@ describe('generator function', () => {
         isGenerator: true,
         isArrow: false,
         name: '',
-        args: '()',
+        args: '',
         body: '{}',
+        isClassConstructor: false,
       },
     ],
     [
@@ -204,8 +218,9 @@ describe('generator function', () => {
         isGenerator: true,
         isArrow: false,
         name: '',
-        args: '()',
+        args: '',
         body: '{}',
+        isClassConstructor: false,
       },
     ],
     [
@@ -216,8 +231,9 @@ describe('generator function', () => {
         isGenerator: true,
         isArrow: false,
         name: 'foo',
-        args: '()',
+        args: '',
         body: '{}',
+        isClassConstructor: false,
       },
     ],
     [
@@ -228,8 +244,90 @@ describe('generator function', () => {
         isGenerator: true,
         isArrow: false,
         name: 'foo',
-        args: '(  s  ,d)',
+        args: 's  ,d',
         body: '{   }',
+        isClassConstructor: false,
+      },
+    ],
+  ])('%s', (_description, fn, expected) => {
+    const parts = parseFunctionParts(fn, context)
+    expect(parts).toEqual(expected)
+  })
+})
+
+describe('class', () => {
+  test.each([
+    [
+      'class expression',
+      eval('let A = class {}; A'),
+      {
+        isAsync: false,
+        isGenerator: false,
+        isArrow: false,
+        name: 'A',
+        args: null,
+        body: '{}',
+        isClassConstructor: true,
+      },
+    ],
+    [
+      'class declaration',
+      eval('class A {}; A'),
+      {
+        isAsync: false,
+        isGenerator: false,
+        isArrow: false,
+        name: 'A',
+        args: null,
+        body: '{}',
+        isClassConstructor: true,
+      },
+    ],
+  ])('%s', (_description, fn, expected) => {
+    const parts = parseFunctionParts(fn, context)
+    expect(parts).toEqual(expected)
+  })
+})
+
+describe('method', () => {
+  test.each([
+    [
+      'object method',
+      eval('({ fn() {} }).fn'),
+      {
+        isAsync: false,
+        isGenerator: false,
+        isArrow: false,
+        name: 'fn',
+        args: '',
+        body: '{}',
+        isClassConstructor: false,
+      },
+    ],
+    [
+      'class method',
+      eval('(class { fn() {} }).prototype.fn'),
+      {
+        isAsync: false,
+        isGenerator: false,
+        isArrow: false,
+        name: 'fn',
+        args: '',
+        body: '{}',
+        isClassConstructor: false,
+      },
+    ],
+    [
+      'async object method',
+      eval('({ async fn() {} }).fn'),
+      {
+        isAsync: true,
+        isGenerator: false,
+        isArrow: false,
+        name: 'fn',
+        args: '',
+        body: '{}',
+        isClassConstructor: false,
       },
     ],
   ])('%s', (_description, fn, expected) => {

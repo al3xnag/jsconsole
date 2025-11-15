@@ -13,6 +13,8 @@ import { evaluateBlockStatement } from './BlockStatement'
 import { evaluateBreakStatement } from './BreakStatement'
 import { evaluateCallExpression } from './CallExpression'
 import { evaluateChainExpression } from './ChainExpression'
+import { evaluateClassDeclaration } from './ClassDeclaration'
+import { evaluateClassExpression } from './ClassExpression'
 import { evaluateConditionalExpression } from './ConditionalExpression'
 import { evaluateContinueStatement } from './ContinueStatement'
 import { evaluateDebuggerStatement } from './DebuggerStatement'
@@ -37,6 +39,7 @@ import { evaluateProgram } from './Program'
 import { evaluateReturnStatement } from './ReturnStatement'
 import { evaluateSequenceExpression } from './SequenceExpression'
 import { evaluateSpreadElement } from './SpreadElement'
+import { evaluateSuper } from './Super'
 import { evaluateSwitchStatement } from './SwitchStatement'
 import { evaluateTaggedTemplateExpression } from './TaggedTemplateExpression'
 import { evaluateTemplateLiteral } from './TemplateLiteral'
@@ -124,6 +127,7 @@ const statementHandlers: Partial<{
   VariableDeclaration: evaluateVariableDeclaration,
   FunctionDeclaration: evaluateFunctionDeclaration,
   DebuggerStatement: evaluateDebuggerStatement,
+  ClassDeclaration: evaluateClassDeclaration,
 }
 
 const handlers: Partial<{
@@ -158,4 +162,6 @@ const handlers: Partial<{
   TaggedTemplateExpression: evaluateTaggedTemplateExpression,
   ConditionalExpression: evaluateConditionalExpression,
   MetaProperty: evaluateMetaProperty,
+  ClassExpression: evaluateClassExpression,
+  Super: evaluateSuper,
 }

@@ -2,7 +2,10 @@ import { BinaryExpression, BinaryOperator } from 'acorn'
 import { evaluateNode } from '.'
 import { Context, EvaluatedNode, EvaluateGenerator, Scope } from '../types'
 import { UnsupportedOperationError } from '../lib/UnsupportedOperationError'
+import { instanceofOperator, isObject, toPropertyKey } from '../lib/evaluation-utils'
+import { toShortStringTag } from '../lib/toShortStringTag'
 
+// https://tc39.es/ecma262/#prod-RelationalExpression
 export function* evaluateBinaryExpression(
   node: BinaryExpression,
   scope: Scope,
@@ -15,13 +18,13 @@ export function* evaluateBinaryExpression(
   const { value: right } = yield* evaluateNode(node.right, scope, context)
 
   const evaluated: EvaluatedNode = {
-    value: evaluateBinary(node.operator, left, right),
+    value: evaluateBinary(node.operator, left, right, context),
   }
 
   return evaluated
 }
 
-function evaluateBinary(operator: BinaryOperator, left: any, right: any) {
+function evaluateBinary(operator: BinaryOperator, left: any, right: any, context: Context) {
   switch (operator) {
     case '+':
       return left + right
@@ -63,10 +66,18 @@ function evaluateBinary(operator: BinaryOperator, left: any, right: any) {
       return left >> right
     case '>>>':
       return left >>> right
-    case 'in':
-      return left in right
+    case 'in': {
+      if (!isObject(right)) {
+        throw new context.metadata.globals.TypeError(
+          `Cannot use 'in' operator to search for '${toShortStringTag(left)}' in ${toShortStringTag(right)}`,
+        )
+      }
+
+      const propertyKey = toPropertyKey(left, context)
+      return propertyKey in right
+    }
     case 'instanceof':
-      return left instanceof right
+      return instanceofOperator(left, right, context)
     default:
       throw new UnsupportedOperationError(`Unsupported binary operator: ${operator}`)
   }

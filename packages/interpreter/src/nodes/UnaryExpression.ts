@@ -4,10 +4,11 @@ import { evaluateNode } from '.'
 import { assertNever } from '../lib/assert'
 import { getVariableValue } from '../lib/getVariableValue'
 import { getIdentifier } from '../lib/getIdentifier'
-import { evaluateMemberExpressionParts } from './MemberExpression'
+import { evaluatePropertyReference } from './MemberExpression'
 import { PossibleSideEffectError } from '../lib/PossibleSideEffectError'
 import { syncContext } from '../lib/syncContext'
 import { toShortStringTag } from '../lib/toShortStringTag'
+import { isPropertyKey, toPropertyKey } from '../lib/evaluation-utils'
 
 export function* evaluateUnaryExpression(
   node: UnaryExpression,
@@ -75,11 +76,16 @@ export function* _evaluateUnaryExpression(
           return value
         }
       } else if (arg.type === 'MemberExpression') {
-        const { object, propertyKey } = yield* evaluateMemberExpressionParts(arg, scope, context)
+        const { object, propertyName } = yield* evaluatePropertyReference(arg, scope, context)
 
         if (syncContext?.throwOnSideEffect) {
           throw new PossibleSideEffectError()
         }
+
+        // NOTE: "delete MemberExpression . PrivateIdentifier" is an early SyntaxError during Static Semantics.
+        const propertyKey = isPropertyKey(propertyName)
+          ? propertyName
+          : toPropertyKey(propertyName, context)
 
         if (context.strict) {
           const value = Reflect.deleteProperty(object, propertyKey)

@@ -101,7 +101,6 @@ function RenderUnknown(props: ValuePreviewProps) {
     return <RenderProxy value={value} placement={placement} context={context} />
   }
 
-  // TODO: class support
   if (typeof value === 'function') {
     return <RenderFunction value={value} placement={placement} context={context} />
   }
@@ -281,10 +280,11 @@ function RenderFunctionTop({ value, context }: ValuePreviewPropsWithContext<Func
     <span className="italic">
       {parts.isAsync && <span className="token-keyword">async </span>}
       <span className="token-keyword">
-        ƒ{parts.isGenerator && <span className="token-keyword">*</span>}{' '}
+        {parts.isClassConstructor ? 'class' : 'ƒ'}
+        {parts.isGenerator && <span className="token-keyword">*</span>}{' '}
       </span>
       {!parts.isArrow && <span className="token-variable">{parts.name}</span>}
-      <span className="">{parts.args}</span>
+      {parts.args !== null && <span className="">({parts.args})</span>}
       {parts.isArrow && <span className=""> =&gt;</span>}
       <span className=""> {parts.body}</span>
     </span>
@@ -298,10 +298,11 @@ function RenderFunctionItem({ value, context }: ValuePreviewPropsWithContext<Fun
     <span className="italic">
       {parts.isAsync && <span className="token-keyword">async </span>}
       <span className="token-keyword">
-        ƒ{parts.isGenerator && <span className="token-keyword">*</span>}{' '}
+        {parts.isClassConstructor ? 'class' : 'ƒ'}
+        {parts.isGenerator && <span className="token-keyword">*</span>}{' '}
       </span>
       {!parts.isArrow && <span className="token-variable">{parts.name}</span>}
-      <span className="">{parts.args}</span>
+      {parts.args !== null && <span className="">({parts.args})</span>}
       {parts.isArrow && <span className=""> =&gt;</span>}
       {parts.isArrow && <span className=""> {'{…}'}</span>}
     </span>

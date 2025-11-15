@@ -7,7 +7,7 @@ export function* evaluateArrowFunctionExpression(
   scope: Scope,
   context: Context,
 ): EvaluateGenerator {
-  const fn = createFunction(node, scope, context)
+  const { fn } = createFunction(node, scope, context)
   const evaluated: EvaluatedNode = { value: fn }
   return evaluated
 }

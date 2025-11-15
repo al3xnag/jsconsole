@@ -61,12 +61,12 @@ export function hoistFunctionDeclaration(
   if (context.strict) {
     if (isInsideBlock(node)) {
       if (env.lex) {
-        const fn = createFunction(node, scope, context)
+        const { fn } = createFunction(node, scope, context)
         defineVariable('let', fnName, scope, context, fn)
       }
     } else {
       if (env.var) {
-        const fn = createFunction(node, scope, context)
+        const { fn } = createFunction(node, scope, context)
         const varScope: FunctionScope | null = scope.kind === 'function' ? scope : null
         defineVariable('var', fnName, varScope, context, fn)
       }
@@ -82,7 +82,7 @@ export function hoistFunctionDeclaration(
         // inside block even in non-strict mode (but allowed in global or function scope).
         scope.bindings.delete(fnName)
 
-        const fn = createFunction(node, scope, context)
+        const { fn } = createFunction(node, scope, context)
         defineVariable('let', fnName, scope, context, fn)
       }
 
@@ -93,7 +93,7 @@ export function hoistFunctionDeclaration(
       }
     } else {
       if (env.var) {
-        const fn = createFunction(node, scope, context)
+        const { fn } = createFunction(node, scope, context)
         const varScope: FunctionScope | null = scope.kind === 'function' ? scope : null
         defineVariable('var', fnName, varScope, context, fn)
       }

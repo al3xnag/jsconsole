@@ -169,11 +169,11 @@ it('"use strict"; "a".b = 1', ({ thrown }) => {
 
 it('null.a = 1', ({ thrown }) => {
   // Chrome: "Cannot set properties of null (setting 'a')"
-  expect(thrown).toThrow(new TypeError("Cannot set property 'a' of null"))
+  expect(thrown).toThrow(new TypeError("Cannot set properties of null (setting 'a')"))
 })
 it('"use strict"; null.a = 1', ({ thrown }) => {
   // Chrome: "Cannot set properties of null (setting 'a')"
-  expect(thrown).toThrow(new TypeError("Cannot set property 'a' of null"))
+  expect(thrown).toThrow(new TypeError("Cannot set properties of null (setting 'a')"))
 })
 
 it('Object.freeze({}).a = 1', 1)
@@ -312,7 +312,7 @@ it(
   [
     'fn called',
     // Chrome: "Cannot set properties of undefined (setting 'not_defined_prop')"
-    new TypeError("Cannot set property 'not_defined_prop' of undefined"),
+    new TypeError("Cannot set properties of undefined (setting 'not_defined_prop')"),
   ],
 )
 

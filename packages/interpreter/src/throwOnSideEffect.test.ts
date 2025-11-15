@@ -72,3 +72,22 @@ test('finally block is not executed when PossibleSideEffectError (or any other I
   ).toThrow(PossibleSideEffectError)
   expect(globalObject.x).toBeUndefined()
 })
+
+it('({ toString: fn }) in {}', ExpectToThrowPossibleSideEffectError, {
+  globalObject: Object.assign(getTestGlobalObject(), { fn: () => {} }),
+  throwOnSideEffect: true,
+})
+
+it('class A { constructor() { return Number } }', ExpectToThrowPossibleSideEffectError, {
+  throwOnSideEffect: true,
+})
+it('{ class A { constructor() { return Number } } }', undefined, {
+  throwOnSideEffect: true,
+})
+it(
+  '{ class A { constructor() { return Number } }; (new A()).a = 1 }',
+  ExpectToThrowPossibleSideEffectError,
+  {
+    throwOnSideEffect: true,
+  },
+)

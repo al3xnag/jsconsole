@@ -1,12 +1,14 @@
 import { NewExpression } from 'acorn'
 import { evaluateNode } from '.'
-import { Context, EvaluateGenerator, Scope } from '../types'
-import { getOrCreateSharedWeakRef } from '../lib/sharedWeakRefMap'
-import { unbindFunctionCall } from '../lib/unbindFunctionCall'
 import { type WeakMapMetadata, type WeakSetMetadata } from '../lib/Metadata'
 import { assertFunctionSideEffectFree } from '../lib/assertFunctionSideEffectFree'
-import { syncContext } from '../lib/syncContext'
+import { isConstructor } from '../lib/evaluation-utils'
 import { getNodeText } from '../lib/getNodeText'
+import { getOrCreateSharedWeakRef } from '../lib/sharedWeakRefMap'
+import { syncContext } from '../lib/syncContext'
+import { unbindFunctionCall } from '../lib/unbindFunctionCall'
+import { Context, EvaluateGenerator, Scope } from '../types'
+import { SIDE_EFFECT_FREE } from '../lib/SideEffectInfo'
 
 // https://tc39.es/ecma262/#sec-new-operator
 export function* evaluateNewExpression(
@@ -64,33 +66,15 @@ export function* evaluateNewExpression(
     console.warn('Failed to hook constructor call', error)
   }
 
-  syncContext?.tmpRefs.add(instanceRef.value)
+  // NOTE: In constructor we can return any existing object: class A { constructor() { return Number } }
+  if (
+    !context.metadata.functions.has(callee) &&
+    context.sideEffectInfo.functions.get(callee) === SIDE_EFFECT_FREE
+  ) {
+    syncContext?.tmpRefs.add(instanceRef.value)
+  }
 
   return { value: instanceRef.value }
-}
-
-// https://tc39.es/ecma262/#sec-isconstructor
-function isConstructor(callee: unknown, context: Context): callee is Function {
-  if (typeof callee !== 'function') {
-    return false
-  }
-
-  const metadata = context.metadata.functions.get(callee)
-  if (metadata && typeof metadata.constructable === 'boolean') {
-    return metadata.constructable
-  }
-
-  // There is no built-in way to check whether an unknown value is constructable (has [[Construct]] internal method).
-  // Since this interpreter is non-sandboxed, and `callee` can be an external value created outside of the interpreter,
-  // we use this workaround to check if the value is constructable:
-  try {
-    // `callee` isn't called here, so it's safe in terms of side effects.
-    Reflect.construct(function () {}, [], callee)
-  } catch {
-    return false
-  }
-
-  return true
 }
 
 // TODO: Reflect.construct(WeakMap, args)

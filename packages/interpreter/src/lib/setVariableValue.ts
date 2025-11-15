@@ -20,6 +20,7 @@ export function setVariableValue(
         throw new context.metadata.globals.TypeError(`Assignment to constant variable.`)
       }
 
+      // `a = 1; let a;` // ReferenceError: Cannot access 'a' before initialization
       if (identifier.kind === 'let' && identifier.value === UNINITIALIZED) {
         throw new context.metadata.globals.ReferenceError(
           `Cannot access '${name}' before initialization`,
@@ -42,7 +43,7 @@ export function setVariableValue(
       }
     }
 
-    setPropertyValue(context.globalObject, name, value, context)
+    setPropertyValue(context.globalObject, name, undefined, value, context)
   } else if (context.type === 'module') {
     throw new context.metadata.globals.ReferenceError(`${name} is not defined`)
   } else {

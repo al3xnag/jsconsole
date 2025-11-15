@@ -22,6 +22,7 @@ export class SideEffectInfo {
   }
 }
 
+// WIP: This whitelist is not complete.
 function getDefaultFunctions(global: typeof globalThis): [Function, SideEffectFlags][] {
   const list: [Function | undefined, SideEffectFlags][] = [
     // Global
@@ -167,6 +168,10 @@ function getDefaultFunctions(global: typeof globalThis): [Function, SideEffectFl
     [global.Array.from, SIDE_EFFECT_FREE],
     [global.Array.of, SIDE_EFFECT_FREE],
     [global.Array.prototype[Symbol.iterator], SIDE_EFFECT_FREE /* custom runtime check */],
+
+    // Function
+    [global.Function.prototype.bind, SIDE_EFFECT_FREE],
+    [global.Function.prototype[Symbol.hasInstance], SIDE_EFFECT_FREE],
   ]
 
   if ('window' in global && global === global.window) {

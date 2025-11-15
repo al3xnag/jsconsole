@@ -3,7 +3,7 @@ import { evaluateNode } from '.'
 import { setPropertyValue } from '../lib/setPropertyValue'
 import { setVariableValue } from '../lib/setVariableValue'
 import { Context, EvaluatedNode, EvaluateGenerator, Scope } from '../types'
-import { evaluateMemberExpression, evaluateMemberExpressionParts } from './MemberExpression'
+import { evaluateMemberExpression, evaluatePropertyReference } from './MemberExpression'
 import { evaluatePattern } from './Pattern'
 import { assertNever } from '../lib/assert'
 import { InternalError } from '../lib/InternalError'
@@ -31,13 +31,16 @@ export function* evaluateAssignmentExpression(
     setVariableValue(left.name, value, scope, context)
     evaluated = { value }
   } else if (left.type === 'MemberExpression') {
-    const parts = yield* evaluateMemberExpressionParts(left, scope, context)
+    const ref = yield* evaluatePropertyReference(left, scope, context)
     const leftValue =
       operator === '='
         ? undefined /* unused */
-        : (yield* evaluateMemberExpression(left, scope, context, parts)).value
+        : (yield* evaluateMemberExpression(left, scope, context, ref)).value
     const value = yield* evaluateAssignmentValue(leftValue, operator, evaluateRight)
-    setPropertyValue(parts.object, parts.propertyKey, value, context)
+    // https://tc39.es/ecma262/#sec-evaluate-property-access-with-expression-key
+    // > NOTE: In most cases, ToPropertyKey will be performed on propertyNameValue immediately after this step.
+    // > However, in the case of a[b] = c, it will not be performed until after evaluation of c.
+    setPropertyValue(ref.object, ref.propertyName, ref.thisValue, value, context)
     evaluated = { value }
   } else {
     if (operator !== '=') {

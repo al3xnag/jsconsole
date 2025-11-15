@@ -1,3 +1,4 @@
+import { ClassFieldDefinitionRecord, Context, PrivateElementMap } from '../types'
 import { InternalError } from './InternalError'
 
 export type FunctionMetadata = {
@@ -17,6 +18,13 @@ export type FunctionMetadata = {
   async?: boolean
   generator?: boolean
   constructable?: boolean
+  isClassConstructor?: boolean
+  // [[HomeObject]]
+  homeObject?: object
+  // [[PrivateMethods]]
+  privateMethods?: PrivateElementMap
+  // [[Fields]]
+  fields?: ClassFieldDefinitionRecord[]
 }
 
 export type PromiseMetadata = {
@@ -35,10 +43,6 @@ export type WeakSetMetadata = {
 export type ProxyMetadata = {
   target: object
   handler: ProxyHandler<object>
-}
-
-export type ClassMetadata = {
-  privateDescriptors: Map<string, PropertyDescriptor>
 }
 
 export type MetadataGlobals = {
@@ -80,7 +84,7 @@ export class Metadata {
   weakMaps: WeakMap<WeakMap<WeakKey, unknown>, WeakMapMetadata> = new WeakMap()
   weakSets: WeakMap<WeakSet<WeakKey>, WeakSetMetadata> = new WeakMap()
   proxies: WeakMap<object, ProxyMetadata> = new WeakMap()
-  classes: WeakMap<object, ClassMetadata> = new WeakMap()
+  privateElements: WeakMap<object, PrivateElementMap> = new WeakMap()
   globals: MetadataGlobals = Object.create(null)
 
   constructor(global: typeof globalThis) {
@@ -135,4 +139,15 @@ function getAsyncFunctionConstructor(global: typeof globalThis): FunctionConstru
     err.cause = cause
     throw err
   }
+}
+
+export function getOrCreatePrivateElements(obj: object, context: Context): PrivateElementMap {
+  let map = context.metadata.privateElements.get(obj)
+  if (map) {
+    return map
+  }
+
+  map = Object.create(null)
+  context.metadata.privateElements.set(obj, map!)
+  return map!
 }

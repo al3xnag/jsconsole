@@ -2,6 +2,7 @@ import { AnyNode } from 'acorn'
 import { Context, Scope } from '../types'
 import { hoistVariableDeclaration } from '../nodes/VariableDeclaration'
 import { hoistFunctionDeclaration } from '../nodes/FunctionDeclaration'
+import { hoistClassDeclaration } from '../nodes/ClassDeclaration'
 
 export function initBindings(
   node: AnyNode,
@@ -33,6 +34,10 @@ export function initBindings(
     }
     case 'FunctionDeclaration': {
       hoistFunctionDeclaration(node, scope, context, env)
+      break
+    }
+    case 'ClassDeclaration': {
+      hoistClassDeclaration(node, scope, context, env)
       break
     }
     case 'TryStatement': {

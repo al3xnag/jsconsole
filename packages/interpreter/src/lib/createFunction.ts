@@ -1,15 +1,23 @@
 import { evaluateNode } from '../nodes'
-import { AnyFunction, Context, EvaluateGenerator, FunctionScope, Scope } from '../types'
+import {
+  AnyClass,
+  AnyFunction,
+  Constructor,
+  Context,
+  EvaluateGenerator,
+  FunctionScope,
+  Scope,
+} from '../types'
 import { initBindings } from './initBindings'
 import { getFunctionParamIdentifiers } from './bound-identifiers'
 import { UnsupportedOperationError } from './UnsupportedOperationError'
 import { run } from './run'
 import { evaluatePattern } from '../nodes/Pattern'
 import { EMPTY, UNINITIALIZED, TYPE_RETURN } from '../constants'
-import { iterateAncestors } from './iterateAncestors'
 import { getNodeText } from './getNodeText'
 import { syncContext } from './syncContext'
 import { hasDirective } from './directive'
+import { FunctionMetadata } from './Metadata'
 
 const defineProperty = Object.defineProperty
 
@@ -17,14 +25,26 @@ type FunctionCallMeta = {
   type: 'function'
   callee: Function
   this: unknown
-  arguments: IArguments
-  newTarget: unknown
+  args: unknown[]
+  newTarget: Constructor | undefined
+  scope?: FunctionScope
 }
 
 type ArrowFunctionCallMeta = {
   type: 'arrow-function'
   callee: Function
   args: unknown[]
+  scope?: FunctionScope
+}
+
+export type CreateFunctionResult = {
+  fn: Function
+  callInternal: (
+    this: unknown,
+    args: unknown[],
+    newTarget?: Constructor,
+    callee?: Function,
+  ) => { result: unknown; scope: FunctionScope }
 }
 
 /*
@@ -49,7 +69,12 @@ type ArrowFunctionCallMeta = {
   Object.defineProperty(window, 'document', { value: () => {} }) - TypeError: Cannot redefine property: document (both strict and non-strict modes)
 */
 
-export function createFunction(node: AnyFunction, scope: Scope, context: Context): Function {
+export function createFunction(
+  node: AnyFunction,
+  parentScope: Scope,
+  context: Context,
+  metadata?: FunctionMetadata,
+): CreateFunctionResult {
   if (node.generator) {
     throw new UnsupportedOperationError('Generator function is not supported')
   }
@@ -59,10 +84,10 @@ export function createFunction(node: AnyFunction, scope: Scope, context: Context
       context = { ...context, strict: true }
     }
 
-    const fnScope = yield* initScope(node, scope, context, meta)
+    const scope = yield* initScope(node, parentScope, context, meta)
 
     node.body.parent = node
-    const evaluated = yield* evaluateNode(node.body, fnScope, context)
+    const evaluated = yield* evaluateNode(node.body, scope, context)
 
     if (node.body.type !== 'BlockStatement' || evaluated.type === TYPE_RETURN) {
       return evaluated
@@ -86,72 +111,97 @@ export function createFunction(node: AnyFunction, scope: Scope, context: Context
   }
 
   let fn: Function
+  let evaluate: CreateFunctionResult['callInternal']
+
   // NOTE: generator functions are not supported at the moment.
   const isArrow = isArrowFunction(node)
   if (isArrow) {
     if (node.async) {
-      function evaluate(...args: unknown[]) {
-        return context.metadata.globals.PromiseResolve.call(
-          context.metadata.globals.Promise,
-          evaluateRunner({
-            type: 'arrow-function',
-            callee: fn,
-            args,
-          }),
-        )
-      }
-
-      fn = (...args: unknown[]) => evaluate(...args)
-    } else {
-      function evaluate(...args: unknown[]) {
-        return evaluateRunner({
+      evaluate = function evaluate(args: unknown[], _newTarget?: unknown, callee?: Function) {
+        const meta: ArrowFunctionCallMeta = {
           type: 'arrow-function',
-          callee: fn,
+          callee: callee ?? fn,
           args,
-        })
+        }
+
+        const result = context.metadata.globals.PromiseResolve.call(
+          context.metadata.globals.Promise,
+          evaluateRunner(meta),
+        )
+
+        return { result, scope: meta.scope! }
       }
 
-      fn = (...args: unknown[]) => evaluate(...args)
+      fn = (...args: unknown[]) => evaluate(args).result
+    } else {
+      evaluate = function evaluate(args: unknown[], _newTarget?: unknown, callee?: Function) {
+        const meta: ArrowFunctionCallMeta = {
+          type: 'arrow-function',
+          callee: callee ?? fn,
+          args,
+        }
+
+        const result = evaluateRunner(meta)
+        return { result, scope: meta.scope! }
+      }
+
+      fn = (...args: unknown[]) => evaluate(args).result
     }
   } else {
     if (node.async) {
-      function evaluate(this: unknown, _arguments: IArguments, newTarget: unknown) {
-        return context.metadata.globals.PromiseResolve.call(
+      evaluate = function evaluate(
+        this: unknown,
+        args: unknown[],
+        newTarget: Constructor | undefined,
+        callee?: Function,
+      ) {
+        const meta: FunctionCallMeta = {
+          type: 'function',
+          callee: callee ?? fn,
+          this: this,
+          args,
+          newTarget,
+        }
+
+        const result = context.metadata.globals.PromiseResolve.call(
           context.metadata.globals.Promise,
-          evaluateRunner({
-            type: 'function',
-            callee: fn,
-            this: this,
-            arguments: _arguments,
-            newTarget,
-          }),
+          evaluateRunner(meta),
         )
+
+        return { result, scope: meta.scope! }
       }
 
       // NOTE: fn defined as "async" will return a Promise from the current realm,
       // but `context.metadata.globals.Promise` is expected:
       // `async function foo() { return 1 }; foo() instanceof Promise` must be true.
-      fn = function (this: unknown) {
-        return evaluate.call(this, arguments, new.target)
-      }
-
-      // Since fn is defined as sync function above, its "prototype" property is defined,
-      // but it is expected to be not defined in async functions.
-      // It is configurable: false, so we can't delete it. At least let's make it undefined (not great though).
-      Object.defineProperty(fn, 'prototype', { value: undefined })
+      // NOTE: async function must not have a "prototype" property, so that's why we define it
+      // as a property of an object here.
+      fn = {
+        fn(this: unknown, ...args: unknown[]) {
+          return evaluate.call(this, args, undefined).result
+        },
+      }.fn
     } else {
-      function evaluate(this: unknown, _arguments: IArguments, newTarget: unknown) {
-        return evaluateRunner({
+      evaluate = function evaluate(
+        this: unknown,
+        args: unknown[],
+        newTarget: Constructor | undefined,
+        callee?: Function,
+      ) {
+        const meta: FunctionCallMeta = {
           type: 'function',
-          callee: fn,
+          callee: callee ?? fn,
           this: this,
-          arguments: _arguments,
+          args,
           newTarget,
-        })
+        }
+
+        const result = evaluateRunner(meta)
+        return { result, scope: meta.scope! }
       }
 
-      fn = function (this: unknown) {
-        return evaluate.call(this, arguments, new.target)
+      fn = function (this: unknown, ...args: unknown[]) {
+        return evaluate.call(this, args, new.target as any).result
       }
 
       const fnPrototype = context.metadata.globals.ObjectCreate(
@@ -173,10 +223,7 @@ export function createFunction(node: AnyFunction, scope: Scope, context: Context
   const fnName = getFnName(node)
   defineProperty(fn, 'name', { value: fnName, configurable: true })
 
-  // function foo (a, b) {}; foo.length // 2
-  // function foo (a, b, ...c) {}; foo.length // 2
-  // function foo (a, b = 1, ...c) {}; foo.length // 1
-  const fnLength = node.params.filter((param) => param.type === 'Identifier').length
+  const fnLength = getFnLength(node)
   defineProperty(fn, 'length', { value: fnLength, configurable: true })
 
   if (node.async) {
@@ -185,56 +232,64 @@ export function createFunction(node: AnyFunction, scope: Scope, context: Context
     Object.setPrototypeOf(fn, context.metadata.globals.FunctionPrototype)
   }
 
-  const originalFnCode = getFnSourceCode(node, context)
-  context.metadata.functions.set(fn, {
-    sourceCode: originalFnCode,
+  metadata ??= {
+    sourceCode: getFnSourceCode(node, context),
     arrow: isArrow,
     async: node.async,
     generator: node.generator,
     constructable: isConstructable(node),
-  })
+  }
 
+  context.metadata.functions.set(fn, metadata)
   syncContext?.tmpRefs.add(fn)
 
-  return fn
+  return { fn, callInternal: evaluate }
 }
 
-function getFnName(node: AnyFunction): string {
-  if (node.type === 'FunctionDeclaration') {
+// function foo (a, b) {}; foo.length // 2
+// function foo (a, b, ...c) {}; foo.length // 2
+// function foo (a, b = 1, ...c) {}; foo.length // 1
+export function getFnLength(node: AnyFunction): number {
+  return node.params.filter((param) => param.type === 'Identifier').length
+}
+
+export function getFnName(node: AnyFunction | AnyClass): string {
+  if (node.type === 'FunctionDeclaration' || node.type === 'ClassDeclaration') {
     return node.id ? node.id.name : ''
   }
 
-  if (node.type === 'FunctionExpression' && node.id) {
+  if ((node.type === 'FunctionExpression' || node.type === 'ClassExpression') && node.id) {
     return node.id.name
   }
 
-  for (const ancestor of iterateAncestors(node)) {
-    // const a = (function() {})
-    if (ancestor.type === 'ParenthesizedExpression') {
-      continue
-    }
-
-    // const a = function() {}
-    if (ancestor.type === 'VariableDeclarator') {
-      return ancestor.id.type === 'Identifier' ? ancestor.id.name : ''
-    }
-
-    // a = function() {}
-    if (ancestor.type === 'AssignmentExpression') {
-      return ancestor.left.type === 'Identifier' ? ancestor.left.name : ''
-    }
-
-    // function foo(a = function bar() {}) { return a.name }
-    if (ancestor.type === 'AssignmentPattern') {
-      return ancestor.left.type === 'Identifier' ? ancestor.left.name : ''
-    }
-
-    // ({ fn() {} })
-    if (ancestor.type === 'Property') {
-      return ancestor.key.type === 'Identifier' ? ancestor.key.name : ''
-    }
-
+  const ancestor = node.parent
+  if (!ancestor) {
     return ''
+  }
+
+  // const a = function() {}
+  if (ancestor.type === 'VariableDeclarator') {
+    return ancestor.id.type === 'Identifier' ? ancestor.id.name : ''
+  }
+
+  // a = function() {}
+  if (ancestor.type === 'AssignmentExpression') {
+    return ancestor.left.type === 'Identifier' ? ancestor.left.name : ''
+  }
+
+  // function foo(a = function bar() {}) { return a.name }
+  if (ancestor.type === 'AssignmentPattern') {
+    return ancestor.left.type === 'Identifier' ? ancestor.left.name : ''
+  }
+
+  // ({ fn() {} })
+  if (ancestor.type === 'Property') {
+    return ancestor.key.type === 'Identifier' ? ancestor.key.name : ''
+  }
+
+  // class A { fn() {} }
+  if (ancestor.type === 'MethodDefinition') {
+    return ancestor.key.type === 'Identifier' ? ancestor.key.name : ''
   }
 
   return ''
@@ -246,6 +301,13 @@ function getFnSourceCode(node: AnyFunction, context: Context): string {
     return getNodeText(parent, context.code)
   }
 
+  if (parent?.type === 'MethodDefinition') {
+    return getNodeText(
+      parent.kind === 'constructor' ? parent.parent!.parent! : parent,
+      context.code,
+    )
+  }
+
   return getNodeText(node, context.code)
 }
 
@@ -255,6 +317,10 @@ function isConstructable(node: AnyFunction): boolean {
   }
 
   if (node.parent?.type === 'Property' && node.parent.method) {
+    return false
+  }
+
+  if (node.parent?.type === 'MethodDefinition' && node.parent.kind !== 'constructor') {
     return false
   }
 
@@ -287,30 +353,21 @@ function* initScope(
       //   2: Global {window: Window, ...}
     */
 
+  const isClassConstructor =
+    context.metadata.functions.get(meta.callee)?.isClassConstructor ?? false
+
   const scope: FunctionScope = {
     kind: 'function',
-    parent: parentScope,
+    parent: resolveParentScope(node, parentScope, meta),
     bindings: new Map(),
-    name: `Function (${meta.callee.name || 'anonymous'})`,
-    hasThisBinding: false,
-    thisValue: undefined,
-    newTarget: undefined,
+    name: `${isClassConstructor ? 'Class' : 'Function'} (${meta.callee.name || 'anonymous'})`,
+    hasThisBinding: meta.type === 'function',
+    thisValue: meta.type === 'function' ? getThisValue(meta.this, context) : undefined,
+    newTarget: meta.type === 'function' ? meta.newTarget : undefined,
+    functionObject: meta.callee,
   }
 
-  // https://tc39.es/ecma262/#sec-runtime-semantics-instantiateordinaryfunctionexpression
-  // > NOTE: The BindingIdentifier in a FunctionExpression can be referenced from inside the FunctionExpression's
-  // > FunctionBody to allow the function to call itself recursively. However, unlike in a FunctionDeclaration,
-  // > the BindingIdentifier in a FunctionExpression cannot be referenced from and does not affect the scope
-  // > enclosing the FunctionExpression.
-  // Covered by `describe('accessing function by its name inside function expression')` in FunctionExpression.test.ts.
-  if (node.type === 'FunctionExpression' && node.id) {
-    scope.parent = {
-      kind: 'block',
-      bindings: new Map([[node.id.name, { value: meta.callee, kind: 'const' }]]),
-      parent: parentScope,
-      name: `Closure (${meta.callee.name || 'anonymous'})`,
-    }
-  }
+  meta.scope = scope
 
   const paramIdentifiers = getFunctionParamIdentifiers(node)
   paramIdentifiers.forEach((identifier) => {
@@ -328,15 +385,9 @@ function* initScope(
       kind: context.strict ? 'const' : 'var',
       value: createArgumentsObject(node, meta, context),
     })
-    scope.hasThisBinding = true
-    // https://tc39.es/ecma262/multipage/ordinary-and-exotic-objects-behaviours.html#sec-ordinarycallbindthis
-    scope.thisValue = getThisValue(meta.this, context)
-    scope.newTarget = meta.newTarget
   }
 
-  const args: unknown[] = context.metadata.globals.ArrayFrom(
-    meta.type === 'function' ? meta.arguments : meta.args,
-  )
+  const args: unknown[] = context.metadata.globals.ArrayFrom(meta.args)
 
   // function foo(a, {b} = {}, [c] = [], ...d) {}
   // TODO: in non-strict mode, `arguments` (IArguments values) is in sync with argument values
@@ -360,6 +411,29 @@ function* initScope(
   }
 
   return scope
+}
+
+function resolveParentScope(
+  node: AnyFunction,
+  parentScope: Scope,
+  meta: FunctionCallMeta | ArrowFunctionCallMeta,
+): Scope {
+  // https://tc39.es/ecma262/#sec-runtime-semantics-instantiateordinaryfunctionexpression
+  // > NOTE: The BindingIdentifier in a FunctionExpression can be referenced from inside the FunctionExpression's
+  // > FunctionBody to allow the function to call itself recursively. However, unlike in a FunctionDeclaration,
+  // > the BindingIdentifier in a FunctionExpression cannot be referenced from and does not affect the scope
+  // > enclosing the FunctionExpression.
+  // Covered by `describe('accessing function by its name inside function expression')` in FunctionExpression.test.ts.
+  if (node.type === 'FunctionExpression' && node.id) {
+    return {
+      kind: 'block',
+      bindings: new Map([[node.id.name, { value: meta.callee, kind: 'const' }]]),
+      parent: parentScope,
+      name: `Closure (${meta.callee.name || 'anonymous'})`,
+    }
+  }
+
+  return parentScope
 }
 
 // https://tc39.es/ecma262/multipage/ordinary-and-exotic-objects-behaviours.html#sec-ordinarycallbindthis
@@ -393,7 +467,7 @@ function createArgumentsObject(node: AnyFunction, meta: FunctionCallMeta, contex
 function createUnmappedArgumentsObject(meta: FunctionCallMeta, context: Context) {
   const props: PropertyDescriptorMap = {
     length: {
-      value: meta.arguments.length,
+      value: meta.args.length,
       writable: true,
       enumerable: false,
       configurable: true,
@@ -430,9 +504,9 @@ function createUnmappedArgumentsObject(meta: FunctionCallMeta, context: Context)
   Object.setPrototypeOf(props.callee.get, context.metadata.globals.FunctionPrototype)
   Object.setPrototypeOf(props.callee.set, context.metadata.globals.FunctionPrototype)
 
-  for (let i = 0; i < meta.arguments.length; i++) {
+  for (let i = 0; i < meta.args.length; i++) {
     props[i] = {
-      value: meta.arguments[i],
+      value: meta.args[i],
       writable: true,
       enumerable: true,
       configurable: true,
@@ -446,7 +520,7 @@ function createUnmappedArgumentsObject(meta: FunctionCallMeta, context: Context)
 function createMappedArgumentsObject(meta: FunctionCallMeta, context: Context) {
   const props: PropertyDescriptorMap = {
     length: {
-      value: meta.arguments.length,
+      value: meta.args.length,
       writable: true,
       enumerable: false,
       configurable: true,
@@ -472,9 +546,9 @@ function createMappedArgumentsObject(meta: FunctionCallMeta, context: Context) {
     },
   }
 
-  for (let i = 0; i < meta.arguments.length; i++) {
+  for (let i = 0; i < meta.args.length; i++) {
     props[i] = {
-      value: meta.arguments[i],
+      value: meta.args[i],
       writable: true,
       enumerable: true,
       configurable: true,
