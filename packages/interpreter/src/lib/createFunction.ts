@@ -102,10 +102,15 @@ export function createFunction(
       const evaluated = run(evaluateGenerator(meta), context)
 
       if (evaluated instanceof Promise) {
-        return evaluated.then((evaluated) => {
-          const resultValue = evaluated.value !== EMPTY ? evaluated.value : undefined
-          return resultValue
-        })
+        return evaluated.then(
+          (evaluated) => {
+            const resultValue = evaluated.value !== EMPTY ? evaluated.value : undefined
+            return resultValue
+          },
+          (error) => {
+            throwError(error, context)
+          },
+        )
       }
 
       const resultValue = evaluated.value !== EMPTY ? evaluated.value : undefined

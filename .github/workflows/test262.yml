@@ -32,4 +32,4 @@ jobs:
 
       - name: Run tests
         working-directory: ./packages/interpreter-test262
-        run: npm run test262 -- "test262/test/built-ins/BigInt/**/*.js"
+        run: npm run test262 -- --features-exclude="Intl.Locale-info,Intl.NumberFormat-v3,Temporal,ShadowRealm,decorators,explicit-resource-management,source-phase-imports,source-phase-imports-module-source,Atomics.pause,import-defer,iterator-sequencing,canonical-tz,upsert,immutable-arraybuffer,nonextensible-applies-to-private,Error.isError,regexp-unicode-property-escapes" "test262/test/**/*.js"

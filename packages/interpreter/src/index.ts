@@ -77,11 +77,16 @@ export function evaluate(
 
     if (evaluated instanceof Promise) {
       DEBUG_INT && context.debug?.('Result: <top-level await promise>')
-      return evaluated.then((evaluated) => {
-        const resultValue = evaluated.value !== EMPTY ? evaluated.value : undefined
-        DEBUG_INT && context.debug?.('Resolved result:', resultValue)
-        return { value: resultValue }
-      })
+      return evaluated.then(
+        (evaluated) => {
+          const resultValue = evaluated.value !== EMPTY ? evaluated.value : undefined
+          DEBUG_INT && context.debug?.('Resolved result:', resultValue)
+          return { value: resultValue }
+        },
+        (error) => {
+          throwError(error, context)
+        },
+      )
     }
 
     const resultValue = evaluated.value !== EMPTY ? evaluated.value : undefined
