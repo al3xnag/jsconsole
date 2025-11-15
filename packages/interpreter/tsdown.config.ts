@@ -17,4 +17,7 @@ export default defineConfig({
   define: {
     DEBUG_INT: process.env.DEBUG_INT ? 'true' : 'false',
   },
+  env: {
+    DEV: false,
+  },
 })

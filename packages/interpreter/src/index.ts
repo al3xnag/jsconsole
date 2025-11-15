@@ -10,6 +10,7 @@ import { setSyncContext } from './lib/syncContext'
 import { wrapObjectLiteral } from './lib/wrapObjectLiteral'
 import { evaluateNode } from './nodes'
 import { Context, EvaluatedNode, EvaluateOptions, EvaluateResult, GlobalScope } from './types'
+import { throwError } from './lib/throwError'
 
 export type { EvaluateOptions, EvaluateResult, PublicGlobalScope as GlobalScope } from './types'
 
@@ -86,6 +87,8 @@ export function evaluate(
     const resultValue = evaluated.value !== EMPTY ? evaluated.value : undefined
     DEBUG_INT && context.debug?.('Result:', resultValue)
     return { value: resultValue }
+  } catch (error) {
+    throwError(error, context)
   } finally {
     setSyncContext(null)
   }

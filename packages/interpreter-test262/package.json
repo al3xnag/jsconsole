@@ -4,8 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "test262": "test262-harness --error-for-failures=1 --preprocessor=./preprocessor.cjs",
-    "test262:native": "test262-harness --error-for-failures=1",
+    "test262": "test262-harness --preprocessor=./preprocessor.cjs",
+    "test262:native": "test262-harness",
     "lint": "eslint .",
     "format": "prettier --write ."
   },

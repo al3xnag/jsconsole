@@ -18,6 +18,7 @@ import { getNodeText } from './getNodeText'
 import { syncContext } from './syncContext'
 import { hasDirective } from './directive'
 import { FunctionMetadata } from './Metadata'
+import { throwError } from './throwError'
 
 const defineProperty = Object.defineProperty
 
@@ -97,17 +98,21 @@ export function createFunction(
   }
 
   function evaluateRunner(meta: FunctionCallMeta | ArrowFunctionCallMeta): unknown {
-    const evaluated = run(evaluateGenerator(meta), context)
+    try {
+      const evaluated = run(evaluateGenerator(meta), context)
 
-    if (evaluated instanceof Promise) {
-      return evaluated.then((evaluated) => {
-        const resultValue = evaluated.value !== EMPTY ? evaluated.value : undefined
-        return resultValue
-      })
+      if (evaluated instanceof Promise) {
+        return evaluated.then((evaluated) => {
+          const resultValue = evaluated.value !== EMPTY ? evaluated.value : undefined
+          return resultValue
+        })
+      }
+
+      const resultValue = evaluated.value !== EMPTY ? evaluated.value : undefined
+      return resultValue
+    } catch (error) {
+      throwError(error, context)
     }
-
-    const resultValue = evaluated.value !== EMPTY ? evaluated.value : undefined
-    return resultValue
   }
 
   let fn: Function
