@@ -36,12 +36,12 @@ export function Header() {
 
   const handleRestart = useCallback(() => {
     restart({ what: 'all-sessions', awaitTopLevelAwait: true })
-    focusPrompt()
+    requestAnimationFrame(focusPrompt)
   }, [restart, focusPrompt])
 
   const handleClear = useCallback(() => {
     clear({ withEntry: false })
-    focusPrompt()
+    requestAnimationFrame(focusPrompt)
   }, [clear, focusPrompt])
 
   const handleReload = useCallback(() => {
@@ -49,7 +49,7 @@ export function Header() {
       requestAnimationFrame(scrollToBottom)
     })
 
-    focusPrompt()
+    requestAnimationFrame(focusPrompt)
   }, [reload, scrollToBottom, focusPrompt])
 
   useHotkey(HOTKEY_CLEAR_CONSOLE.test, handleClear)
@@ -72,7 +72,7 @@ export function Header() {
         </span>
       </h1>
 
-      <DropdownMenu modal={false}>
+      <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
             variant="outline"
@@ -83,7 +83,13 @@ export function Header() {
           </Button>
         </DropdownMenuTrigger>
 
-        <DropdownMenuContent className="w-56" align="end">
+        <DropdownMenuContent
+          className="w-56"
+          align="end"
+          onCloseAutoFocus={(e) => {
+            e.preventDefault()
+          }}
+        >
           <DropdownMenuGroup>
             <DropdownMenuItem onClick={handleRestart}>
               Rerun
