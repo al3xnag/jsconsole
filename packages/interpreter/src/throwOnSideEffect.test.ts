@@ -3,7 +3,7 @@ import { ExpectToThrowPossibleSideEffectError, getTestGlobalObject, it } from '.
 import { Metadata } from './lib/Metadata'
 import { evaluate, PossibleSideEffectError } from '.'
 
-test('existing function evaluates with right throwOnSideEffect', () => {
+test('mutation of global object in function scope throws PossibleSideEffectError', () => {
   const globalObject = getTestGlobalObject()
   const globalScope = { bindings: new Map() }
   const metadata = new Metadata(globalObject)
@@ -91,3 +91,31 @@ it(
     throwOnSideEffect: true,
   },
 )
+
+test('mutation of closure variable of existing parent function scope throws PossibleSideEffectError', () => {
+  const globalObject = getTestGlobalObject()
+  const globalScope = { bindings: new Map() }
+  const metadata = new Metadata(globalObject)
+
+  evaluate(
+    `
+      function foo() {
+        let a = 0;
+
+        function bar() {
+          a++;
+          return a;
+        }
+
+        return bar;
+      }
+
+      let fn = foo()
+    `,
+    { globalObject, globalScope, metadata },
+  )
+
+  expect(() =>
+    evaluate('fn()', { globalObject, globalScope, metadata, throwOnSideEffect: true }),
+  ).toThrow(PossibleSideEffectError)
+})

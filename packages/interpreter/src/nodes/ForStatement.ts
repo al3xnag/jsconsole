@@ -4,6 +4,7 @@ import { EMPTY } from '../constants'
 import { evaluateNode } from '.'
 import { initBindings } from '../lib/initBindings'
 import { breakableStatementCompletion, loopContinues, updateEmpty } from '../lib/evaluation-utils'
+import { createScope } from '../lib/createScope'
 
 // https://tc39.es/ecma262/#sec-for-statement
 export function* evaluateForStatement(
@@ -20,12 +21,12 @@ export function* evaluateForStatement(
   if (update) update.parent = node
   body.parent = node
 
-  let forScope: BlockScope = {
+  let forScope: BlockScope = createScope({
     kind: 'block',
     parent: scope,
     bindings: new Map(),
     name: 'For',
-  }
+  })
 
   if (init) {
     initBindings(init, forScope, context, { var: false, lex: true })
@@ -36,12 +37,12 @@ export function* evaluateForStatement(
       return
     }
 
-    forScope = {
+    forScope = createScope({
       kind: 'block',
       parent: scope,
       bindings: new Map(Array.from(forScope.bindings).map(([key, value]) => [key, { ...value }])),
       name: 'For',
-    }
+    })
   }
 
   if (init) {

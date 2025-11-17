@@ -28,7 +28,10 @@ export function setVariableValue(
       }
     }
 
-    if (syncContext?.throwOnSideEffect && (scope.kind === 'global' || scope.kind === 'module')) {
+    if (
+      syncContext?.throwOnSideEffect &&
+      (scope.kind === 'global' || scope.kind === 'module' || !syncContext.tmpRefs.has(scope))
+    ) {
       throw new PossibleSideEffectError()
     }
 

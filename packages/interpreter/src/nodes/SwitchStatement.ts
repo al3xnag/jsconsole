@@ -8,6 +8,7 @@ import {
   isAbruptCompletion,
   updateEmpty,
 } from '../lib/evaluation-utils'
+import { createScope } from '../lib/createScope'
 
 type CaseClause = SwitchCase & { test: Expression }
 type DefaultClause = SwitchCase & { test?: null }
@@ -23,12 +24,12 @@ export function* evaluateSwitchStatement(
   node.discriminant.parent = node
   const { value: switchValue } = yield* evaluateNode(node.discriminant, scope, context)
 
-  const switchScope: BlockScope = {
+  const switchScope: BlockScope = createScope({
     kind: 'block',
     parent: scope,
     bindings: new Map(),
     name: 'Switch',
-  }
+  })
 
   initBindings(node, switchScope, context, { var: false, lex: true })
 

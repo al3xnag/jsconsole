@@ -6,6 +6,7 @@ import { evaluatePattern } from './Pattern'
 import { initBindings } from '../lib/initBindings'
 import { getNodeText } from '../lib/getNodeText'
 import { breakableStatementCompletion, loopContinues, updateEmpty } from '../lib/evaluation-utils'
+import { createScope } from '../lib/createScope'
 
 // https://tc39.es/ecma262/#sec-for-in-and-for-of-statements
 export function* evaluateForOfStatement(
@@ -39,12 +40,12 @@ export function* evaluateForOfStatement(
       }
     }
 
-    const forOfScope: BlockScope = {
+    const forOfScope: BlockScope = createScope({
       kind: 'block',
       parent: scope,
       bindings: new Map(),
       name: 'ForOf',
-    }
+    })
 
     if (left.type === 'VariableDeclaration') {
       initBindings(left, forOfScope, context, { var: false, lex: true })

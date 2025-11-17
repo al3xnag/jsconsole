@@ -5,6 +5,7 @@ import { evaluatePattern } from './Pattern'
 import { EMPTY, UNINITIALIZED, TYPE_RETURN } from '../constants'
 import { getLeftHandPatternIdentifiers } from '../lib/bound-identifiers'
 import { InternalError } from '../lib/InternalError'
+import { createScope } from '../lib/createScope'
 
 // https://tc39.es/ecma262/#sec-try-statement
 export function* evaluateTryStatement(
@@ -27,12 +28,12 @@ export function* evaluateTryStatement(
     thrownError = error
 
     if (handler && !(error instanceof InternalError)) {
-      const catchScope: BlockScope = {
+      const catchScope: BlockScope = createScope({
         kind: 'block',
         parent: scope,
         bindings: new Map(),
         name: 'Catch',
-      }
+      })
 
       if (handler.param) {
         const ids = getLeftHandPatternIdentifiers(handler.param)

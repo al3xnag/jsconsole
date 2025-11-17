@@ -21,6 +21,7 @@ import { UNINITIALIZED } from '../constants'
 import { InternalError } from './InternalError'
 import { FunctionMetadata, getOrCreatePrivateElements } from './Metadata'
 import { assertNever } from './assert'
+import { createScope } from './createScope'
 
 const defineProperty = Object.defineProperty
 
@@ -279,7 +280,7 @@ export function* createClass(
         const childValue = child.value
 
         initializer = function* initializer(this: any) {
-          const subScope: FunctionScope = {
+          const subScope: FunctionScope = createScope({
             kind: 'function',
             bindings: new Map(),
             parent: classScope,
@@ -288,7 +289,7 @@ export function* createClass(
             thisValue: this,
             newTarget: undefined,
             functionObject: initializer,
-          }
+          })
 
           const value = (yield* evaluateNode(childValue, subScope, context)).value
           return value
@@ -315,7 +316,7 @@ export function* createClass(
       const obj = klass
 
       const initializer = function* initializer(this: any) {
-        const subScope: FunctionScope = {
+        const subScope: FunctionScope = createScope({
           kind: 'function',
           bindings: new Map(),
           parent: classScope,
@@ -324,7 +325,7 @@ export function* createClass(
           thisValue: this,
           newTarget: undefined,
           functionObject: initializer,
-        }
+        })
 
         for (const statement of child.body) {
           yield* evaluateNode(statement, subScope, context)
@@ -397,12 +398,12 @@ export function* createClass(
 }
 
 function getClassScope(node: AnyClass, parentScope: Scope): BlockScope {
-  const classScope: BlockScope = {
+  const classScope: BlockScope = createScope({
     kind: 'block',
     parent: parentScope,
     bindings: new Map(),
     name: `Class block (${node.id?.name || 'anonymous'})`,
-  }
+  })
 
   return classScope
 }

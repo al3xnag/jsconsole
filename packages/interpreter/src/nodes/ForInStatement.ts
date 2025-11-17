@@ -5,6 +5,7 @@ import { EMPTY } from '../constants'
 import { evaluatePattern } from './Pattern'
 import { initBindings } from '../lib/initBindings'
 import { breakableStatementCompletion, loopContinues, updateEmpty } from '../lib/evaluation-utils'
+import { createScope } from '../lib/createScope'
 
 // https://tc39.es/ecma262/#sec-for-in-and-for-of-statements
 export function* evaluateForInStatement(
@@ -23,12 +24,12 @@ export function* evaluateForInStatement(
   const { value: object } = yield* evaluateNode(right, scope, context)
 
   for (const iterValue in object) {
-    const forInScope: BlockScope = {
+    const forInScope: BlockScope = createScope({
       kind: 'block',
       parent: scope,
       bindings: new Map(),
       name: 'ForIn',
-    }
+    })
 
     if (left.type === 'VariableDeclaration') {
       initBindings(left, forInScope, context, { var: false, lex: true })

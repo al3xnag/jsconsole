@@ -4,6 +4,7 @@ import { BlockScope, Context, EvaluatedNode, EvaluateGenerator, Scope } from '..
 import { EMPTY } from '../constants'
 import { initBindings } from '../lib/initBindings'
 import { isAbruptCompletion, updateEmpty } from '../lib/evaluation-utils'
+import { createScope } from '../lib/createScope'
 
 export function* evaluateBlockStatement(
   node: BlockStatement,
@@ -11,12 +12,12 @@ export function* evaluateBlockStatement(
   context: Context,
 ): EvaluateGenerator {
   if (!isFunctionBlock(node)) {
-    const blockScope: BlockScope = {
+    const blockScope: BlockScope = createScope({
       kind: 'block',
       bindings: new Map(),
       parent: scope,
       name: 'Block',
-    }
+    })
 
     initBindings(node, blockScope, context, { var: false, lex: true })
     scope = blockScope

@@ -19,6 +19,7 @@ import { syncContext } from './syncContext'
 import { hasDirective } from './directive'
 import { FunctionMetadata } from './Metadata'
 import { throwError } from './throwError'
+import { createScope } from './createScope'
 
 const defineProperty = Object.defineProperty
 
@@ -366,7 +367,7 @@ function* initScope(
   const isClassConstructor =
     context.metadata.functions.get(meta.callee)?.isClassConstructor ?? false
 
-  const scope: FunctionScope = {
+  const scope: FunctionScope = createScope({
     kind: 'function',
     parent: resolveParentScope(node, parentScope, meta),
     bindings: new Map(),
@@ -375,7 +376,7 @@ function* initScope(
     thisValue: meta.type === 'function' ? getThisValue(meta.this, context) : undefined,
     newTarget: meta.type === 'function' ? meta.newTarget : undefined,
     functionObject: meta.callee,
-  }
+  })
 
   meta.scope = scope
 
