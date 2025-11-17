@@ -35,7 +35,7 @@ export function Playground() {
         storage={panelGroupStorage}
       >
         <ConsolePanel />
-        <ResizableHandle withHandle className="aria-[valuenow=100]:hidden" />
+        <ResizableHandle withHandle className="aria-[valuenow=100]:hidden max-sm:hidden" />
         <PreviewPanel />
       </ResizablePanelGroup>
     </div>
@@ -46,7 +46,12 @@ function ConsolePanel() {
   const { consoleHandleRef } = useConsole()
 
   return (
-    <ResizablePanel id="console" order={1} minSize={1}>
+    <ResizablePanel
+      id="console"
+      order={1}
+      minSize={1}
+      className="max-sm:[&:not([data-panel-size='100.0'])]:hidden"
+    >
       <Console ref={consoleHandleRef} />
     </ResizablePanel>
   )
@@ -62,7 +67,7 @@ function PreviewPanel() {
       order={2}
       collapsible={true}
       minSize={5}
-      className="data-[panel-size=0.0]:pointer-events-none data-[panel-size=0.0]:fixed data-[panel-size=0.0]:opacity-0"
+      className="data-[panel-size=0.0]:pointer-events-none data-[panel-size=0.0]:fixed data-[panel-size=0.0]:opacity-0 max-sm:[&:not([data-panel-size='0.0'])]:fixed max-sm:[&:not([data-panel-size='0.0'])]:inset-0"
       onResize={handlePreviewResize}
     >
       <Preview ref={previewHandleRef} />

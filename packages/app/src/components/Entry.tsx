@@ -197,7 +197,12 @@ function TimestampPad({
   className?: string
 }) {
   return (
-    <span className={cn('text-muted-foreground font-mono opacity-70 select-none', className)}>
+    <span
+      className={cn(
+        'text-muted-foreground font-mono opacity-70 select-none max-sm:hidden',
+        className,
+      )}
+    >
       {value != null ? <Timestamp value={value} /> : '\xa0'.repeat(12)}
     </span>
   )
