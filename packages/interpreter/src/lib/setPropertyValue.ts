@@ -76,7 +76,7 @@ export function setPropertyValue(
     : toPropertyKey(propertyName, context)
 
   if (syncContext?.throwOnSideEffect) {
-    assertPropertyWriteSideEffectFree(object, propertyKey, context)
+    assertPropertyWriteSideEffectFree(object, propertyKey, value, context)
   }
 
   const checkResult = ordinarySetCheck(object, propertyKey, value)

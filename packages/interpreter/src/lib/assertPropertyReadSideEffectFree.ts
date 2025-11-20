@@ -1,6 +1,6 @@
 import { Context } from '../types'
 import { PossibleSideEffectError } from './PossibleSideEffectError'
-import { assertFunctionSideEffectFree } from './assertFunctionSideEffectFree'
+import { assertFunctionCallSideEffectFree } from './assertFunctionCallSideEffectFree'
 
 const getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor
 const getPrototypeOf = Object.getPrototypeOf
@@ -21,7 +21,7 @@ export function assertPropertyReadSideEffectFree(
     const desc = getOwnPropertyDescriptor(object, propertyKey)
     if (desc) {
       if (desc.get) {
-        assertFunctionSideEffectFree(desc.get, context)
+        assertFunctionCallSideEffectFree(desc.get, object, [], context)
         return
       }
 

@@ -119,3 +119,70 @@ test('mutation of closure variable of existing parent function scope throws Poss
     evaluate('fn()', { globalObject, globalScope, metadata, throwOnSideEffect: true }),
   ).toThrow(PossibleSideEffectError)
 })
+
+it('isNaN({ valueOf() { return NaN } })', true, { throwOnSideEffect: true })
+it('isNaN({ valueOf() { return eval() } })', ExpectToThrowPossibleSideEffectError, {
+  throwOnSideEffect: true,
+})
+it('isNaN({ valueOf: eval })', ExpectToThrowPossibleSideEffectError, {
+  throwOnSideEffect: true,
+})
+it('isNaN({ valueOf: eval.bind(this, "x") })', ExpectToThrowPossibleSideEffectError, {
+  throwOnSideEffect: true,
+})
+
+it('parseFloat({ toString() { return "1" } })', 1, { throwOnSideEffect: true })
+it('parseFloat({ toString() { eval(); return "1" } })', ExpectToThrowPossibleSideEffectError, {
+  throwOnSideEffect: true,
+})
+it('parseFloat({ toString: eval })', ExpectToThrowPossibleSideEffectError, {
+  throwOnSideEffect: true,
+})
+it('parseFloat({ toString: eval.bind(this, "x") })', ExpectToThrowPossibleSideEffectError, {
+  throwOnSideEffect: true,
+})
+
+it('Number({ valueOf() { return 1 } })', 1, { throwOnSideEffect: true })
+it('Number({ valueOf() { eval(); return 1 } })', ExpectToThrowPossibleSideEffectError, {
+  throwOnSideEffect: true,
+})
+it('Number({ valueOf: eval })', ExpectToThrowPossibleSideEffectError, {
+  throwOnSideEffect: true,
+})
+it('Number({ valueOf: eval.bind(this, "x") })', ExpectToThrowPossibleSideEffectError, {
+  throwOnSideEffect: true,
+})
+
+it('new Number({ valueOf() { return 1 } })', new Number(1), { throwOnSideEffect: true })
+it('new Number({ valueOf() { eval(); return 1 } })', ExpectToThrowPossibleSideEffectError, {
+  throwOnSideEffect: true,
+})
+it('new Number({ valueOf: eval })', ExpectToThrowPossibleSideEffectError, {
+  throwOnSideEffect: true,
+})
+it('new Number({ valueOf: eval.bind(this, "x") })', ExpectToThrowPossibleSideEffectError, {
+  throwOnSideEffect: true,
+})
+
+it('BigInt({ valueOf() { return 1n } })', 1n, { throwOnSideEffect: true })
+it('BigInt({ valueOf() { eval(); return 1n } })', ExpectToThrowPossibleSideEffectError, {
+  throwOnSideEffect: true,
+})
+it('BigInt({ valueOf: eval })', ExpectToThrowPossibleSideEffectError, {
+  throwOnSideEffect: true,
+})
+it('BigInt({ valueOf: eval.bind(this, "x") })', ExpectToThrowPossibleSideEffectError, {
+  throwOnSideEffect: true,
+})
+
+it(
+  '[1, 2, 3, { valueOf() { eval(); return 4 } }].map(Number)',
+  ExpectToThrowPossibleSideEffectError,
+  {
+    throwOnSideEffect: true,
+  },
+)
+it('[1, 2, 3, { valueOf: eval }].map(Number)', ExpectToThrowPossibleSideEffectError, {
+  throwOnSideEffect: true,
+})
+it('[1, 2, 3, eval].map(Number)', [1, 2, 3, NaN], { throwOnSideEffect: true })

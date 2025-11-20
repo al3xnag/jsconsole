@@ -1,8 +1,8 @@
 import { TaggedTemplateExpression } from 'acorn'
 import { Context, EvaluateGenerator, Scope } from '../types'
 import { evaluateNode } from '.'
-import { assertFunctionSideEffectFree } from '../lib/assertFunctionSideEffectFree'
 import { syncContext } from '../lib/syncContext'
+import { assertFunctionCallSideEffectFree } from '../lib/assertFunctionCallSideEffectFree'
 
 const defineProperty = Object.defineProperty
 const freeze = Object.freeze
@@ -37,7 +37,7 @@ export function* evaluateTaggedTemplateExpression(
   }
 
   if (syncContext?.throwOnSideEffect && typeof fn === 'function') {
-    assertFunctionSideEffectFree(fn, context)
+    assertFunctionCallSideEffectFree(fn, undefined, [templateObject, ...exprValues], context)
   }
 
   const result = fn(templateObject, ...exprValues)

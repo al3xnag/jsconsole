@@ -109,6 +109,50 @@ export function toString(value: unknown, context: Context): string {
   return toString(primValue, context)
 }
 
+// https://tc39.es/ecma262/#sec-tonumber
+export function toNumber(value: unknown, context: Context): number {
+  if (typeof value === 'number') {
+    return value
+  }
+
+  if (typeof value === 'symbol') {
+    throw new context.metadata.globals.TypeError('Cannot convert a Symbol value to a number')
+  }
+
+  if (typeof value === 'bigint') {
+    throw new context.metadata.globals.TypeError('Cannot convert a BigInt value to a number')
+  }
+
+  if (value === undefined) {
+    return NaN
+  }
+
+  if (value === null || value === false) {
+    return 0
+  }
+
+  if (value === true) {
+    return 1
+  }
+
+  if (typeof value === 'string') {
+    return Number(value)
+  }
+
+  const primValue = toPrimitive(value, context, 'number')
+  return toNumber(primValue, context)
+}
+
+// https://tc39.es/ecma262/#sec-tonumeric
+export function toNumeric(value: unknown, context: Context): number | bigint {
+  const primValue = toPrimitive(value, context, 'number')
+  if (typeof primValue === 'bigint') {
+    return primValue
+  }
+
+  return toNumber(primValue, context)
+}
+
 // https://tc39.es/ecma262/#sec-isconstructor
 export function isConstructor(callee: unknown, context: Context): callee is Constructor {
   if (typeof callee !== 'function') {

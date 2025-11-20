@@ -1,14 +1,15 @@
 import { NewExpression } from 'acorn'
 import { evaluateNode } from '.'
 import { type WeakMapMetadata, type WeakSetMetadata } from '../lib/Metadata'
-import { assertFunctionSideEffectFree } from '../lib/assertFunctionSideEffectFree'
 import { isConstructor } from '../lib/evaluation-utils'
 import { getNodeText } from '../lib/getNodeText'
 import { getOrCreateSharedWeakRef } from '../lib/sharedWeakRefMap'
 import { syncContext } from '../lib/syncContext'
 import { unbindFunctionCall } from '../lib/unbindFunctionCall'
 import { Context, EvaluateGenerator, Scope } from '../types'
-import { SIDE_EFFECT_FREE } from '../lib/SideEffectInfo'
+import { SIDE_EFFECT_CONSTRUCT_FREE } from '../lib/SideEffectInfo'
+import { assertFunctionConstructSideEffectFree } from '../lib/assertFunctionConstructSideEffectFree'
+import { hasFlag } from '../lib/bitwiseFlags'
 
 // https://tc39.es/ecma262/#sec-new-operator
 export function* evaluateNewExpression(
@@ -49,7 +50,7 @@ export function* evaluateNewExpression(
   }
 
   if (syncContext?.throwOnSideEffect) {
-    assertFunctionSideEffectFree(callee, context)
+    assertFunctionConstructSideEffectFree(callee, args, context)
   }
 
   // NOTE: instance is always an object, even if constructor returns primitive value.
@@ -67,11 +68,11 @@ export function* evaluateNewExpression(
   }
 
   // NOTE: In constructor we can return any existing object: class A { constructor() { return Number } }
-  if (
-    !context.metadata.functions.has(callee) &&
-    context.sideEffectInfo.functions.get(callee) === SIDE_EFFECT_FREE
-  ) {
-    syncContext?.tmpRefs.add(instanceRef.value)
+  if (!context.metadata.functions.has(callee)) {
+    const sideEffectFlags = context.sideEffectInfo.functions.get(callee)
+    if (sideEffectFlags !== undefined && hasFlag(sideEffectFlags, SIDE_EFFECT_CONSTRUCT_FREE)) {
+      syncContext?.tmpRefs.add(instanceRef.value)
+    }
   }
 
   return { value: instanceRef.value }

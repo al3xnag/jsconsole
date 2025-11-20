@@ -6,7 +6,7 @@ import { initializeInstanceElements, isConstructor } from '../lib/evaluation-uti
 import { toShortStringTag } from '../lib/toShortStringTag'
 import { UNINITIALIZED } from '../constants'
 import { syncContext } from '../lib/syncContext'
-import { assertFunctionSideEffectFree } from '../lib/assertFunctionSideEffectFree'
+import { assertFunctionConstructSideEffectFree } from '../lib/assertFunctionConstructSideEffectFree'
 
 export function* evaluateSuper(node: Super, scope: Scope, context: Context): EvaluateGenerator {
   const parent = node.parent!
@@ -30,7 +30,7 @@ export function* evaluateSuperCall(_node: Super, scope: Scope, context: Context,
   }
 
   if (syncContext?.throwOnSideEffect) {
-    assertFunctionSideEffectFree(func, context)
+    assertFunctionConstructSideEffectFree(func, args, context)
   }
 
   const result = Reflect.construct(func, args, thisScope.newTarget ?? func)

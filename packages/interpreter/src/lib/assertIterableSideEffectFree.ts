@@ -1,6 +1,6 @@
 import { Context } from '../types'
 import { PossibleSideEffectError } from './PossibleSideEffectError'
-import { assertFunctionSideEffectFree } from './assertFunctionSideEffectFree'
+import { assertFunctionCallSideEffectFree } from './assertFunctionCallSideEffectFree'
 import { assertPropertyReadSideEffectFree } from './assertPropertyReadSideEffectFree'
 import { throwIfTimedOut } from './throwIfTimedOut'
 
@@ -27,7 +27,7 @@ export function assertIterableSideEffectFree(obj: unknown, context: Context): vo
     return
   }
 
-  assertFunctionSideEffectFree(iteratorMethod, context)
+  assertFunctionCallSideEffectFree(iteratorMethod, obj, [], context)
 
   if (iteratorMethod === arrayValuesIterator) {
     assertPropertyReadSideEffectFree(obj, 'length', context)

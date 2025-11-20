@@ -1,5 +1,6 @@
 import { SyntheticSetter } from '@/lib/synthetic'
-import { SIDE_EFFECT_FREE, type SideEffectInfo } from '@jsconsole/interpreter'
+import { SIDE_EFFECT_CALL_FREE, type SideEffectInfo } from '@jsconsole/interpreter'
+import { hasFlag } from '@jsconsole/interpreter/src/lib/bitwiseFlags'
 import { useState } from 'react'
 
 const NO_VALUE = Symbol('NO_VALUE')
@@ -22,7 +23,8 @@ export function usePropertyComputedValue(
     }
 
     if (typeof descriptor.get === 'function') {
-      if (sideEffectInfo.functions.get(descriptor.get) === SIDE_EFFECT_FREE) {
+      const sideEffectFlags = sideEffectInfo.functions.get(descriptor.get)
+      if (sideEffectFlags !== undefined && hasFlag(sideEffectFlags, SIDE_EFFECT_CALL_FREE)) {
         try {
           return descriptor.get.call(owner)
         } catch {

@@ -1,16 +1,21 @@
 import { Context } from '../types'
-import { assertFunctionSideEffectFree } from './assertFunctionSideEffectFree'
+import { assertPropertyReadSideEffectFree } from './assertPropertyReadSideEffectFree'
 import { hasFlag } from './bitwiseFlags'
+import { toNumber, toNumeric, toPrimitive, toString } from './evaluation-utils'
 import { PossibleSideEffectError } from './PossibleSideEffectError'
 import {
-  SIDE_EFFECT_CHECK_ARG0_FN_NO_SIDE_EFFECT,
-  SIDE_EFFECT_CHECK_ARG0_TMP_OBJ,
-  SIDE_EFFECT_CHECK_ARG1_FN_NO_SIDE_EFFECT,
-  SIDE_EFFECT_CHECK_ARG1_TMP_OBJ,
-  SIDE_EFFECT_CHECK_ARG2_FN_NO_SIDE_EFFECT,
-  SIDE_EFFECT_CHECK_ARG2_TMP_OBJ,
-  SIDE_EFFECT_CHECK_INVOKER_TMP_OBJ,
-  SIDE_EFFECT_FREE,
+  SIDE_EFFECT_CALL_CHECK_ALL_ARGS_TO_NUMBER,
+  SIDE_EFFECT_CALL_CHECK_ARG0_ARRAY_CALLBACK,
+  SIDE_EFFECT_CALL_CHECK_ARG0_TMP_OBJ,
+  SIDE_EFFECT_CALL_CHECK_ARG0_TO_NUMBER,
+  SIDE_EFFECT_CALL_CHECK_ARG0_TO_NUMERIC,
+  SIDE_EFFECT_CALL_CHECK_ARG0_TO_PRIMITIVE,
+  SIDE_EFFECT_CALL_CHECK_ARG0_TO_STRING,
+  SIDE_EFFECT_CALL_CHECK_ARG1_TMP_OBJ,
+  SIDE_EFFECT_CALL_CHECK_ARG1_TO_NUMBER,
+  SIDE_EFFECT_CALL_CHECK_ARG2_TMP_OBJ,
+  SIDE_EFFECT_CALL_CHECK_RECEIVER_TMP_OBJ,
+  SIDE_EFFECT_CALL_FREE,
   SideEffectFlags,
 } from './SideEffectInfo'
 import { syncContext } from './syncContext'
@@ -30,11 +35,11 @@ export function assertFunctionCallSideEffectFree(
 
   const sideEffectFlags: SideEffectFlags | undefined = context.sideEffectInfo.functions.get(fn)
 
-  if (!sideEffectFlags || !hasFlag(sideEffectFlags, SIDE_EFFECT_FREE)) {
+  if (!sideEffectFlags || !hasFlag(sideEffectFlags, SIDE_EFFECT_CALL_FREE)) {
     throw new PossibleSideEffectError()
   }
 
-  if (hasFlag(sideEffectFlags, SIDE_EFFECT_CHECK_INVOKER_TMP_OBJ)) {
+  if (hasFlag(sideEffectFlags, SIDE_EFFECT_CALL_CHECK_RECEIVER_TMP_OBJ)) {
     if (
       thisArg != null &&
       (typeof thisArg === 'object' || typeof thisArg === 'function') &&
@@ -44,26 +49,10 @@ export function assertFunctionCallSideEffectFree(
     }
   }
 
-  const checkArgFnNoSideEffectFlags = [
-    SIDE_EFFECT_CHECK_ARG0_FN_NO_SIDE_EFFECT,
-    SIDE_EFFECT_CHECK_ARG1_FN_NO_SIDE_EFFECT,
-    SIDE_EFFECT_CHECK_ARG2_FN_NO_SIDE_EFFECT,
-  ]
-
-  for (let i = 0; i < checkArgFnNoSideEffectFlags.length; i++) {
-    if (
-      hasFlag(sideEffectFlags, checkArgFnNoSideEffectFlags[i]) &&
-      args.length > i &&
-      typeof args[i] === 'function'
-    ) {
-      assertFunctionSideEffectFree(args[i] as Function, context)
-    }
-  }
-
   const checkArgTmpObjFlags = [
-    SIDE_EFFECT_CHECK_ARG0_TMP_OBJ,
-    SIDE_EFFECT_CHECK_ARG1_TMP_OBJ,
-    SIDE_EFFECT_CHECK_ARG2_TMP_OBJ,
+    SIDE_EFFECT_CALL_CHECK_ARG0_TMP_OBJ,
+    SIDE_EFFECT_CALL_CHECK_ARG1_TMP_OBJ,
+    SIDE_EFFECT_CALL_CHECK_ARG2_TMP_OBJ,
   ]
 
   for (let i = 0; i < checkArgTmpObjFlags.length; i++) {
@@ -75,6 +64,41 @@ export function assertFunctionCallSideEffectFree(
       !syncContext?.tmpRefs.has(args[i] as object)
     ) {
       throw new PossibleSideEffectError()
+    }
+  }
+
+  if (hasFlag(sideEffectFlags, SIDE_EFFECT_CALL_CHECK_ARG0_TO_NUMBER) && args.length > 0) {
+    toNumber(args[0], context)
+  }
+
+  if (hasFlag(sideEffectFlags, SIDE_EFFECT_CALL_CHECK_ARG1_TO_NUMBER) && args.length > 1) {
+    toNumber(args[1], context)
+  }
+
+  if (hasFlag(sideEffectFlags, SIDE_EFFECT_CALL_CHECK_ALL_ARGS_TO_NUMBER)) {
+    for (let i = 0; i < args.length; i++) {
+      toNumber(args[i], context)
+    }
+  }
+
+  if (hasFlag(sideEffectFlags, SIDE_EFFECT_CALL_CHECK_ARG0_TO_STRING) && args.length > 0) {
+    toString(args[0], context)
+  }
+
+  if (hasFlag(sideEffectFlags, SIDE_EFFECT_CALL_CHECK_ARG0_TO_NUMERIC) && args.length > 0) {
+    toNumeric(args[0], context)
+  }
+
+  if (hasFlag(sideEffectFlags, SIDE_EFFECT_CALL_CHECK_ARG0_TO_PRIMITIVE) && args.length > 0) {
+    toPrimitive(args[0], context)
+  }
+
+  if (hasFlag(sideEffectFlags, SIDE_EFFECT_CALL_CHECK_ARG0_ARRAY_CALLBACK) && args.length > 0) {
+    if (Array.isArray(thisArg) && typeof args[0] === 'function') {
+      for (let i = 0; i < thisArg.length; i++) {
+        assertPropertyReadSideEffectFree(thisArg, i, context)
+        assertFunctionCallSideEffectFree(args[0], undefined, [thisArg[i]], context)
+      }
     }
   }
 }
