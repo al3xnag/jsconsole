@@ -186,3 +186,13 @@ it('[1, 2, 3, { valueOf: eval }].map(Number)', ExpectToThrowPossibleSideEffectEr
   throwOnSideEffect: true,
 })
 it('[1, 2, 3, eval].map(Number)', [1, 2, 3, NaN], { throwOnSideEffect: true })
+
+it(`\`\${{ toString() { eval() } }}\``, ExpectToThrowPossibleSideEffectError, {
+  throwOnSideEffect: true,
+})
+it(`\`\${{ [Symbol.toPrimitive]() { eval() } }}\``, ExpectToThrowPossibleSideEffectError, {
+  throwOnSideEffect: true,
+})
+it(`\`\${{ [Symbol.toPrimitive]() { return 1 }, toString() { eval() } }}\``, '1', {
+  throwOnSideEffect: true,
+})
