@@ -1,6 +1,6 @@
 import { AssignmentProperty, Property } from 'acorn'
 import { evaluateNode } from '.'
-import { Context, EvaluatedNode, Scope } from '../types'
+import { CallStack, Context, EvaluatedNode, Scope } from '../types'
 import { InternalError } from '../lib/InternalError'
 
 export type PropertyValue = {
@@ -15,12 +15,13 @@ export type PropertyValue = {
 export function* evaluateProperty(
   node: Property | AssignmentProperty,
   scope: Scope,
+  callStack: CallStack,
   context: Context,
 ): Generator<EvaluatedNode, PropertyValue, EvaluatedNode> {
-  const key = yield* evaluatePropertyKey(node, scope, context)
+  const key = yield* evaluatePropertyKey(node, scope, callStack, context)
 
   node.value.parent = node
-  const { value } = yield* evaluateNode(node.value, scope, context)
+  const { value } = yield* evaluateNode(node.value, scope, callStack, context)
 
   const propertyValue: PropertyValue = { key, value }
   return propertyValue
@@ -29,11 +30,12 @@ export function* evaluateProperty(
 export function* evaluatePropertyKey(
   node: Property | AssignmentProperty,
   scope: Scope,
+  callStack: CallStack,
   context: Context,
 ): Generator<EvaluatedNode, unknown, EvaluatedNode> {
   if (node.computed) {
     node.key.parent = node
-    const { value } = yield* evaluateNode(node.key, scope, context)
+    const { value } = yield* evaluateNode(node.key, scope, callStack, context)
     return value
   }
 

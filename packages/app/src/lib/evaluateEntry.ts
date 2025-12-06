@@ -11,7 +11,11 @@ export function evaluateEntry(
     throw new Error('Session is not initialized')
   }
 
+  const id = nextId()
+  const contextName = `vm:///VM${id}`
+
   const options: EvaluateOptions = {
+    contextName,
     globalObject: session.previewWindow,
     globalScope: session.globalScope,
     metadata: session.metadata,
@@ -31,7 +35,7 @@ export function evaluateEntry(
 
     return {
       type: 'result',
-      id: nextId(),
+      id,
       severity: 'error',
       value: error,
       timestamp: Date.now(),
@@ -44,7 +48,7 @@ export function evaluateEntry(
       (result) => {
         return {
           type: 'result',
-          id: nextId(),
+          id,
           value: result.value,
           timestamp: Date.now(),
           inputId: inputEntry.id,
@@ -53,7 +57,7 @@ export function evaluateEntry(
       (error) => {
         return {
           type: 'result',
-          id: nextId(),
+          id,
           severity: 'error',
           value: error,
           timestamp: Date.now(),
@@ -64,7 +68,7 @@ export function evaluateEntry(
   } else {
     return {
       type: 'result',
-      id: nextId(),
+      id,
       value: result.value,
       timestamp: Date.now(),
       inputId: inputEntry.id,

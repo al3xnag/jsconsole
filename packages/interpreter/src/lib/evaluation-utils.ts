@@ -2,11 +2,24 @@ import { EMPTY, TYPE_BREAK, TYPE_CONTINUE, TYPE_RETURN } from '../constants'
 import { Constructor, Context, EvaluatedNode, Primitive, PrivateName } from '../types'
 import { assertFunctionCallSideEffectFree } from './assertFunctionCallSideEffectFree'
 import { assertPropertyReadSideEffectFree } from './assertPropertyReadSideEffectFree'
+import {
+  TYPE_ERROR_CANNOT_CONVERT_BIGINT_TO_NUMBER,
+  TYPE_ERROR_CANNOT_CONVERT_NULLISH_TO_OBJECT,
+  TYPE_ERROR_CANNOT_CONVERT_OBJECT_TO_PRIMITIVE,
+  TYPE_ERROR_CANNOT_CONVERT_SYMBOL_TO_NUMBER,
+  TYPE_ERROR_CANNOT_CONVERT_SYMBOL_TO_STRING,
+  TYPE_ERROR_CANNOT_SET_PROPERTY,
+  TYPE_ERROR_INSTANCEOF_RIGHT_ARG_IS_NOT_CALLABLE,
+  TYPE_ERROR_INSTANCEOF_RIGHT_ARG_IS_NOT_OBJECT,
+  TYPE_ERROR_INSTANCEOF_RIGHT_ARG_NON_OBJECT_PROTOTYPE,
+  TYPE_ERROR_METHOD_NOT_CALLABLE,
+  TYPE_ERROR_PRIVATE_FIELD_ALREADY_DECLARED,
+  TYPE_ERROR_PRIVATE_METHOD_ALREADY_DECLARED,
+} from './errorDefinitions'
 import { InternalError } from './InternalError'
 import { isCallable } from './isCallable'
 import { getOrCreatePrivateElements } from './Metadata'
 import { syncContext } from './syncContext'
-import { toShortStringTag } from './toShortStringTag'
 
 // https://tc39.es/ecma262/#sec-completion-record-specification-type
 export function isAbruptCompletion(evaluated: EvaluatedNode): boolean {
@@ -68,7 +81,7 @@ export function loopContinues(evaluated: EvaluatedNode, labels: string[] | undef
 // https://tc39.es/ecma262/#sec-toobject
 export function toObject(value: unknown, context: Context): object {
   if (value == null) {
-    throw new context.metadata.globals.TypeError('Cannot convert undefined or null to object')
+    throw TYPE_ERROR_CANNOT_CONVERT_NULLISH_TO_OBJECT()
   }
 
   if (
@@ -91,7 +104,7 @@ export function toString(value: unknown, context: Context): string {
   }
 
   if (typeof value === 'symbol') {
-    throw new context.metadata.globals.TypeError('Cannot convert a Symbol value to a string')
+    throw TYPE_ERROR_CANNOT_CONVERT_SYMBOL_TO_STRING()
   }
 
   if (value === undefined) return 'undefined'
@@ -116,11 +129,11 @@ export function toNumber(value: unknown, context: Context): number {
   }
 
   if (typeof value === 'symbol') {
-    throw new context.metadata.globals.TypeError('Cannot convert a Symbol value to a number')
+    throw TYPE_ERROR_CANNOT_CONVERT_SYMBOL_TO_NUMBER()
   }
 
   if (typeof value === 'bigint') {
-    throw new context.metadata.globals.TypeError('Cannot convert a BigInt value to a number')
+    throw TYPE_ERROR_CANNOT_CONVERT_BIGINT_TO_NUMBER()
   }
 
   if (value === undefined) {
@@ -191,9 +204,7 @@ export function* initializeInstanceElements(obj: object, constructor: Function, 
 
   for (const name in privateMethods) {
     if (name in privateElements) {
-      throw new context.metadata.globals.TypeError(
-        `Private method '${name}' has already been declared`,
-      )
+      throw TYPE_ERROR_PRIVATE_METHOD_ALREADY_DECLARED(name)
     }
 
     const entry = privateMethods[name]
@@ -209,9 +220,7 @@ export function* initializeInstanceElements(obj: object, constructor: Function, 
     const value = initializer ? yield* initializer.call(obj) : undefined
     if (isPrivate) {
       if (name in privateElements) {
-        throw new context.metadata.globals.TypeError(
-          `Private field '${name}' has already been declared`,
-        )
+        throw TYPE_ERROR_PRIVATE_FIELD_ALREADY_DECLARED(name)
       }
 
       privateElements[name] = { value, kind: 'field' }
@@ -224,9 +233,7 @@ export function* initializeInstanceElements(obj: object, constructor: Function, 
       })
 
       if (!success) {
-        throw new context.metadata.globals.TypeError(
-          `Cannot set property '${name}' of ${toShortStringTag(obj)}`,
-        )
+        throw TYPE_ERROR_CANNOT_SET_PROPERTY(obj, name)
       }
     }
   }
@@ -274,9 +281,7 @@ export function getMethod(
   }
 
   if (!isCallable(fn)) {
-    throw new context.metadata.globals.TypeError(
-      `${toShortStringTag(fn)} returned for property "${propertyName.toString()}" of ${toShortStringTag(value)} is not a function`,
-    )
+    throw TYPE_ERROR_METHOD_NOT_CALLABLE(value, propertyName, fn)
   }
 
   return fn
@@ -301,7 +306,7 @@ export function toPrimitive(
         return result
       }
 
-      throw new context.metadata.globals.TypeError('Cannot convert object to primitive value')
+      throw TYPE_ERROR_CANNOT_CONVERT_OBJECT_TO_PRIMITIVE()
     }
 
     return ordinaryToPrimitive(value, hint ?? 'number', context)
@@ -339,13 +344,13 @@ export function ordinaryToPrimitive(
     }
   }
 
-  throw new context.metadata.globals.TypeError('Cannot convert object to primitive value')
+  throw TYPE_ERROR_CANNOT_CONVERT_OBJECT_TO_PRIMITIVE()
 }
 
 // https://tc39.es/ecma262/#sec-instanceofoperator
 export function instanceofOperator(left: any, right: any, context: Context): boolean {
   if (!isObject(right)) {
-    throw new context.metadata.globals.TypeError(`Right-hand side of 'instanceof' is not an object`)
+    throw TYPE_ERROR_INSTANCEOF_RIGHT_ARG_IS_NOT_OBJECT()
   }
 
   const instOfHandler = getMethod(right, Symbol.hasInstance, context)
@@ -358,7 +363,7 @@ export function instanceofOperator(left: any, right: any, context: Context): boo
   }
 
   if (!isCallable(right)) {
-    throw new context.metadata.globals.TypeError(`Right-hand side of 'instanceof' is not callable`)
+    throw TYPE_ERROR_INSTANCEOF_RIGHT_ARG_IS_NOT_CALLABLE()
   }
 
   return ordinaryHasInstance(right, left, context)
@@ -381,9 +386,7 @@ export function ordinaryHasInstance(right: any, left: any, context: Context): bo
 
   const p = Reflect.get(right, 'prototype')
   if (!isObject(p)) {
-    throw new context.metadata.globals.TypeError(
-      `Function has non-object prototype '${toShortStringTag(p)}' in instanceof check`,
-    )
+    throw TYPE_ERROR_INSTANCEOF_RIGHT_ARG_NON_OBJECT_PROTOTYPE(p)
   }
 
   while (true) {

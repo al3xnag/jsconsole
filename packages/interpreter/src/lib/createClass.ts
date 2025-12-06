@@ -3,6 +3,7 @@ import { evaluateNode } from '../nodes'
 import {
   AnyClass,
   BlockScope,
+  CallStack,
   ClassFieldDefinitionRecord,
   ClassStaticBlockDefinitionRecord,
   Constructor,
@@ -13,7 +14,6 @@ import {
   Scope,
 } from '../types'
 import { initializeInstanceElements, isConstructor, isObject } from './evaluation-utils'
-import { toShortStringTag } from './toShortStringTag'
 import { createFunction, getFnLength, getFnName } from './createFunction'
 import { syncContext } from './syncContext'
 import { getNodeText } from './getNodeText'
@@ -22,12 +22,25 @@ import { InternalError } from './InternalError'
 import { FunctionMetadata, getOrCreatePrivateElements } from './Metadata'
 import { assertNever } from './assert'
 import { createScope } from './createScope'
+import { getNewCalleeCallStack } from './callStack'
+import { throwError } from './throwError'
+import {
+  REFERENCE_ERROR_CLASS_CTOR_MUST_CALL_SUPER,
+  TYPE_ERROR_CANNOT_SET_PROPERTY,
+  TYPE_ERROR_CLASS_EXTENDS_INVALID_PROTOTYPE,
+  TYPE_ERROR_CLASS_EXTENDS_NOT_A_CONSTRUCTOR_OR_NULL,
+  TYPE_ERROR_DERIVED_CTOR_MAY_ONLY_RETURN_OBJECT_OR_UNDEFINED,
+  TYPE_ERROR_PRIVATE_FIELD_ALREADY_DECLARED,
+  TYPE_ERROR_PRIVATE_METHOD_ALREADY_DECLARED,
+  TYPE_ERROR_SUPER_CONSTRUCTOR_IS_NOT_A_CONSTRUCTOR,
+} from './errorDefinitions'
 
 const defineProperty = Object.defineProperty
 
 export function* createClass(
   node: AnyClass,
   parentScope: Scope,
+  callStack: CallStack,
   context: Context,
 ): Generator<EvaluatedNode, Function, EvaluatedNode> {
   context = { ...context, strict: true }
@@ -40,6 +53,7 @@ export function* createClass(
   const { protoParent, constructorParent, superClass } = yield* getClassHeritage(
     node,
     parentScope,
+    callStack,
     context,
   )
 
@@ -47,10 +61,18 @@ export function* createClass(
 
   let klass: Function
   if (constructorExpression) {
+    const loc = constructorExpression.loc
+
     function evaluate(this: object, args: unknown[], newTarget: Constructor) {
+      const callStack = getNewCalleeCallStack(klass)
+
       if (superClass === undefined) {
-        const gen = initializeInstanceElements(this, klass, context)
-        while (!gen.next().done);
+        try {
+          const gen = initializeInstanceElements(this, klass, context)
+          while (!gen.next().done);
+        } catch (e) {
+          throwError(e, loc, callStack, context)
+        }
       }
 
       const { result, scope } = callInternal.call(
@@ -58,6 +80,7 @@ export function* createClass(
         args,
         newTarget,
         klass,
+        callStack,
       )
 
       if (isObject(result)) {
@@ -69,16 +92,12 @@ export function* createClass(
       }
 
       if (result !== undefined) {
-        throw new context.metadata.globals.TypeError(
-          'Derived constructors may only return object or undefined',
-        )
+        throw TYPE_ERROR_DERIVED_CTOR_MAY_ONLY_RETURN_OBJECT_OR_UNDEFINED()
       }
 
       const { thisValue } = scope
       if (thisValue === UNINITIALIZED) {
-        throw new context.metadata.globals.ReferenceError(
-          "Must call super constructor in derived class before accessing 'this' or returning from derived constructor",
-        )
+        throw REFERENCE_ERROR_CLASS_CTOR_MUST_CALL_SUPER()
       }
 
       if (!isObject(thisValue)) {
@@ -106,14 +125,21 @@ export function* createClass(
 
     const { callInternal } = createFunction(constructorExpression, classScope, context, fnMetadata)
   } else {
+    const loc = node.loc
+
     function evaluate(this: object, args: unknown[], newTarget: Constructor) {
-      const inst = superClass !== undefined ? callSuper(superClass, args, newTarget, context) : this
+      const callStack = getNewCalleeCallStack(klass)
+      try {
+        const inst = superClass !== undefined ? callSuper(superClass, args, newTarget) : this
 
-      const gen = initializeInstanceElements(inst, klass, context)
-      while (!gen.next().done);
+        const gen = initializeInstanceElements(inst, klass, context)
+        while (!gen.next().done);
 
-      // https://tc39.es/ecma262/#sec-ecmascript-function-objects-construct-argumentslist-newtarget
-      return inst
+        // https://tc39.es/ecma262/#sec-ecmascript-function-objects-construct-argumentslist-newtarget
+        return inst
+      } catch (e) {
+        throwError(e, loc, callStack, context)
+      }
     }
 
     klass = class {
@@ -188,7 +214,8 @@ export function* createClass(
           const name =
             child.key.type === 'Identifier'
               ? child.key.name
-              : (yield* evaluateNode(child.key, classScope, context)).value
+              : // TODO: toPropertyKey?
+                (yield* evaluateNode(child.key, classScope, callStack, context)).value
 
           const success = Reflect.defineProperty(obj, name, {
             value: fn,
@@ -198,9 +225,7 @@ export function* createClass(
           })
 
           if (!success) {
-            throw new context.metadata.globals.TypeError(
-              `Cannot set property '${toShortStringTag(name)}' of ${toShortStringTag(obj)}`,
-            )
+            throw TYPE_ERROR_CANNOT_SET_PROPERTY(obj, name)
           }
         }
       } else if (child.kind === 'get') {
@@ -224,7 +249,7 @@ export function* createClass(
           const name =
             child.key.type === 'Identifier'
               ? child.key.name
-              : (yield* evaluateNode(child.key, classScope, context)).value
+              : (yield* evaluateNode(child.key, classScope, callStack, context)).value
 
           Object.defineProperty(obj, name, {
             get: fn as () => any,
@@ -253,7 +278,7 @@ export function* createClass(
           const name =
             child.key.type === 'Identifier'
               ? child.key.name
-              : (yield* evaluateNode(child.key, classScope, context)).value
+              : (yield* evaluateNode(child.key, classScope, callStack, context)).value
 
           Object.defineProperty(obj, name, {
             set: fn as (v: any) => void,
@@ -272,7 +297,7 @@ export function* createClass(
         name = child.key.name
       } else {
         child.key.parent = child
-        name = (yield* evaluateNode(child.key, classScope, context)).value
+        name = (yield* evaluateNode(child.key, classScope, callStack, context)).value
       }
 
       if (child.value) {
@@ -291,7 +316,7 @@ export function* createClass(
             functionObject: initializer,
           })
 
-          const value = (yield* evaluateNode(childValue, subScope, context)).value
+          const value = (yield* evaluateNode(childValue, subScope, callStack, context)).value
           return value
         }
 
@@ -328,7 +353,7 @@ export function* createClass(
         })
 
         for (const statement of child.body) {
-          yield* evaluateNode(statement, subScope, context)
+          yield* evaluateNode(statement, subScope, callStack, context)
         }
       }
 
@@ -351,9 +376,7 @@ export function* createClass(
 
   for (const name in staticPrivateMethods) {
     if (name in privateElements) {
-      throw new context.metadata.globals.TypeError(
-        `Private method '${name}' has already been declared`,
-      )
+      throw TYPE_ERROR_PRIVATE_METHOD_ALREADY_DECLARED(name)
     }
 
     const entry = staticPrivateMethods[name]
@@ -366,9 +389,7 @@ export function* createClass(
       const value = initializer ? yield* initializer.call(klass) : undefined
       if (isPrivate) {
         if (name in privateElements) {
-          throw new context.metadata.globals.TypeError(
-            `Private field '${name}' has already been declared`,
-          )
+          throw TYPE_ERROR_PRIVATE_FIELD_ALREADY_DECLARED(name)
         }
 
         privateElements[name] = { value, kind: 'field' }
@@ -381,9 +402,7 @@ export function* createClass(
         })
 
         if (!success) {
-          throw new context.metadata.globals.TypeError(
-            `Cannot set property '${toShortStringTag(name)}' of ${toShortStringTag(klass)}`,
-          )
+          throw TYPE_ERROR_CANNOT_SET_PROPERTY(klass, name)
         }
       }
     } else if (record.type === 'static-block') {
@@ -420,6 +439,7 @@ type ClassHeritage = {
 function* getClassHeritage(
   node: AnyClass,
   scope: Scope,
+  callStack: CallStack,
   context: Context,
 ): Generator<EvaluatedNode, ClassHeritage, EvaluatedNode> {
   if (!node.superClass) {
@@ -431,7 +451,7 @@ function* getClassHeritage(
   }
 
   node.superClass.parent = node
-  const { value: superClass } = yield* evaluateNode(node.superClass, scope, context)
+  const { value: superClass } = yield* evaluateNode(node.superClass, scope, callStack, context)
 
   if (superClass === null) {
     return {
@@ -442,9 +462,7 @@ function* getClassHeritage(
   }
 
   if (!isConstructor(superClass, context)) {
-    throw new context.metadata.globals.TypeError(
-      `Class extends value ${toShortStringTag(superClass)} is not a constructor or null`,
-    )
+    throw TYPE_ERROR_CLASS_EXTENDS_NOT_A_CONSTRUCTOR_OR_NULL(superClass)
   }
 
   const protoParent = superClass.prototype
@@ -452,9 +470,7 @@ function* getClassHeritage(
   // ii. If protoParent is not an Object and protoParent is not null, throw a TypeError exception.
   // NOTE: typeof null === 'object' is taken into account here.
   if (typeof protoParent !== 'object') {
-    throw new context.metadata.globals.TypeError(
-      `Class extends value does not have valid prototype property ${toShortStringTag(protoParent)}`,
-    )
+    throw TYPE_ERROR_CLASS_EXTENDS_INVALID_PROTOTYPE(protoParent)
   }
 
   return {
@@ -474,16 +490,9 @@ function getClassConstructor(node: AnyClass): FunctionExpression | null {
   return null
 }
 
-function callSuper(
-  superClass: Constructor | null,
-  args: unknown[],
-  newTarget: Constructor,
-  context: Context,
-) {
+function callSuper(superClass: Constructor | null, args: unknown[], newTarget: Constructor) {
   if (!superClass) {
-    throw new context.metadata.globals.TypeError(
-      `Super constructor ${toShortStringTag(superClass)} of ${toShortStringTag(newTarget)} is not a constructor`,
-    )
+    throw TYPE_ERROR_SUPER_CONSTRUCTOR_IS_NOT_A_CONSTRUCTOR(superClass, newTarget)
   }
 
   return Reflect.construct(superClass, args, newTarget)

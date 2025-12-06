@@ -1,6 +1,6 @@
 import { ForInStatement } from 'acorn'
 import { evaluateNode } from '.'
-import { BlockScope, Context, EvaluateGenerator, Scope } from '../types'
+import { BlockScope, CallStack, Context, EvaluateGenerator, Scope } from '../types'
 import { EMPTY } from '../constants'
 import { evaluatePattern } from './Pattern'
 import { initBindings } from '../lib/initBindings'
@@ -11,6 +11,7 @@ import { createScope } from '../lib/createScope'
 export function* evaluateForInStatement(
   node: ForInStatement,
   scope: Scope,
+  callStack: CallStack,
   context: Context,
   labels?: string[],
 ): EvaluateGenerator {
@@ -21,7 +22,7 @@ export function* evaluateForInStatement(
   right.parent = node
   body.parent = node
 
-  const { value: object } = yield* evaluateNode(right, scope, context)
+  const { value: object } = yield* evaluateNode(right, scope, callStack, context)
 
   for (const iterValue in object) {
     const forInScope: BlockScope = createScope({
@@ -37,12 +38,14 @@ export function* evaluateForInStatement(
       // Only one declarator is allowed.
       const declarator = left.declarations[0]!
       declarator.parent = left
-      yield* evaluatePattern(declarator.id, iterValue, forInScope, context, { init: true })
+      yield* evaluatePattern(declarator.id, iterValue, forInScope, callStack, context, {
+        init: true,
+      })
     } else {
-      yield* evaluatePattern(left, iterValue, forInScope, context)
+      yield* evaluatePattern(left, iterValue, forInScope, callStack, context)
     }
 
-    const evaluatedBody = yield* evaluateNode(body, forInScope, context)
+    const evaluatedBody = yield* evaluateNode(body, forInScope, callStack, context)
 
     if (!loopContinues(evaluatedBody, labels)) {
       const evaluated = breakableStatementCompletion(updateEmpty(evaluatedBody, value))

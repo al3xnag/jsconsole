@@ -1,14 +1,16 @@
 import { UpdateExpression } from 'acorn'
-import { Context, EvaluatedNode, EvaluateGenerator, Scope } from '../types'
+import { CallStack, Context, EvaluatedNode, EvaluateGenerator, Scope } from '../types'
 import { assertNever } from '../lib/assert'
 import { setVariableValue } from '../lib/setVariableValue'
 import { getVariableValue } from '../lib/getVariableValue'
 import { evaluateMemberExpression, evaluatePropertyReference } from './MemberExpression'
 import { setPropertyValue } from '../lib/setPropertyValue'
+import { SYNTAX_ERROR_INVALID_LEFT_HAND_SIDE } from '../lib/errorDefinitions'
 
 export function* evaluateUpdateExpression(
   node: UpdateExpression,
   scope: Scope,
+  callStack: CallStack,
   context: Context,
 ): EvaluateGenerator {
   const { argument, operator, prefix } = node
@@ -25,9 +27,9 @@ export function* evaluateUpdateExpression(
       setVariableValue(argument.name, value, scope, context)
     }
   } else if (argument.type === 'MemberExpression') {
-    const ref = yield* evaluatePropertyReference(argument, scope, context)
+    const ref = yield* evaluatePropertyReference(argument, scope, callStack, context)
     getValue = function* () {
-      const { value } = yield* evaluateMemberExpression(argument, scope, context, ref)
+      const { value } = yield* evaluateMemberExpression(argument, scope, callStack, context, ref)
       return value
     }
     setValue = (value: unknown) => {
@@ -35,9 +37,7 @@ export function* evaluateUpdateExpression(
     }
   } else {
     // Acorn should not allow this.
-    throw new context.metadata.globals.SyntaxError(
-      'Invalid left-hand side expression in postfix operation',
-    )
+    throw SYNTAX_ERROR_INVALID_LEFT_HAND_SIDE()
   }
 
   const oldValue = yield* getValue()

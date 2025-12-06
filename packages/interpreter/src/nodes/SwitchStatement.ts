@@ -1,5 +1,5 @@
 import { Expression, SwitchCase, SwitchStatement } from 'acorn'
-import { BlockScope, Context, EvaluateGenerator, Scope } from '../types'
+import { BlockScope, CallStack, Context, EvaluateGenerator, Scope } from '../types'
 import { evaluateNode } from '.'
 import { initBindings } from '../lib/initBindings'
 import { EMPTY } from '../constants'
@@ -17,12 +17,13 @@ type DefaultClause = SwitchCase & { test?: null }
 export function* evaluateSwitchStatement(
   node: SwitchStatement,
   scope: Scope,
+  callStack: CallStack,
   context: Context,
 ): EvaluateGenerator {
   let result: unknown = undefined
 
   node.discriminant.parent = node
-  const { value: switchValue } = yield* evaluateNode(node.discriminant, scope, context)
+  const { value: switchValue } = yield* evaluateNode(node.discriminant, scope, callStack, context)
 
   const switchScope: BlockScope = createScope({
     kind: 'block',
@@ -40,11 +41,11 @@ export function* evaluateSwitchStatement(
     caseClause.parent = node
 
     if (!found) {
-      found = yield* caseClauseIsSelected(caseClause, switchValue, switchScope, context)
+      found = yield* caseClauseIsSelected(caseClause, switchValue, switchScope, callStack, context)
     }
 
     if (found) {
-      const evaluatedCase = yield* evaluateSwitchCase(caseClause, switchScope, context)
+      const evaluatedCase = yield* evaluateSwitchCase(caseClause, switchScope, callStack, context)
 
       if (evaluatedCase.value !== EMPTY) {
         result = evaluatedCase.value
@@ -68,11 +69,17 @@ export function* evaluateSwitchStatement(
       caseClause.parent = node
 
       if (!foundInTail) {
-        foundInTail = yield* caseClauseIsSelected(caseClause, switchValue, switchScope, context)
+        foundInTail = yield* caseClauseIsSelected(
+          caseClause,
+          switchValue,
+          switchScope,
+          callStack,
+          context,
+        )
       }
 
       if (foundInTail) {
-        const evaluatedCase = yield* evaluateSwitchCase(caseClause, switchScope, context)
+        const evaluatedCase = yield* evaluateSwitchCase(caseClause, switchScope, callStack, context)
 
         if (evaluatedCase.value !== EMPTY) {
           result = evaluatedCase.value
@@ -90,7 +97,7 @@ export function* evaluateSwitchStatement(
     return { value: result }
   }
 
-  const evaluatedDefault = yield* evaluateSwitchCase(defaultClause, switchScope, context)
+  const evaluatedDefault = yield* evaluateSwitchCase(defaultClause, switchScope, callStack, context)
 
   if (evaluatedDefault.value !== EMPTY) {
     result = evaluatedDefault.value
@@ -104,7 +111,7 @@ export function* evaluateSwitchStatement(
   for (const caseClause of caseClausesTail) {
     caseClause.parent = node
 
-    const evaluatedCase = yield* evaluateSwitchCase(caseClause, switchScope, context)
+    const evaluatedCase = yield* evaluateSwitchCase(caseClause, switchScope, callStack, context)
 
     if (evaluatedCase.value !== EMPTY) {
       result = evaluatedCase.value
@@ -145,13 +152,14 @@ function splitCaseClauses(cases: SwitchCase[]): {
 function* evaluateSwitchCase(
   caseClause: SwitchCase,
   scope: Scope,
+  callStack: CallStack,
   context: Context,
 ): EvaluateGenerator {
   let value: unknown = EMPTY
 
   for (const statement of caseClause.consequent) {
     statement.parent = caseClause
-    const evaluated = yield* evaluateNode(statement, scope, context)
+    const evaluated = yield* evaluateNode(statement, scope, callStack, context)
 
     if (isAbruptCompletion(evaluated)) {
       return updateEmpty(evaluated, value)
@@ -170,9 +178,10 @@ function* caseClauseIsSelected(
   caseClause: CaseClause,
   switchValue: unknown,
   switchScope: Scope,
+  callStack: CallStack,
   context: Context,
 ) {
   caseClause.test.parent = caseClause
-  const { value: testValue } = yield* evaluateNode(caseClause.test, switchScope, context)
+  const { value: testValue } = yield* evaluateNode(caseClause.test, switchScope, callStack, context)
   return testValue === switchValue
 }

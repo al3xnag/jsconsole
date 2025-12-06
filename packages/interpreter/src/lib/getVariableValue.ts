@@ -1,6 +1,10 @@
 import { UNINITIALIZED } from '../constants'
 import { Context, Scope } from '../types'
 import { assertPropertyReadSideEffectFree } from './assertPropertyReadSideEffectFree'
+import {
+  REFERENCE_ERROR_VAR_IS_UNINITIALIZED,
+  REFERENCE_ERROR_VAR_IS_NOT_DEFINED,
+} from './errorDefinitions'
 import { getIdentifier } from './getIdentifier'
 import { syncContext } from './syncContext'
 
@@ -14,9 +18,7 @@ export function getVariableValue(
   if (identifier) {
     const value = identifier.value
     if (value === UNINITIALIZED) {
-      throw new context.metadata.globals.ReferenceError(
-        `Cannot access '${name}' before initialization`,
-      )
+      throw REFERENCE_ERROR_VAR_IS_UNINITIALIZED(name)
     }
 
     return value
@@ -24,7 +26,7 @@ export function getVariableValue(
 
   if (!(name in context.globalObject)) {
     if (throwOnUndefined) {
-      throw new context.metadata.globals.ReferenceError(`${name} is not defined`)
+      throw REFERENCE_ERROR_VAR_IS_NOT_DEFINED(name)
     } else {
       return undefined
     }

@@ -3,19 +3,23 @@ import { evaluateNode } from '.'
 import { assertNever } from '../lib/assert'
 import { setPropertyValue } from '../lib/setPropertyValue'
 import { setVariableValue } from '../lib/setVariableValue'
-import { Context, EvaluatedNode, Scope } from '../types'
+import { CallStack, Context, EvaluatedNode, Scope } from '../types'
 import { evaluatePropertyReference } from './MemberExpression'
 import { evaluatePropertyKey } from './Property'
 import { syncContext } from '../lib/syncContext'
+import {
+  TYPE_ERROR_ARG_IS_NOT_ITERABLE,
+  TYPE_ERROR_CANNOT_DESTRUCTURE_NULLISH,
+} from '../lib/errorDefinitions'
 
 const assign = Object.assign
-const ObjectToString = Object.prototype.toString
 
 // https://tc39.es/ecma262/#sec-runtime-semantics-destructuringassignmentevaluation
 export function* evaluatePattern(
   node: Pattern,
   value: unknown,
   scope: Scope,
+  callStack: CallStack,
   context: Context,
   { init = false }: { init?: boolean } = {},
 ): Generator<EvaluatedNode, void, EvaluatedNode> {
@@ -25,12 +29,12 @@ export function* evaluatePattern(
       break
     }
     case 'MemberExpression': {
-      const ref = yield* evaluatePropertyReference(node, scope, context)
+      const ref = yield* evaluatePropertyReference(node, scope, callStack, context)
       setPropertyValue(ref.object, ref.propertyName, ref.thisValue, value, context)
       break
     }
     case 'ObjectPattern': {
-      value = requireObjectCoercible(value, context)
+      value = requireObjectCoercible(value)
 
       const seenKeys: unknown[] = []
       for (let i = 0; i < node.properties.length; i++) {
@@ -38,10 +42,10 @@ export function* evaluatePattern(
         property.parent = node
 
         if (property.type === 'Property') {
-          const key = yield* evaluatePropertyKey(property, scope, context)
+          const key = yield* evaluatePropertyKey(property, scope, callStack, context)
           seenKeys.push(key)
           const propValue = (value as any)[key as PropertyKey]
-          yield* evaluatePattern(property.value, propValue, scope, context, { init })
+          yield* evaluatePattern(property.value, propValue, scope, callStack, context, { init })
         } else if (property.type === 'RestElement') {
           /*
             NOTE:
@@ -64,7 +68,7 @@ export function* evaluatePattern(
 
           syncContext?.tmpRefs.add(restValue)
 
-          yield* evaluatePattern(property, restValue, scope, context, { init })
+          yield* evaluatePattern(property, restValue, scope, callStack, context, { init })
         } else {
           assertNever(property, 'Unexpected property type')
         }
@@ -72,7 +76,7 @@ export function* evaluatePattern(
       break
     }
     case 'ArrayPattern': {
-      const iterator = getIterator(value, context)
+      const iterator = getIterator(value)
 
       for (let i = 0; i < node.elements.length; i++) {
         const element = node.elements[i]
@@ -92,13 +96,13 @@ export function* evaluatePattern(
           elValue = iterator.next().value
         }
 
-        yield* evaluatePattern(element, elValue, scope, context, { init })
+        yield* evaluatePattern(element, elValue, scope, callStack, context, { init })
       }
       break
     }
     case 'RestElement': {
       node.argument.parent = node
-      yield* evaluatePattern(node.argument, value, scope, context, { init })
+      yield* evaluatePattern(node.argument, value, scope, callStack, context, { init })
       break
     }
     case 'AssignmentPattern': {
@@ -116,8 +120,11 @@ export function* evaluatePattern(
       */
       node.right.parent = node
       node.left.parent = node
-      value = value === undefined ? (yield* evaluateNode(node.right, scope, context)).value : value
-      yield* evaluatePattern(node.left, value, scope, context, { init })
+      value =
+        value === undefined
+          ? (yield* evaluateNode(node.right, scope, callStack, context)).value
+          : value
+      yield* evaluatePattern(node.left, value, scope, callStack, context, { init })
       break
     }
     default: {
@@ -127,27 +134,23 @@ export function* evaluatePattern(
 }
 
 // https://tc39.es/ecma262/#sec-requireobjectcoercible
-function requireObjectCoercible(value: unknown, context: Context): NonNullable<unknown> {
+function requireObjectCoercible(value: unknown): NonNullable<unknown> {
   if (value == null) {
-    throw new context.metadata.globals.TypeError(`Cannot destructure '${value}' as it is ${value}`)
+    throw TYPE_ERROR_CANNOT_DESTRUCTURE_NULLISH(value)
   }
 
   return value
 }
 
 // https://tc39.es/ecma262/#sec-getiterator
-function getIterator(value: unknown, context: Context): Iterator<unknown> {
+function getIterator(value: unknown): Iterator<unknown> {
   if (value == null) {
-    throw new context.metadata.globals.TypeError(`${value} is not iterable`)
+    throw TYPE_ERROR_ARG_IS_NOT_ITERABLE(value)
   }
 
   const iteratorMethod = (value as Partial<Iterable<unknown>>)[Symbol.iterator]
   if (typeof iteratorMethod !== 'function') {
-    const valueStr =
-      (typeof value === 'object' && value !== null) || typeof value === 'function'
-        ? ObjectToString.call(value)
-        : String(value)
-    throw new context.metadata.globals.TypeError(`${valueStr} is not iterable`)
+    throw TYPE_ERROR_ARG_IS_NOT_ITERABLE(value)
   }
 
   return iteratorMethod.call(value)

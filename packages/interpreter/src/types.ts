@@ -29,6 +29,7 @@ declare module 'acorn' {
 export type PublicGlobalScope = Pick<GlobalScope, 'bindings'>
 
 export type EvaluateOptions = {
+  contextName?: string
   wrapObjectLiteral?: boolean
   stripTypes?: boolean
   globalObject?: object
@@ -95,6 +96,7 @@ export type BlockScope = {
 export type Scope = GlobalScope | ModuleScope | FunctionScope | BlockScope
 
 export type Context = {
+  name: string
   type: 'script' | 'module'
   code: string
   strict: boolean
@@ -104,6 +106,20 @@ export type Context = {
   sideEffectInfo: SideEffectInfo
   debug?: (...args: unknown[]) => void
 }
+
+export type CallStackLocation = {
+  file: string
+  /** 1-based */
+  line: number
+  /** 1-based */
+  col: number
+}
+
+export type CallStack = Array<{
+  fn: Function | null
+  loc: CallStackLocation | null
+  construct?: boolean
+}>
 
 export type EvaluatedNodeType =
   | typeof TYPE_RETURN
@@ -174,3 +190,16 @@ export type PrivateElement = {
 export interface PrivateElementMap {
   [key: string]: PrivateElement
 }
+
+export type CreateFunctionResult = {
+  fn: Function
+  callInternal: FunctionCallInternal
+}
+
+export type FunctionCallInternal = (
+  this: unknown,
+  args: unknown[],
+  newTarget: Constructor,
+  callee: Function,
+  callStack?: CallStack,
+) => { result: unknown; scope: FunctionScope }

@@ -1,6 +1,6 @@
 import { BlockStatement } from 'acorn'
 import { evaluateNode } from '.'
-import { BlockScope, Context, EvaluatedNode, EvaluateGenerator, Scope } from '../types'
+import { BlockScope, CallStack, Context, EvaluatedNode, EvaluateGenerator, Scope } from '../types'
 import { EMPTY } from '../constants'
 import { initBindings } from '../lib/initBindings'
 import { isAbruptCompletion, updateEmpty } from '../lib/evaluation-utils'
@@ -9,6 +9,7 @@ import { createScope } from '../lib/createScope'
 export function* evaluateBlockStatement(
   node: BlockStatement,
   scope: Scope,
+  callStack: CallStack,
   context: Context,
 ): EvaluateGenerator {
   if (!isFunctionBlock(node)) {
@@ -27,7 +28,7 @@ export function* evaluateBlockStatement(
 
   for (const child of node.body) {
     child.parent = node
-    const evaluatedBody = yield* evaluateNode(child, scope, context)
+    const evaluatedBody = yield* evaluateNode(child, scope, callStack, context)
 
     if (isAbruptCompletion(evaluatedBody)) {
       const evaluated = updateEmpty(evaluatedBody, value)

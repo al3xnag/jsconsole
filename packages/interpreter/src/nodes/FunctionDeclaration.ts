@@ -1,5 +1,5 @@
 import { AnonymousFunctionDeclaration, FunctionDeclaration } from 'acorn'
-import { Context, EvaluateGenerator, FunctionScope, Scope } from '../types'
+import { CallStack, Context, EvaluateGenerator, FunctionScope, Scope } from '../types'
 import { createFunction } from '../lib/createFunction'
 import { defineVariable } from '../lib/defineVariable'
 import { closestScope } from '../lib/scopes'
@@ -11,6 +11,7 @@ import { syncContext } from '../lib/syncContext'
 export function* evaluateFunctionDeclaration(
   node: FunctionDeclaration | AnonymousFunctionDeclaration,
   scope: Scope,
+  _callStack: CallStack,
   context: Context,
 ): EvaluateGenerator {
   // https://dev.to/rkirsling/tales-from-ecma-s-crypt-annex-b-3-3-56go

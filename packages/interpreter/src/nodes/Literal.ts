@@ -1,9 +1,10 @@
 import { Literal } from 'acorn'
-import { Context, EvaluateGenerator, Scope } from '../types'
+import { CallStack, Context, EvaluateGenerator, Scope } from '../types'
 
 export function* evaluateLiteral(
   node: Literal,
   _scope: Scope,
+  _callStack: CallStack,
   context: Context,
 ): EvaluateGenerator {
   if (node.value instanceof RegExp) {

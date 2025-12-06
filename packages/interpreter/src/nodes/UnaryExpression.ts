@@ -1,49 +1,54 @@
 import { UnaryExpression } from 'acorn'
-import { Context, EvaluatedNode, EvaluateGenerator, Scope } from '../types'
 import { evaluateNode } from '.'
 import { assertNever } from '../lib/assert'
-import { getVariableValue } from '../lib/getVariableValue'
+import {
+  SYNTAX_ERROR_DELETE_IDENTIFIER_IN_STRICT_MODE,
+  TYPE_ERROR_CANNOT_DELETE_PROPERTY,
+} from '../lib/errorDefinitions'
+import { isPropertyKey, toPropertyKey } from '../lib/evaluation-utils'
 import { getIdentifier } from '../lib/getIdentifier'
-import { evaluatePropertyReference } from './MemberExpression'
+import { getVariableValue } from '../lib/getVariableValue'
 import { PossibleSideEffectError } from '../lib/PossibleSideEffectError'
 import { syncContext } from '../lib/syncContext'
-import { toShortStringTag } from '../lib/toShortStringTag'
-import { isPropertyKey, toPropertyKey } from '../lib/evaluation-utils'
+import { CallStack, Context, EvaluatedNode, EvaluateGenerator, Scope } from '../types'
+import { evaluatePropertyReference } from './MemberExpression'
 
 export function* evaluateUnaryExpression(
   node: UnaryExpression,
   scope: Scope,
+  callStack: CallStack,
   context: Context,
 ): EvaluateGenerator {
-  const value = yield* _evaluateUnaryExpression(node, scope, context)
+  const value = yield* _evaluateUnaryExpression(node, scope, callStack, context)
   return { value }
 }
 
 export function* _evaluateUnaryExpression(
   node: UnaryExpression,
   scope: Scope,
+  callStack: CallStack,
   context: Context,
 ): Generator<EvaluatedNode, unknown, EvaluatedNode> {
   const { argument: arg, operator } = node
   switch (operator) {
     case '+': {
-      const { value } = yield* evaluateNode(arg, scope, context)
+      const { value } = yield* evaluateNode(arg, scope, callStack, context)
       return +value
     }
     case '-': {
-      const { value } = yield* evaluateNode(arg, scope, context)
+      const { value } = yield* evaluateNode(arg, scope, callStack, context)
       return -value
     }
     case '!': {
-      const { value } = yield* evaluateNode(arg, scope, context)
+      const { value } = yield* evaluateNode(arg, scope, callStack, context)
       return !value
     }
     case '~': {
-      const { value } = yield* evaluateNode(arg, scope, context)
+      const { value } = yield* evaluateNode(arg, scope, callStack, context)
       return ~value
     }
     case 'void': {
-      const { value } = yield* evaluateNode(arg, scope, context)
+      const { value } = yield* evaluateNode(arg, scope, callStack, context)
       return void value
     }
     case 'typeof': {
@@ -51,7 +56,7 @@ export function* _evaluateUnaryExpression(
         const value = getVariableValue(arg.name, scope, context, { throwOnUndefined: false })
         return typeof value
       } else {
-        const { value } = yield* evaluateNode(arg, scope, context)
+        const { value } = yield* evaluateNode(arg, scope, callStack, context)
         return typeof value
       }
     }
@@ -59,9 +64,7 @@ export function* _evaluateUnaryExpression(
       if (arg.type === 'Identifier') {
         if (context.strict) {
           // acorn checks this itself, and throws `new SyntaxError('Deleting local variable in strict mode')`.
-          throw new context.metadata.globals.SyntaxError(
-            'Delete of an unqualified identifier in strict mode.',
-          )
+          throw SYNTAX_ERROR_DELETE_IDENTIFIER_IN_STRICT_MODE()
         } else {
           const identifier = getIdentifier(arg.name, scope)
           if (identifier) {
@@ -76,7 +79,12 @@ export function* _evaluateUnaryExpression(
           return value
         }
       } else if (arg.type === 'MemberExpression') {
-        const { object, propertyName } = yield* evaluatePropertyReference(arg, scope, context)
+        const { object, propertyName } = yield* evaluatePropertyReference(
+          arg,
+          scope,
+          callStack,
+          context,
+        )
 
         if (syncContext?.throwOnSideEffect) {
           throw new PossibleSideEffectError()
@@ -90,9 +98,7 @@ export function* _evaluateUnaryExpression(
         if (context.strict) {
           const value = Reflect.deleteProperty(object, propertyKey)
           if (!value) {
-            throw new context.metadata.globals.TypeError(
-              `Cannot delete property '${propertyKey.toString()}' of ${toShortStringTag(object)}`,
-            )
+            throw TYPE_ERROR_CANNOT_DELETE_PROPERTY(object, propertyKey)
           }
 
           return value
@@ -101,7 +107,7 @@ export function* _evaluateUnaryExpression(
           return value
         }
       } else {
-        yield* evaluateNode(arg, scope, context)
+        yield* evaluateNode(arg, scope, callStack, context)
         return true
       }
     }

@@ -1,17 +1,18 @@
 import { ForOfStatement } from 'acorn'
 import { evaluateNode } from '.'
-import { BlockScope, Context, EvaluateGenerator, Scope } from '../types'
+import { BlockScope, CallStack, Context, EvaluateGenerator, Scope } from '../types'
 import { EMPTY, TYPE_AWAIT } from '../constants'
 import { evaluatePattern } from './Pattern'
 import { initBindings } from '../lib/initBindings'
-import { getNodeText } from '../lib/getNodeText'
 import { breakableStatementCompletion, loopContinues, updateEmpty } from '../lib/evaluation-utils'
 import { createScope } from '../lib/createScope'
+import { TYPE_ERROR_EXPR_IS_NOT_ITERABLE } from '../lib/errorDefinitions'
 
 // https://tc39.es/ecma262/#sec-for-in-and-for-of-statements
 export function* evaluateForOfStatement(
   node: ForOfStatement,
   scope: Scope,
+  callStack: CallStack,
   context: Context,
   labels?: string[],
 ): EvaluateGenerator {
@@ -22,7 +23,7 @@ export function* evaluateForOfStatement(
   right.parent = node
   body.parent = node
 
-  const { value: object } = yield* evaluateNode(right, scope, context)
+  const { value: object } = yield* evaluateNode(right, scope, callStack, context)
   const { iterable, isAsyncIterator } = getIterable(node, object, context)
 
   for (let iterValue of iterable) {
@@ -53,12 +54,14 @@ export function* evaluateForOfStatement(
       // Only one declarator is allowed.
       const declarator = left.declarations[0]!
       declarator.parent = left
-      yield* evaluatePattern(declarator.id, iterValue, forOfScope, context, { init: true })
+      yield* evaluatePattern(declarator.id, iterValue, forOfScope, callStack, context, {
+        init: true,
+      })
     } else {
-      yield* evaluatePattern(left, iterValue, forOfScope, context)
+      yield* evaluatePattern(left, iterValue, forOfScope, callStack, context)
     }
 
-    const evaluatedBody = yield* evaluateNode(body, forOfScope, context)
+    const evaluatedBody = yield* evaluateNode(body, forOfScope, callStack, context)
 
     if (!loopContinues(evaluatedBody, labels)) {
       const evaluated = breakableStatementCompletion(updateEmpty(evaluatedBody, value))
@@ -80,8 +83,7 @@ function getIterable(
 ): { iterable: Iterable<unknown>; isAsyncIterator: boolean } {
   if (node.await && object != null && Symbol.asyncIterator in object) {
     if (typeof object[Symbol.asyncIterator] !== 'function') {
-      const objStr = getNodeText(node.right, context.code)
-      throw new context.metadata.globals.TypeError(`${objStr} is not iterable`)
+      throw TYPE_ERROR_EXPR_IS_NOT_ITERABLE(node.right, context)
     }
 
     const asyncIterator = (object as AsyncIterable<unknown>)[Symbol.asyncIterator]()

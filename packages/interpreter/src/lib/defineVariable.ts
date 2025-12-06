@@ -1,5 +1,6 @@
 import { UNINITIALIZED } from '../constants'
 import { Context, Scope } from '../types'
+import { SYNTAX_ERROR_VAR_ALREADY_DECLARED } from './errorDefinitions'
 import { InternalError } from './InternalError'
 import { PossibleSideEffectError } from './PossibleSideEffectError'
 import { syncContext } from './syncContext'
@@ -24,9 +25,7 @@ export function defineVariable(
 
       // NOTE: acorn checks this itself.
       if (scope.bindings.has(name) && scope.bindings.get(name)!.kind !== 'var') {
-        throw new context.metadata.globals.SyntaxError(
-          `Identifier '${name}' has already been declared`,
-        )
+        throw SYNTAX_ERROR_VAR_ALREADY_DECLARED(name)
       }
 
       if (!scope.bindings.has(name) || initialValue !== UNSET) {
@@ -57,18 +56,14 @@ export function defineVariable(
 
     // NOTE: acorn checks this itself.
     if (scope.bindings.has(name)) {
-      throw new context.metadata.globals.SyntaxError(
-        `Identifier '${name}' has already been declared`,
-      )
+      throw SYNTAX_ERROR_VAR_ALREADY_DECLARED(name)
     }
 
     if (
       scope.kind === 'global' &&
       getOwnPropertyDescriptor(context.globalObject, name)?.configurable === false
     ) {
-      throw new context.metadata.globals.SyntaxError(
-        `Identifier '${name}' has already been declared`,
-      )
+      throw SYNTAX_ERROR_VAR_ALREADY_DECLARED(name)
     }
 
     if (

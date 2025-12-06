@@ -1,20 +1,21 @@
 import { LogicalExpression, LogicalOperator } from 'acorn'
-import { Context, EvaluatedNode, EvaluateGenerator, Scope } from '../types'
+import { CallStack, Context, EvaluatedNode, EvaluateGenerator, Scope } from '../types'
 import { evaluateNode } from '.'
 import { UnsupportedOperationError } from '../lib/UnsupportedOperationError'
 
 export function* evaluateLogicalExpression(
   node: LogicalExpression,
   scope: Scope,
+  callStack: CallStack,
   context: Context,
 ): EvaluateGenerator {
   node.left.parent = node
   node.right.parent = node
 
-  const { value: left } = yield* evaluateNode(node.left, scope, context)
+  const { value: left } = yield* evaluateNode(node.left, scope, callStack, context)
 
   function* evaluateRight() {
-    const { value } = yield* evaluateNode(node.right, scope, context)
+    const { value } = yield* evaluateNode(node.right, scope, callStack, context)
     return value
   }
 

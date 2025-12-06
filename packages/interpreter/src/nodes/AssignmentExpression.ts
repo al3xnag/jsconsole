@@ -2,7 +2,7 @@ import { AssignmentExpression, AssignmentOperator } from 'acorn'
 import { evaluateNode } from '.'
 import { setPropertyValue } from '../lib/setPropertyValue'
 import { setVariableValue } from '../lib/setVariableValue'
-import { Context, EvaluatedNode, EvaluateGenerator, Scope } from '../types'
+import { CallStack, Context, EvaluatedNode, EvaluateGenerator, Scope } from '../types'
 import { evaluateMemberExpression, evaluatePropertyReference } from './MemberExpression'
 import { evaluatePattern } from './Pattern'
 import { assertNever } from '../lib/assert'
@@ -11,6 +11,7 @@ import { InternalError } from '../lib/InternalError'
 export function* evaluateAssignmentExpression(
   node: AssignmentExpression,
   scope: Scope,
+  callStack: CallStack,
   context: Context,
 ): EvaluateGenerator {
   const { left, right, operator } = node
@@ -20,22 +21,24 @@ export function* evaluateAssignmentExpression(
   let evaluated: EvaluatedNode
 
   function* evaluateRight() {
-    const { value } = yield* evaluateNode(right, scope, context)
+    const { value } = yield* evaluateNode(right, scope, callStack, context)
     return value
   }
 
   if (left.type === 'Identifier') {
     const leftValue =
-      operator === '=' ? undefined /* unused */ : (yield* evaluateNode(left, scope, context)).value
+      operator === '='
+        ? undefined /* unused */
+        : (yield* evaluateNode(left, scope, callStack, context)).value
     const value = yield* evaluateAssignmentValue(leftValue, operator, evaluateRight)
     setVariableValue(left.name, value, scope, context)
     evaluated = { value }
   } else if (left.type === 'MemberExpression') {
-    const ref = yield* evaluatePropertyReference(left, scope, context)
+    const ref = yield* evaluatePropertyReference(left, scope, callStack, context)
     const leftValue =
       operator === '='
         ? undefined /* unused */
-        : (yield* evaluateMemberExpression(left, scope, context, ref)).value
+        : (yield* evaluateMemberExpression(left, scope, callStack, context, ref)).value
     const value = yield* evaluateAssignmentValue(leftValue, operator, evaluateRight)
     // https://tc39.es/ecma262/#sec-evaluate-property-access-with-expression-key
     // > NOTE: In most cases, ToPropertyKey will be performed on propertyNameValue immediately after this step.
@@ -48,7 +51,7 @@ export function* evaluateAssignmentExpression(
     }
 
     const rightValue = yield* evaluateRight()
-    yield* evaluatePattern(left, rightValue, scope, context)
+    yield* evaluatePattern(left, rightValue, scope, callStack, context)
     evaluated = { value: rightValue }
   }
 

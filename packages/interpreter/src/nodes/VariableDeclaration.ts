@@ -3,17 +3,18 @@ import { evaluateNode } from '.'
 import { EMPTY } from '../constants'
 import { defineVariable } from '../lib/defineVariable'
 import { getVariableDeclaratorIdentifiers } from '../lib/bound-identifiers'
-import { Context, EvaluateGenerator, Scope } from '../types'
+import { CallStack, Context, EvaluateGenerator, Scope } from '../types'
 import { evaluatePattern } from './Pattern'
 
 export function* evaluateVariableDeclaration(
   node: VariableDeclaration,
   scope: Scope,
+  callStack: CallStack,
   context: Context,
 ): EvaluateGenerator {
   for (const declaration of node.declarations) {
     declaration.parent = node
-    yield* evaluateVariableDeclarator(declaration, scope, context)
+    yield* evaluateVariableDeclarator(declaration, scope, callStack, context)
   }
 
   return { value: EMPTY }
@@ -22,6 +23,7 @@ export function* evaluateVariableDeclaration(
 export function* evaluateVariableDeclarator(
   node: VariableDeclarator,
   scope: Scope,
+  callStack: CallStack,
   context: Context,
 ): EvaluateGenerator {
   const { id, init } = node
@@ -35,12 +37,12 @@ export function* evaluateVariableDeclarator(
 
   if (init) {
     init.parent = node
-    const evaluated = yield* evaluateNode(init, scope, context)
+    const evaluated = yield* evaluateNode(init, scope, callStack, context)
     value = evaluated.value
   }
 
   id.parent = node
-  yield* evaluatePattern(id, value, scope, context, { init: true })
+  yield* evaluatePattern(id, value, scope, callStack, context, { init: true })
 
   return { value: EMPTY }
 }

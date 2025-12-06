@@ -7,6 +7,13 @@ it('!true', false)
 it('~1', -2)
 it('void 1', undefined)
 
+it('+1n', ({ thrown }) => {
+  expect(thrown).toThrow(new TypeError('Cannot convert a BigInt value to a number'))
+})
+it('+Object(1n)', ({ thrown }) => {
+  expect(thrown).toThrow(new TypeError('Cannot convert a BigInt value to a number'))
+})
+
 describe('typeof', () => {
   it('typeof 1', 'number')
   it('typeof "1"', 'string')

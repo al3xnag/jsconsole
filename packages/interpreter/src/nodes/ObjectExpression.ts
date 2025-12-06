@@ -1,5 +1,5 @@
 import { ObjectExpression, Property, SpreadElement } from 'acorn'
-import { Context, EvaluateGenerator, Scope } from '../types'
+import { CallStack, Context, EvaluateGenerator, Scope } from '../types'
 import { assertNever } from '../lib/assert'
 import { evaluateProperty } from './Property'
 import { evaluateSpreadElement } from './SpreadElement'
@@ -10,6 +10,7 @@ const defineProperty = Object.defineProperty
 export function* evaluateObjectExpression(
   node: ObjectExpression,
   scope: Scope,
+  callStack: CallStack,
   context: Context,
 ): EvaluateGenerator {
   let prototype: object | null = context.metadata.globals.ObjectPrototype
@@ -58,13 +59,13 @@ export function* evaluateObjectExpression(
     property.parent = node
 
     if (property.type === 'SpreadElement') {
-      const { value } = yield* evaluateSpreadElement(property, scope, context)
+      const { value } = yield* evaluateSpreadElement(property, scope, callStack, context)
       const rest = { ...value }
       Reflect.ownKeys(rest).forEach((key) => {
         addProperty(key, rest[key], property)
       })
     } else if (property.type === 'Property') {
-      const { key, value } = yield* evaluateProperty(property, scope, context)
+      const { key, value } = yield* evaluateProperty(property, scope, callStack, context)
       addProperty(key, value, property)
     } else {
       assertNever(property, 'Unhandled property type')

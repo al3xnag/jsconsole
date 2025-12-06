@@ -1,14 +1,33 @@
 import { Super } from 'acorn'
-import { Context, EvaluateGenerator, FunctionScope, Scope } from '../types'
+import {
+  CallStack,
+  CallStackLocation,
+  Context,
+  EvaluateGenerator,
+  FunctionScope,
+  Scope,
+} from '../types'
 import { InternalError } from '../lib/InternalError'
 import { findScope } from '../lib/scopes'
 import { initializeInstanceElements, isConstructor } from '../lib/evaluation-utils'
-import { toShortStringTag } from '../lib/toShortStringTag'
 import { UNINITIALIZED } from '../constants'
 import { syncContext } from '../lib/syncContext'
 import { assertFunctionConstructSideEffectFree } from '../lib/assertFunctionConstructSideEffectFree'
+import { hookConstructAfter } from '../lib/hookConstruct'
+import { setActiveCalleeCallStack } from '../lib/callStack'
+import { throwError } from '../lib/throwError'
+import {
+  REFERENCE_ERROR_CLASS_CTOR_MUST_CALL_SUPER,
+  REFERENCE_ERROR_SUPER_MAY_ONLY_BE_CALLED_ONCE,
+  TYPE_ERROR_ARG_IS_NOT_CONSTRUCTOR,
+} from '../lib/errorDefinitions'
 
-export function* evaluateSuper(node: Super, scope: Scope, context: Context): EvaluateGenerator {
+export function* evaluateSuper(
+  node: Super,
+  scope: Scope,
+  _callStack: CallStack,
+  context: Context,
+): EvaluateGenerator {
   const parent = node.parent!
   if (parent.type === 'MemberExpression') {
     return yield* evaluateSuperProperty(node, scope, context)
@@ -17,7 +36,13 @@ export function* evaluateSuper(node: Super, scope: Scope, context: Context): Eva
   }
 }
 
-export function* evaluateSuperCall(_node: Super, scope: Scope, context: Context, args: unknown[]) {
+export function* evaluateSuperCall(
+  node: Super,
+  scope: Scope,
+  callStack: CallStack,
+  context: Context,
+  args: unknown[],
+) {
   const thisScope = findScope(
     scope,
     (scope) => scope.kind === 'function' && !!scope.hasThisBinding,
@@ -26,17 +51,35 @@ export function* evaluateSuperCall(_node: Super, scope: Scope, context: Context,
   const func = Object.getPrototypeOf(thisScope.functionObject)
 
   if (!isConstructor(func, context)) {
-    throw new context.metadata.globals.TypeError(`${toShortStringTag(func)} is not a constructor`)
+    throw TYPE_ERROR_ARG_IS_NOT_CONSTRUCTOR(func)
   }
 
   if (syncContext?.throwOnSideEffect) {
     assertFunctionConstructSideEffectFree(func, args, context)
   }
 
-  const result = Reflect.construct(func, args, thisScope.newTarget ?? func)
+  const callStackLocation: CallStackLocation = {
+    file: context.name,
+    line: node.loc!.start.line,
+    col: node.loc!.start.column + 1,
+  }
+  const calleeCallStack = callStack.concat({ fn: func, loc: callStackLocation, construct: true })
+  setActiveCalleeCallStack(calleeCallStack)
+
+  let result: object
+
+  try {
+    result = Reflect.construct(func, args, thisScope.newTarget ?? func)
+  } catch (error) {
+    throwError(error, callStackLocation, calleeCallStack, context, 'unsafe')
+  } finally {
+    setActiveCalleeCallStack(null)
+  }
+
+  result = hookConstructAfter(node, func, args, result, callStack, context)
 
   if (thisScope.thisValue !== UNINITIALIZED) {
-    throw new context.metadata.globals.ReferenceError('Super constructor may only be called once')
+    throw REFERENCE_ERROR_SUPER_MAY_ONLY_BE_CALLED_ONCE()
   }
 
   thisScope.thisValue = result
@@ -57,9 +100,7 @@ export function* evaluateSuperProperty(
   ) as FunctionScope
 
   if (thisValue === UNINITIALIZED) {
-    throw new context.metadata.globals.ReferenceError(
-      "Must call super constructor in derived class before accessing 'this' or returning from derived constructor",
-    )
+    throw REFERENCE_ERROR_CLASS_CTOR_MUST_CALL_SUPER()
   }
 
   const homeObject = context.metadata.functions.get(functionObject)?.homeObject

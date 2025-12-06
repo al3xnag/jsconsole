@@ -69,6 +69,7 @@ export function ConsoleEagerPreview({ editor }: { editor: EditorView | undefined
 
       try {
         result = evaluate(input, {
+          contextName: `vm:///anonymous`,
           globalObject: currentSession.previewWindow,
           globalScope: currentSession.globalScope,
           metadata: currentSession.metadata,

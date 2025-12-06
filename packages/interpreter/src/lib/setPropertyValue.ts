@@ -1,10 +1,20 @@
 import { Context, PrivateName } from '../types'
-import { syncContext } from './syncContext'
-import { assertPropertyWriteSideEffectFree } from './assertPropertyWriteSideEffectFree'
-import { getPropertyDescriptor } from './getPropertyDescriptor'
-import { toShortStringTag } from './toShortStringTag'
-import { isObject, isPropertyKey, toObject, toPropertyKey } from './evaluation-utils'
 import { assertNever } from './assert'
+import { assertPropertyWriteSideEffectFree } from './assertPropertyWriteSideEffectFree'
+import {
+  TYPE_ERROR_CANNOT_ACCESS_PRIVATE_NAME,
+  TYPE_ERROR_CANNOT_SET_PROPERTIES,
+  TYPE_ERROR_CANNOT_SET_PROPERTY,
+  TYPE_ERROR_DEFINE_OWN_PROPERTY_FAILURE_NOT_EXTENSIBLE,
+  TYPE_ERROR_PRIVATE_MEMBER_HAS_NO_SETTER,
+  TYPE_ERROR_PRIVATE_MEMBER_NOT_DECLARED,
+  TYPE_ERROR_PRIVATE_METHOD_NOT_WRITABLE,
+  TYPE_ERROR_SET_FAILURE_GETTER_ONLY,
+  TYPE_ERROR_SET_FAILURE_READ_ONLY,
+} from './errorDefinitions'
+import { isObject, isPropertyKey, toObject, toPropertyKey } from './evaluation-utils'
+import { getPropertyDescriptor } from './getPropertyDescriptor'
+import { syncContext } from './syncContext'
 
 const getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor
 const isExtensible = Object.isExtensible
@@ -26,15 +36,11 @@ export function setPropertyValue(
     //   - null[{ toString: 1 }] = 1 // TypeError: Cannot set properties of null
     //   - null.#a = 1 // TypeError: Cannot access private name #a from null
     if (isPropertyKey(propertyName)) {
-      throw new context.metadata.globals.TypeError(
-        `Cannot set properties of ${object} (setting '${propertyName.toString()}')`,
-      )
+      throw TYPE_ERROR_CANNOT_SET_PROPERTY(object, propertyName)
     } else if (propertyName instanceof PrivateName) {
-      throw new context.metadata.globals.TypeError(
-        `Cannot access private name #${propertyName.name} from ${object}`,
-      )
+      throw TYPE_ERROR_CANNOT_ACCESS_PRIVATE_NAME(object, propertyName)
     } else {
-      throw new context.metadata.globals.TypeError(`Cannot set properties of ${object}`)
+      throw TYPE_ERROR_CANNOT_SET_PROPERTIES(object)
     }
   }
 
@@ -45,22 +51,16 @@ export function setPropertyValue(
   if (propertyName instanceof PrivateName) {
     const privateElement = context.metadata.privateElements.get(object)?.[propertyName.name]
     if (!privateElement) {
-      throw new context.metadata.globals.TypeError(
-        `Private member '#${propertyName.name}' is not declared in ${toShortStringTag(object)}`,
-      )
+      throw TYPE_ERROR_PRIVATE_MEMBER_NOT_DECLARED(object, propertyName)
     }
 
     if (privateElement.kind === 'field') {
       privateElement.value = value
     } else if (privateElement.kind === 'method') {
-      throw new context.metadata.globals.TypeError(
-        `Private method '#${propertyName.name}' is not writable`,
-      )
+      throw TYPE_ERROR_PRIVATE_METHOD_NOT_WRITABLE(propertyName)
     } else if (privateElement.kind === 'accessor') {
       if (!privateElement.set) {
-        throw new context.metadata.globals.TypeError(
-          `'#${propertyName.name}' was defined without a setter`,
-        )
+        throw TYPE_ERROR_PRIVATE_MEMBER_HAS_NO_SETTER(propertyName)
       }
 
       Reflect.apply(privateElement.set, object, [value])
@@ -87,26 +87,18 @@ export function setPropertyValue(
     }
 
     if (checkResult === ORDINARY_SET_FAILURE_READ_ONLY) {
-      throw new context.metadata.globals.TypeError(
-        `Cannot assign to read only property '${propertyKey.toString()}' of ${toShortStringTag(object)}`,
-      )
+      throw TYPE_ERROR_SET_FAILURE_READ_ONLY(object, propertyKey)
     }
 
     if (checkResult === ORDINARY_SET_FAILURE_GETTER_ONLY) {
-      throw new context.metadata.globals.TypeError(
-        `Cannot set property '${propertyKey.toString()}' of ${toShortStringTag(object)} which has only a getter`,
-      )
+      throw TYPE_ERROR_SET_FAILURE_GETTER_ONLY(object, propertyKey)
     }
 
     if (checkResult === ORDINARY_DEFINE_OWN_PROPERTY_FAILURE_NOT_EXTENSIBLE) {
-      throw new context.metadata.globals.TypeError(
-        `Cannot add property '${propertyKey.toString()}', ${toShortStringTag(object)} is not extensible`,
-      )
+      throw TYPE_ERROR_DEFINE_OWN_PROPERTY_FAILURE_NOT_EXTENSIBLE(object, propertyKey)
     }
 
-    throw new context.metadata.globals.TypeError(
-      `Cannot set property '${propertyKey.toString()}' of ${toShortStringTag(object)}`,
-    )
+    throw TYPE_ERROR_CANNOT_SET_PROPERTY(object, propertyKey)
   }
 
   // https://tc39.es/ecma262/multipage/indexed-collections.html#sec-properties-of-array-instances-length
@@ -120,9 +112,7 @@ export function setPropertyValue(
   const success = Reflect.set(object, propertyKey, value, receiver)
 
   if (!success && context.strict) {
-    throw new context.metadata.globals.TypeError(
-      `Cannot set property '${propertyKey.toString()}' of ${toShortStringTag(object)}`,
-    )
+    throw TYPE_ERROR_CANNOT_SET_PROPERTY(object, propertyKey)
   }
 }
 

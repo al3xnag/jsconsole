@@ -9,7 +9,7 @@ import { EvaluateOptions, PublicGlobalScope } from './types'
 
 type NotFunction<T> = T extends Function ? never : T
 type TestEvaluateResult = EvaluateResult<any> & {
-  error?: unknown
+  error?: any
   /**
    * Rethrow the error thrown by `evaluate`.
    * noop if `evaluate` didn't throw an error.

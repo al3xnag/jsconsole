@@ -1,4 +1,10 @@
-import { ClassFieldDefinitionRecord, Context, PrivateElementMap } from '../types'
+import {
+  ClassFieldDefinitionRecord,
+  Context,
+  FunctionCallInternal,
+  PrivateElementMap,
+} from '../types'
+import { findSetter } from './findSetter'
 import { InternalError } from './InternalError'
 
 export type FunctionMetadata = {
@@ -25,6 +31,7 @@ export type FunctionMetadata = {
   privateMethods?: PrivateElementMap
   // [[Fields]]
   fields?: ClassFieldDefinitionRecord[]
+  callInternal?: FunctionCallInternal
 }
 
 export type PromiseMetadata = {
@@ -63,9 +70,15 @@ export type MetadataGlobals = {
   FunctionPrototypeCall: FunctionConstructor['prototype']['call']
   FunctionPrototypeApply: FunctionConstructor['prototype']['apply']
   FunctionPrototypeBind: FunctionConstructor['prototype']['bind']
+  Error: ErrorConstructor
+  ErrorStackSetter: (this: Error, stack: string) => void
+  ErrorCaptureStackTrace: ErrorConstructor['captureStackTrace']
   SyntaxError: SyntaxErrorConstructor
+  RangeError: RangeErrorConstructor
   TypeError: TypeErrorConstructor
   ReferenceError: ReferenceErrorConstructor
+  EvalError: EvalErrorConstructor
+  URIError: URIErrorConstructor
   Promise: PromiseConstructor
   PromiseResolve: PromiseConstructor['resolve']
   WeakMap: WeakMapConstructor
@@ -105,9 +118,15 @@ export class Metadata {
     this.globals.FunctionPrototypeCall = global.Function.prototype.call
     this.globals.FunctionPrototypeApply = global.Function.prototype.apply
     this.globals.FunctionPrototypeBind = global.Function.prototype.bind
+    this.globals.Error = global.Error
+    this.globals.ErrorStackSetter = findSetter(global.Error(), 'stack')!
+    this.globals.ErrorCaptureStackTrace = global.Error.captureStackTrace
     this.globals.SyntaxError = global.SyntaxError
+    this.globals.RangeError = global.RangeError
     this.globals.TypeError = global.TypeError
     this.globals.ReferenceError = global.ReferenceError
+    this.globals.EvalError = global.EvalError
+    this.globals.URIError = global.URIError
     this.globals.Promise = global.Promise
     this.globals.PromiseResolve = global.Promise.resolve
     this.globals.WeakMap = global.WeakMap

@@ -11,8 +11,9 @@ export function assertObjectSpreadSideEffectFree(obj: unknown, context: Context)
     return
   }
 
-  if (context.metadata.proxies.has(obj)) {
-    const { handler } = context.metadata.proxies.get(obj)!
+  const proxies = context.metadata.proxies
+  if (proxies.has(obj)) {
+    const { handler } = proxies.get(obj)!
     if ('get' in handler || 'getOwnPropertyDescriptor' in handler || 'ownKeys' in handler) {
       throw new PossibleSideEffectError()
     }

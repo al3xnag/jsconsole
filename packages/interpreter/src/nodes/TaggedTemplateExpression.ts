@@ -1,5 +1,5 @@
 import { TaggedTemplateExpression } from 'acorn'
-import { Context, EvaluateGenerator, Scope } from '../types'
+import { CallStack, Context, EvaluateGenerator, Scope } from '../types'
 import { evaluateNode } from '.'
 import { syncContext } from '../lib/syncContext'
 import { assertFunctionCallSideEffectFree } from '../lib/assertFunctionCallSideEffectFree'
@@ -10,13 +10,14 @@ const freeze = Object.freeze
 export function* evaluateTaggedTemplateExpression(
   node: TaggedTemplateExpression,
   scope: Scope,
+  callStack: CallStack,
   context: Context,
 ): EvaluateGenerator {
   const { tag, quasi } = node
   tag.parent = node
   quasi.parent = node
 
-  const { value: fn } = yield* evaluateNode(tag, scope, context)
+  const { value: fn } = yield* evaluateNode(tag, scope, callStack, context)
 
   const templateObject = quasi.quasis.map(
     (el) => el.value.cooked ?? undefined /* string | undefined by spec, can't be null */,
@@ -32,7 +33,7 @@ export function* evaluateTaggedTemplateExpression(
   const exprValues: unknown[] = []
   for (const expr of quasi.expressions) {
     expr.parent = quasi
-    const { value } = yield* evaluateNode(expr, scope, context)
+    const { value } = yield* evaluateNode(expr, scope, callStack, context)
     exprValues.push(value)
   }
 

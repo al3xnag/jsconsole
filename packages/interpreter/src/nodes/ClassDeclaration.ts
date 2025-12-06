@@ -1,6 +1,6 @@
 import { AnonymousClassDeclaration, ClassDeclaration } from 'acorn'
 import { EMPTY } from '../constants'
-import { Context, EvaluateGenerator, Scope } from '../types'
+import { CallStack, Context, EvaluateGenerator, Scope } from '../types'
 import { createClass } from '../lib/createClass'
 import { defineVariable } from '../lib/defineVariable'
 import { setVariableValue } from '../lib/setVariableValue'
@@ -9,9 +9,10 @@ import { setVariableValue } from '../lib/setVariableValue'
 export function* evaluateClassDeclaration(
   node: ClassDeclaration | AnonymousClassDeclaration,
   scope: Scope,
+  callStack: CallStack,
   context: Context,
 ): EvaluateGenerator {
-  const klass = yield* createClass(node, scope, context)
+  const klass = yield* createClass(node, scope, callStack, context)
 
   // NOTE: AnonymousClassDeclaration only occurs as part of an ExportDeclaration.
   if (node.id) {

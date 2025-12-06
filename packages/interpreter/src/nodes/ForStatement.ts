@@ -1,5 +1,5 @@
 import { ForStatement } from 'acorn'
-import { BlockScope, Context, EvaluateGenerator, Scope } from '../types'
+import { BlockScope, CallStack, Context, EvaluateGenerator, Scope } from '../types'
 import { EMPTY } from '../constants'
 import { evaluateNode } from '.'
 import { initBindings } from '../lib/initBindings'
@@ -10,6 +10,7 @@ import { createScope } from '../lib/createScope'
 export function* evaluateForStatement(
   node: ForStatement,
   scope: Scope,
+  callStack: CallStack,
   context: Context,
   labels?: string[],
 ): EvaluateGenerator {
@@ -46,18 +47,18 @@ export function* evaluateForStatement(
   }
 
   if (init) {
-    yield* evaluateNode(init, forScope, context)
+    yield* evaluateNode(init, forScope, callStack, context)
   }
 
   while (true) {
     if (test) {
-      const evaluatedTest = yield* evaluateNode(test, forScope, context)
+      const evaluatedTest = yield* evaluateNode(test, forScope, callStack, context)
       if (!evaluatedTest.value) {
         return { value }
       }
     }
 
-    const evaluatedBody = yield* evaluateNode(body, forScope, context)
+    const evaluatedBody = yield* evaluateNode(body, forScope, callStack, context)
 
     if (!loopContinues(evaluatedBody, labels)) {
       const evaluated = breakableStatementCompletion(updateEmpty(evaluatedBody, value))
@@ -71,7 +72,7 @@ export function* evaluateForStatement(
     nextForScope()
 
     if (update) {
-      yield* evaluateNode(update, forScope, context)
+      yield* evaluateNode(update, forScope, callStack, context)
     }
   }
 }

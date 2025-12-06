@@ -12,8 +12,9 @@ export function assertIterableSideEffectFree(obj: unknown, context: Context): vo
   }
 
   if (typeof obj === 'object' || typeof obj === 'function') {
-    if (context.metadata.proxies.has(obj)) {
-      const { handler } = context.metadata.proxies.get(obj)!
+    const proxies = context.metadata.proxies
+    if (proxies.has(obj)) {
+      const { handler } = proxies.get(obj)!
       if ('get' in handler || 'getOwnPropertyDescriptor' in handler) {
         throw new PossibleSideEffectError()
       }

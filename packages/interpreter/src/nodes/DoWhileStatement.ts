@@ -1,5 +1,5 @@
 import { DoWhileStatement } from 'acorn'
-import { Context, EvaluateGenerator, Scope } from '../types'
+import { CallStack, Context, EvaluateGenerator, Scope } from '../types'
 import { evaluateNode } from '.'
 import { EMPTY } from '../constants'
 import { breakableStatementCompletion, loopContinues, updateEmpty } from '../lib/evaluation-utils'
@@ -8,6 +8,7 @@ import { breakableStatementCompletion, loopContinues, updateEmpty } from '../lib
 export function* evaluateDoWhileStatement(
   node: DoWhileStatement,
   scope: Scope,
+  callStack: CallStack,
   context: Context,
   labels?: string[],
 ): EvaluateGenerator {
@@ -17,7 +18,7 @@ export function* evaluateDoWhileStatement(
   node.test.parent = node
 
   while (true) {
-    const evaluatedBody = yield* evaluateNode(node.body, scope, context)
+    const evaluatedBody = yield* evaluateNode(node.body, scope, callStack, context)
 
     if (!loopContinues(evaluatedBody, labels)) {
       const evaluated = breakableStatementCompletion(updateEmpty(evaluatedBody, value))
@@ -28,7 +29,7 @@ export function* evaluateDoWhileStatement(
       value = evaluatedBody.value
     }
 
-    const evaluatedTest = yield* evaluateNode(node.test, scope, context)
+    const evaluatedTest = yield* evaluateNode(node.test, scope, callStack, context)
 
     if (!evaluatedTest.value) {
       return { value }

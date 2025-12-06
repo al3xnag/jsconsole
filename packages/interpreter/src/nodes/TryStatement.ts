@@ -1,5 +1,5 @@
 import { TryStatement } from 'acorn'
-import { BlockScope, Context, EvaluatedNode, EvaluateGenerator, Scope } from '../types'
+import { BlockScope, CallStack, Context, EvaluatedNode, EvaluateGenerator, Scope } from '../types'
 import { evaluateNode } from '.'
 import { evaluatePattern } from './Pattern'
 import { EMPTY, UNINITIALIZED, TYPE_RETURN } from '../constants'
@@ -11,6 +11,7 @@ import { createScope } from '../lib/createScope'
 export function* evaluateTryStatement(
   node: TryStatement,
   scope: Scope,
+  callStack: CallStack,
   context: Context,
 ): EvaluateGenerator {
   let result: EvaluatedNode
@@ -23,7 +24,7 @@ export function* evaluateTryStatement(
   let thrownError: unknown
 
   try {
-    result = yield* evaluateNode(block, scope, context)
+    result = yield* evaluateNode(block, scope, callStack, context)
   } catch (error) {
     thrownError = error
 
@@ -45,17 +46,17 @@ export function* evaluateTryStatement(
         })
 
         handler.param.parent = handler
-        yield* evaluatePattern(handler.param, error, catchScope, context, { init: true })
+        yield* evaluatePattern(handler.param, error, catchScope, callStack, context, { init: true })
       }
 
       handler.body.parent = handler
-      result = yield* evaluateNode(handler.body, catchScope, context)
+      result = yield* evaluateNode(handler.body, catchScope, callStack, context)
     } else {
       throw error
     }
   } finally {
     if (finalizer && !(thrownError instanceof InternalError)) {
-      const finalizerResult = yield* evaluateNode(finalizer, scope, context)
+      const finalizerResult = yield* evaluateNode(finalizer, scope, callStack, context)
       if (finalizerResult.type === TYPE_RETURN) {
         result = finalizerResult
       }

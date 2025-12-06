@@ -80,7 +80,7 @@ it('new (class extends Array { constructor() {} })', ({ thrown }) => {
   )
 })
 it('new (class { constructor() { /* strict mode here */ false.false = 0 } })', ({ thrown }) => {
-  expect(thrown).toThrow(new TypeError("Cannot set property 'false' of #<Boolean>"))
+  expect(thrown).toThrow(new TypeError("Cannot set properties of #<Boolean> (setting 'false')"))
 })
 it('new (class extends Array { constructor() { super() } })', [])
 it('new (class extends Array { constructor() { super(1, 2, 3) } })', [1, 2, 3])

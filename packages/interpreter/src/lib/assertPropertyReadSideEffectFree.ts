@@ -10,9 +10,10 @@ export function assertPropertyReadSideEffectFree(
   propertyKey: PropertyKey,
   context: Context,
 ): void {
+  const proxies = context.metadata.proxies
   while (object != null) {
-    if (context.metadata.proxies.has(object)) {
-      const { handler } = context.metadata.proxies.get(object)!
+    if (proxies.has(object)) {
+      const { handler } = proxies.get(object)!
       if ('getOwnPropertyDescriptor' in handler || 'getPrototypeOf' in handler) {
         throw new PossibleSideEffectError()
       }

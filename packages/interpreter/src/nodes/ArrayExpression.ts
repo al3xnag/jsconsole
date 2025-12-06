@@ -1,8 +1,8 @@
 import { ArrayExpression } from 'acorn'
 import { evaluateNode } from '.'
-import { Context, EvaluateGenerator, Scope } from '../types'
+import { CallStack, Context, EvaluateGenerator, Scope } from '../types'
 import { syncContext } from '../lib/syncContext'
-import { getNodeText } from '../lib/getNodeText'
+import { TYPE_ERROR_EXPR_IS_NOT_ITERABLE } from '../lib/errorDefinitions'
 
 const create = Object.create
 const defineProperties = Object.defineProperties
@@ -10,6 +10,7 @@ const defineProperties = Object.defineProperties
 export function* evaluateArrayExpression(
   node: ArrayExpression,
   scope: Scope,
+  callStack: CallStack,
   context: Context,
 ): EvaluateGenerator {
   let length = 0
@@ -23,7 +24,7 @@ export function* evaluateArrayExpression(
     }
 
     element.parent = node
-    const { value } = yield* evaluateNode(element, scope, context)
+    const { value } = yield* evaluateNode(element, scope, callStack, context)
 
     if (element.type === 'SpreadElement') {
       let items: unknown[]
@@ -31,9 +32,7 @@ export function* evaluateArrayExpression(
         items = [...(value as unknown[])]
       } catch (error) {
         if (error instanceof TypeError) {
-          throw new context.metadata.globals.TypeError(
-            `${getNodeText(element.argument, context.code)} is not iterable`,
-          )
+          throw TYPE_ERROR_EXPR_IS_NOT_ITERABLE(element.argument, context)
         }
 
         throw error

@@ -1,9 +1,9 @@
 import { AnonymousClassDeclaration, AnonymousFunctionDeclaration, AnyNode, Statement } from 'acorn'
 import { logEvaluated, logEvaluating } from '../lib/log'
+import { throwError } from '../lib/throwError'
 import { throwIfTimedOut } from '../lib/throwIfTimedOut'
 import { trackPromise } from '../lib/trackPromise'
-import { UnsupportedOperationError } from '../lib/UnsupportedOperationError'
-import { Context, EvaluateGenerator, Scope } from '../types'
+import { CallStack, Context, EvaluatedNode, EvaluateGenerator, Scope } from '../types'
 import { evaluateArrayExpression } from './ArrayExpression'
 import { evaluateArrowFunctionExpression } from './ArrowFunctionExpression'
 import { evaluateAssignmentExpression } from './AssignmentExpression'
@@ -50,12 +50,14 @@ import { evaluateUnaryExpression } from './UnaryExpression'
 import { evaluateUpdateExpression } from './UpdateExpression'
 import { evaluateVariableDeclaration } from './VariableDeclaration'
 import { evaluateWhileStatement } from './WhileStatement'
+import { UnsupportedOperationError } from '../lib/UnsupportedOperationError'
 
 type StatementFixed = Statement | AnonymousClassDeclaration | AnonymousFunctionDeclaration
 
 type EvaluateStatement<T extends StatementFixed> = (
   node: T,
   scope: Scope,
+  callStack: CallStack,
   context: Context,
   labels?: string[],
 ) => EvaluateGenerator
@@ -63,41 +65,55 @@ type EvaluateStatement<T extends StatementFixed> = (
 type EvaluateNode<T extends AnyNode> = (
   node: T,
   scope: Scope,
+  callStack: CallStack,
   context: Context,
 ) => EvaluateGenerator
 
-type DropFirst<T extends unknown[]> = T extends [any, ...infer U] ? U : never
-
 export function* evaluateStatement<T extends StatementFixed>(
   node: T,
-  ..._args: DropFirst<Parameters<EvaluateStatement<T>>>
+  _scope: Scope,
+  callStack: CallStack,
+  context: Context,
+  _labels?: string[],
 ): ReturnType<EvaluateStatement<T>> {
   const handler = statementHandlers[node.type] as EvaluateStatement<T> | undefined
-  if (!handler) {
-    throw new UnsupportedOperationError(`${node.type} is not supported`)
-  }
 
-  return yield* handler.apply(null, arguments as unknown as Parameters<EvaluateStatement<T>>)
+  try {
+    if (!handler) {
+      throw new UnsupportedOperationError(`${node.type} is not supported`)
+    }
+
+    return yield* handler.apply(null, arguments as unknown as Parameters<EvaluateStatement<T>>)
+  } catch (error) {
+    throwError(error, node.loc, callStack, context, 'unsafe')
+  }
 }
 
 export function* evaluateNode<T extends AnyNode>(
   node: T,
   _scope: Scope,
+  callStack: CallStack,
   context: Context,
 ): ReturnType<EvaluateNode<T>> {
   DEBUG_INT && logEvaluating(node, context)
 
-  throwIfTimedOut()
-
   const handler = handlers[node.type] as EvaluateNode<T> | undefined
-  if (!handler) {
-    throw new UnsupportedOperationError(`${node.type} is not supported`)
+
+  let evaluated: EvaluatedNode
+
+  try {
+    if (!handler) {
+      throw new UnsupportedOperationError(`${node.type} is not supported`)
+    }
+
+    throwIfTimedOut()
+
+    evaluated = yield* handler.apply(null, arguments as unknown as Parameters<EvaluateNode<T>>)
+  } catch (error) {
+    throwError(error, node.loc, callStack, context, 'unsafe')
   }
 
-  const evaluated = yield* handler.apply(null, arguments as unknown as Parameters<EvaluateNode<T>>)
-
-  const _Promise = context.metadata.globals.Promise
-  if (_Promise && evaluated.value instanceof _Promise) {
+  if (evaluated.value instanceof context.metadata.globals.Promise) {
     trackPromise(evaluated.value, context)
   }
 
@@ -134,6 +150,7 @@ const handlers: Partial<{
   [T in AnyNode['type']]: (
     node: Extract<AnyNode, { type: T }>,
     scope: Scope,
+    callStack: CallStack,
     context: Context,
   ) => EvaluateGenerator
 }> = {

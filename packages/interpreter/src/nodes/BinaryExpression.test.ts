@@ -63,3 +63,9 @@ it(`
     new TypeError("Function has non-object prototype 'null' in instanceof check"),
   )
 })
+
+it('1n + 1', ({ thrown }) => {
+  expect(thrown).toThrow(
+    new TypeError('Cannot mix BigInt and other types, use explicit conversions'),
+  )
+})

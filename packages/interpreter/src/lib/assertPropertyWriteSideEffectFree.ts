@@ -1,7 +1,7 @@
 import { Context } from '../types'
+import { assertFunctionCallSideEffectFree } from './assertFunctionCallSideEffectFree'
 import { PossibleSideEffectError } from './PossibleSideEffectError'
 import { syncContext } from './syncContext'
-import { assertFunctionCallSideEffectFree } from './assertFunctionCallSideEffectFree'
 
 const getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor
 const getPrototypeOf = Object.getPrototypeOf
@@ -13,9 +13,10 @@ export function assertPropertyWriteSideEffectFree(
   context: Context,
 ): void {
   let proto = object
+  const proxies = context.metadata.proxies
   while (proto != null) {
-    if (context.metadata.proxies.has(proto)) {
-      const { handler } = context.metadata.proxies.get(proto)!
+    if (proxies.has(proto)) {
+      const { handler } = proxies.get(proto)!
       if ('getOwnPropertyDescriptor' in handler || 'getPrototypeOf' in handler) {
         throw new PossibleSideEffectError()
       }

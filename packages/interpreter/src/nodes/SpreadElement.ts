@@ -1,6 +1,6 @@
 import { SpreadElement } from 'acorn'
 import { evaluateNode } from '.'
-import { Context, EvaluateGenerator, Scope } from '../types'
+import { CallStack, Context, EvaluateGenerator, Scope } from '../types'
 import { assertObjectSpreadSideEffectFree } from '../lib/assertObjectSpreadSideEffectFree'
 import { assertIterableSideEffectFree } from '../lib/assertIterableSideEffectFree'
 import { syncContext } from '../lib/syncContext'
@@ -8,10 +8,11 @@ import { syncContext } from '../lib/syncContext'
 export function* evaluateSpreadElement(
   node: SpreadElement,
   scope: Scope,
+  callStack: CallStack,
   context: Context,
 ): EvaluateGenerator {
   node.argument.parent = node
-  const { value } = yield* evaluateNode(node.argument, scope, context)
+  const { value } = yield* evaluateNode(node.argument, scope, callStack, context)
 
   if (syncContext?.throwOnSideEffect) {
     if (node.parent!.type === 'ObjectExpression') {

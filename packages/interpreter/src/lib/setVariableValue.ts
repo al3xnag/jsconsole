@@ -1,6 +1,11 @@
 import { UNINITIALIZED } from '../constants'
 import { Context, Scope } from '../types'
 import { assertNever } from './assert'
+import {
+  REFERENCE_ERROR_VAR_IS_NOT_DEFINED,
+  REFERENCE_ERROR_VAR_IS_UNINITIALIZED,
+  TYPE_ERROR_VAR_ASSIGNMENT_TO_CONST,
+} from './errorDefinitions'
 import { findIdentifier } from './findIdentifier'
 import { PossibleSideEffectError } from './PossibleSideEffectError'
 import { setPropertyValue } from './setPropertyValue'
@@ -17,14 +22,12 @@ export function setVariableValue(
   if (identifier) {
     if (!init) {
       if (identifier.kind === 'const') {
-        throw new context.metadata.globals.TypeError(`Assignment to constant variable.`)
+        throw TYPE_ERROR_VAR_ASSIGNMENT_TO_CONST()
       }
 
       // `a = 1; let a;` // ReferenceError: Cannot access 'a' before initialization
       if (identifier.kind === 'let' && identifier.value === UNINITIALIZED) {
-        throw new context.metadata.globals.ReferenceError(
-          `Cannot access '${name}' before initialization`,
-        )
+        throw REFERENCE_ERROR_VAR_IS_UNINITIALIZED(name)
       }
     }
 
@@ -42,13 +45,13 @@ export function setVariableValue(
   if (context.type === 'script') {
     if (!init) {
       if (context.strict && !(name in context.globalObject)) {
-        throw new context.metadata.globals.ReferenceError(`${name} is not defined`)
+        throw REFERENCE_ERROR_VAR_IS_NOT_DEFINED(name)
       }
     }
 
     setPropertyValue(context.globalObject, name, undefined, value, context)
   } else if (context.type === 'module') {
-    throw new context.metadata.globals.ReferenceError(`${name} is not defined`)
+    throw REFERENCE_ERROR_VAR_IS_NOT_DEFINED(name)
   } else {
     assertNever(context.type, 'Unexpected context type')
   }

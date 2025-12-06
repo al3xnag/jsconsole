@@ -2,8 +2,10 @@ import { evaluateNode } from '../nodes'
 import {
   AnyClass,
   AnyFunction,
+  CallStack,
   Constructor,
   Context,
+  CreateFunctionResult,
   EvaluateGenerator,
   FunctionScope,
   Scope,
@@ -18,8 +20,9 @@ import { getNodeText } from './getNodeText'
 import { syncContext } from './syncContext'
 import { hasDirective } from './directive'
 import { FunctionMetadata } from './Metadata'
-import { throwError } from './throwError'
 import { createScope } from './createScope'
+import { getNewCalleeCallStack } from './callStack'
+import { TYPE_ERROR_FN_RESTRICTED_PROPS_STRICT_MODE } from './errorDefinitions'
 
 const defineProperty = Object.defineProperty
 
@@ -30,6 +33,7 @@ type FunctionCallMeta = {
   args: unknown[]
   newTarget: Constructor | undefined
   scope?: FunctionScope
+  callStack?: CallStack
 }
 
 type ArrowFunctionCallMeta = {
@@ -37,16 +41,7 @@ type ArrowFunctionCallMeta = {
   callee: Function
   args: unknown[]
   scope?: FunctionScope
-}
-
-export type CreateFunctionResult = {
-  fn: Function
-  callInternal: (
-    this: unknown,
-    args: unknown[],
-    newTarget?: Constructor,
-    callee?: Function,
-  ) => { result: unknown; scope: FunctionScope }
+  callStack?: CallStack
 }
 
 /*
@@ -81,15 +76,19 @@ export function createFunction(
     throw new UnsupportedOperationError('Generator function is not supported')
   }
 
-  function* evaluateGenerator(meta: FunctionCallMeta | ArrowFunctionCallMeta): EvaluateGenerator {
+  function* evaluateGenerator(
+    meta: FunctionCallMeta | ArrowFunctionCallMeta,
+    callStack: CallStack,
+    context: Context,
+  ): EvaluateGenerator {
     if (node.body.type === 'BlockStatement' && hasDirective(node.body.body, 'use strict')) {
       context = { ...context, strict: true }
     }
 
-    const scope = yield* initScope(node, parentScope, context, meta)
+    const scope = yield* initScope(node, parentScope, callStack, context, meta)
 
     node.body.parent = node
-    const evaluated = yield* evaluateNode(node.body, scope, context)
+    const evaluated = yield* evaluateNode(node.body, scope, callStack, context)
 
     if (node.body.type !== 'BlockStatement' || evaluated.type === TYPE_RETURN) {
       return evaluated
@@ -99,40 +98,44 @@ export function createFunction(
   }
 
   function evaluateRunner(meta: FunctionCallMeta | ArrowFunctionCallMeta): unknown {
-    try {
-      const evaluated = run(evaluateGenerator(meta), context)
+    const callStack = getNewCalleeCallStack(meta.callee, meta.callStack)
+    const evaluated = run(evaluateGenerator(meta, callStack, context))
 
-      if (evaluated instanceof Promise) {
-        return evaluated.then(
-          (evaluated) => {
-            const resultValue = evaluated.value !== EMPTY ? evaluated.value : undefined
-            return resultValue
-          },
-          (error) => {
-            throwError(error, context)
-          },
-        )
-      }
-
-      const resultValue = evaluated.value !== EMPTY ? evaluated.value : undefined
-      return resultValue
-    } catch (error) {
-      throwError(error, context)
+    if (evaluated instanceof Promise) {
+      return evaluated.then((evaluated) => {
+        const resultValue = evaluated.value !== EMPTY ? evaluated.value : undefined
+        return resultValue
+      })
     }
+
+    const resultValue = evaluated.value !== EMPTY ? evaluated.value : undefined
+    return resultValue
   }
 
   let fn: Function
-  let evaluate: CreateFunctionResult['callInternal']
+  let evaluate: (
+    this: unknown,
+    args: unknown[],
+    newTarget?: Constructor,
+    callee?: Function,
+    callStack?: CallStack,
+  ) => { result: unknown; scope: FunctionScope }
 
   // NOTE: generator functions are not supported at the moment.
   const isArrow = isArrowFunction(node)
   if (isArrow) {
     if (node.async) {
-      evaluate = function evaluate(args: unknown[], _newTarget?: unknown, callee?: Function) {
+      evaluate = function evaluate(
+        args: unknown[],
+        _newTarget?: unknown,
+        callee?: Function,
+        callStack?: CallStack,
+      ) {
         const meta: ArrowFunctionCallMeta = {
           type: 'arrow-function',
           callee: callee ?? fn,
           args,
+          callStack,
         }
 
         const result = context.metadata.globals.PromiseResolve.call(
@@ -145,11 +148,17 @@ export function createFunction(
 
       fn = (...args: unknown[]) => evaluate(args).result
     } else {
-      evaluate = function evaluate(args: unknown[], _newTarget?: unknown, callee?: Function) {
+      evaluate = function evaluate(
+        args: unknown[],
+        _newTarget?: unknown,
+        callee?: Function,
+        callStack?: CallStack,
+      ) {
         const meta: ArrowFunctionCallMeta = {
           type: 'arrow-function',
           callee: callee ?? fn,
           args,
+          callStack,
         }
 
         const result = evaluateRunner(meta)
@@ -165,6 +174,7 @@ export function createFunction(
         args: unknown[],
         newTarget: Constructor | undefined,
         callee?: Function,
+        callStack?: CallStack,
       ) {
         const meta: FunctionCallMeta = {
           type: 'function',
@@ -172,6 +182,7 @@ export function createFunction(
           this: this,
           args,
           newTarget,
+          callStack,
         }
 
         const result = context.metadata.globals.PromiseResolve.call(
@@ -198,6 +209,7 @@ export function createFunction(
         args: unknown[],
         newTarget: Constructor | undefined,
         callee?: Function,
+        callStack?: CallStack,
       ) {
         const meta: FunctionCallMeta = {
           type: 'function',
@@ -205,6 +217,7 @@ export function createFunction(
           this: this,
           args,
           newTarget,
+          callStack,
         }
 
         const result = evaluateRunner(meta)
@@ -346,6 +359,7 @@ function isArrowFunction(node: AnyFunction): boolean {
 function* initScope(
   node: AnyFunction,
   parentScope: Scope,
+  callStack: CallStack,
   context: Context,
   meta: FunctionCallMeta | ArrowFunctionCallMeta,
 ) {
@@ -413,7 +427,7 @@ function* initScope(
     }
 
     param.parent = node
-    yield* evaluatePattern(param, value, scope, context, { init: true })
+    yield* evaluatePattern(param, value, scope, callStack, context, { init: true })
   }
 
   if (node.body.type === 'BlockStatement') {
@@ -491,14 +505,10 @@ function createUnmappedArgumentsObject(meta: FunctionCallMeta, context: Context)
     },
     callee: {
       get() {
-        throw new context.metadata.globals.TypeError(
-          `'caller', 'callee', and 'arguments' properties may not be accessed on strict mode functions or the arguments objects for calls to them`,
-        )
+        throw TYPE_ERROR_FN_RESTRICTED_PROPS_STRICT_MODE()
       },
       set() {
-        throw new context.metadata.globals.TypeError(
-          `'caller', 'callee', and 'arguments' properties may not be accessed on strict mode functions or the arguments objects for calls to them`,
-        )
+        throw TYPE_ERROR_FN_RESTRICTED_PROPS_STRICT_MODE()
       },
       enumerable: false,
       configurable: false,

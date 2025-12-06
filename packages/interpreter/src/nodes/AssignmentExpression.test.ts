@@ -158,13 +158,13 @@ it(
 it('false.false = true', true)
 it('"use strict"; false.false = true', ({ thrown }) => {
   // Chrome: "Cannot create property 'false' on boolean 'false'"
-  expect(thrown).toThrow(new TypeError("Cannot set property 'false' of #<Boolean>"))
+  expect(thrown).toThrow(new TypeError("Cannot set properties of #<Boolean> (setting 'false')"))
 })
 
 it('"a".b = 1', 1)
 it('"use strict"; "a".b = 1', ({ thrown }) => {
   // Chrome: "Cannot create property 'b' on string 'a'"
-  expect(thrown).toThrow(new TypeError("Cannot set property 'b' of #<String>"))
+  expect(thrown).toThrow(new TypeError("Cannot set properties of #<String> (setting 'b')"))
 })
 
 it('null.a = 1', ({ thrown }) => {
@@ -210,7 +210,7 @@ it('"use strict"; Object(false).a = 1', 1)
 it('"a".toString = 1', 1)
 it('"use strict"; "a".toString = 1', ({ thrown }) => {
   // Chrome: "Cannot create property 'toString' on string 'a'"
-  expect(thrown).toThrow(new TypeError("Cannot set property 'toString' of #<String>"))
+  expect(thrown).toThrow(new TypeError("Cannot set properties of #<String> (setting 'toString')"))
 })
 
 it('"a".__proto__ = Number.prototype', Number.prototype)

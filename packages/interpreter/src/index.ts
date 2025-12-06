@@ -9,8 +9,14 @@ import { SideEffectInfo } from './lib/SideEffectInfo'
 import { setSyncContext } from './lib/syncContext'
 import { wrapObjectLiteral } from './lib/wrapObjectLiteral'
 import { evaluateNode } from './nodes'
-import { Context, EvaluatedNode, EvaluateOptions, EvaluateResult, GlobalScope } from './types'
-import { throwError } from './lib/throwError'
+import {
+  CallStack,
+  Context,
+  EvaluatedNode,
+  EvaluateOptions,
+  EvaluateResult,
+  GlobalScope,
+} from './types'
 
 export type { EvaluateOptions, EvaluateResult, PublicGlobalScope as GlobalScope } from './types'
 
@@ -21,6 +27,8 @@ export { InternalError } from './lib/InternalError'
 export { PossibleSideEffectError } from './lib/PossibleSideEffectError'
 export { TimeoutError } from './lib/TimeoutError'
 export { UnsupportedOperationError } from './lib/UnsupportedOperationError'
+
+let nextContextId = 1
 
 /**
  * Evaluate JavaScript code.
@@ -52,6 +60,7 @@ export function evaluate(
     (options?.throwOnSideEffect ? SideEffectInfo.withDefaults(_globalThis) : new SideEffectInfo())
 
   const context: Context = {
+    name: options?.contextName ?? `vm:///VM${nextContextId++}`,
     type: 'script',
     code,
     strict: false,
@@ -62,6 +71,8 @@ export function evaluate(
     debug: options?.debug,
   }
 
+  const callStack: CallStack = [{ fn: null, loc: { col: 1, line: 1, file: context.name } }]
+
   setSyncContext({
     throwOnSideEffect: !!options?.throwOnSideEffect,
     tmpRefs: new WeakSet(),
@@ -71,29 +82,21 @@ export function evaluate(
 
   try {
     const evaluated: EvaluatedNode | Promise<EvaluatedNode> = run(
-      evaluateNode(ast, context.globalScope, context),
-      context,
+      evaluateNode(ast, context.globalScope, callStack, context),
     )
 
     if (evaluated instanceof Promise) {
       DEBUG_INT && context.debug?.('Result: <top-level await promise>')
-      return evaluated.then(
-        (evaluated) => {
-          const resultValue = evaluated.value !== EMPTY ? evaluated.value : undefined
-          DEBUG_INT && context.debug?.('Resolved result:', resultValue)
-          return { value: resultValue }
-        },
-        (error) => {
-          throwError(error, context)
-        },
-      )
+      return evaluated.then((evaluated) => {
+        const resultValue = evaluated.value !== EMPTY ? evaluated.value : undefined
+        DEBUG_INT && context.debug?.('Resolved result:', resultValue)
+        return { value: resultValue }
+      })
     }
 
     const resultValue = evaluated.value !== EMPTY ? evaluated.value : undefined
     DEBUG_INT && context.debug?.('Result:', resultValue)
     return { value: resultValue }
-  } catch (error) {
-    throwError(error, context)
   } finally {
     setSyncContext(null)
   }

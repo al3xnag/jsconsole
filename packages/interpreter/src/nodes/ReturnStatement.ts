@@ -1,6 +1,6 @@
 import { ReturnStatement } from 'acorn'
 import { evaluateNode } from '.'
-import { Context, EvaluatedNode, EvaluateGenerator, Scope } from '../types'
+import { CallStack, Context, EvaluatedNode, EvaluateGenerator, Scope } from '../types'
 import { TYPE_RETURN } from '../constants'
 
 // https://tc39.es/ecma262/#sec-return-statement
@@ -8,13 +8,14 @@ import { TYPE_RETURN } from '../constants'
 export function* evaluateReturnStatement(
   node: ReturnStatement,
   scope: Scope,
+  callStack: CallStack,
   context: Context,
 ): EvaluateGenerator {
   let evaluated: EvaluatedNode
 
   if (node.argument) {
     node.argument.parent = node
-    evaluated = yield* evaluateNode(node.argument, scope, context)
+    evaluated = yield* evaluateNode(node.argument, scope, callStack, context)
   } else {
     evaluated = { value: undefined }
   }

@@ -1,6 +1,11 @@
 import { MemberExpression } from 'acorn'
 import { evaluateNode } from '.'
+import { InternalError } from '../lib/InternalError'
+import { assertPropertyReadSideEffectFree } from '../lib/assertPropertyReadSideEffectFree'
+import { isPropertyKey, toObject, toPropertyKey } from '../lib/evaluation-utils'
+import { syncContext } from '../lib/syncContext'
 import {
+  CallStack,
   Context,
   EvaluatedNode,
   EvaluateGenerator,
@@ -8,11 +13,13 @@ import {
   PropertyReference,
   Scope,
 } from '../types'
-import { assertPropertyReadSideEffectFree } from '../lib/assertPropertyReadSideEffectFree'
-import { syncContext } from '../lib/syncContext'
-import { InternalError } from '../lib/InternalError'
-import { isPropertyKey, toObject, toPropertyKey } from '../lib/evaluation-utils'
-import { toShortStringTag } from '../lib/toShortStringTag'
+import {
+  TYPE_ERROR_CANNOT_ACCESS_PRIVATE_NAME,
+  TYPE_ERROR_CANNOT_READ_PROPERTIES,
+  TYPE_ERROR_CANNOT_READ_PROPERTY,
+  TYPE_ERROR_PRIVATE_MEMBER_HAS_NO_GETTER,
+  TYPE_ERROR_PRIVATE_MEMBER_NOT_DECLARED,
+} from '../lib/errorDefinitions'
 
 // https://tc39.es/ecma262/#sec-property-accessors-runtime-semantics-evaluation
 // https://tc39.es/ecma262/#sec-getvalue
@@ -20,6 +27,7 @@ import { toShortStringTag } from '../lib/toShortStringTag'
 export function* evaluateMemberExpression(
   node: MemberExpression,
   scope: Scope,
+  callStack: CallStack,
   context: Context,
   propertyReference?: PropertyReference,
 ): EvaluateGenerator {
@@ -33,7 +41,7 @@ export function* evaluateMemberExpression(
 
   // eslint-disable-next-line prefer-const
   let { object, propertyName, thisValue } =
-    propertyReference ?? (yield* evaluatePropertyReference(node, scope, context))
+    propertyReference ?? (yield* evaluatePropertyReference(node, scope, callStack, context))
   const base = object
 
   if (object == null) {
@@ -42,15 +50,11 @@ export function* evaluateMemberExpression(
     }
 
     if (isPropertyKey(propertyName)) {
-      throw new context.metadata.globals.TypeError(
-        `Cannot read properties of ${object} (reading '${propertyName.toString()}')`,
-      )
+      throw TYPE_ERROR_CANNOT_READ_PROPERTY(object, propertyName)
     } else if (propertyName instanceof PrivateName) {
-      throw new context.metadata.globals.TypeError(
-        `Cannot access private name #${propertyName.name} from ${object}`,
-      )
+      throw TYPE_ERROR_CANNOT_ACCESS_PRIVATE_NAME(object, propertyName)
     } else {
-      throw new context.metadata.globals.TypeError(`Cannot read properties of ${object}`)
+      throw TYPE_ERROR_CANNOT_READ_PROPERTIES(object)
     }
   }
 
@@ -60,9 +64,7 @@ export function* evaluateMemberExpression(
   if (propertyName instanceof PrivateName) {
     const privateElement = context.metadata.privateElements.get(object)?.[propertyName.name]
     if (!privateElement) {
-      throw new context.metadata.globals.TypeError(
-        `Private member '#${propertyName.name}' is not declared in ${toShortStringTag(object)}`,
-      )
+      throw TYPE_ERROR_PRIVATE_MEMBER_NOT_DECLARED(object, propertyName)
     }
 
     if (privateElement.kind === 'field' || privateElement.kind === 'method') {
@@ -70,9 +72,7 @@ export function* evaluateMemberExpression(
     }
 
     if (!privateElement.get) {
-      throw new context.metadata.globals.TypeError(
-        `'#${propertyName.name}' was defined without a getter`,
-      )
+      throw TYPE_ERROR_PRIVATE_MEMBER_HAS_NO_GETTER(propertyName)
     }
 
     return Reflect.apply(privateElement.get, object, [])
@@ -94,10 +94,11 @@ export function* evaluateMemberExpression(
 export function* evaluatePropertyReference(
   node: MemberExpression,
   scope: Scope,
+  callStack: CallStack,
   context: Context,
 ): Generator<EvaluatedNode, PropertyReference, EvaluatedNode> {
   node.object.parent = node
-  const { value: object, thisValue } = yield* evaluateNode(node.object, scope, context)
+  const { value: object, thisValue } = yield* evaluateNode(node.object, scope, callStack, context)
 
   let propertyName: PropertyKey | PrivateName | unknown
 
@@ -111,7 +112,7 @@ export function* evaluatePropertyReference(
     }
   } else {
     node.property.parent = node
-    const evaluated = yield* evaluateNode(node.property, scope, context)
+    const evaluated = yield* evaluateNode(node.property, scope, callStack, context)
     propertyName = evaluated.value
   }
 
