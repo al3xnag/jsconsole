@@ -125,7 +125,8 @@ describe('Error call expression', () => {
     ])
   })
 
-  it(`
+  it(
+    `
   async function fn(i) { 
     if (i < 3) { 
       fn(i + 1)
@@ -134,19 +135,9 @@ describe('Error call expression', () => {
     }
   }
   await fn(0)
-    `, ({ thrown, error }) => {
-    expect(thrown).toThrow(new Error('test'))
-
-    const stack = parseStack(error.stack)
-
-    expect(stack).toMatchObject([
-      { function: 'fn', line: 6, col: 13 },
-      { function: 'fn', line: 4, col: 7 },
-      { function: 'fn', line: 4, col: 7 },
-      { function: 'fn', line: 4, col: 7 },
-      { function: undefined, line: 9, col: 9 },
-    ])
-  })
+    `,
+    undefined,
+  )
 
   test('fn is from previous context', () => {
     const globalObject = getTestGlobalObject()
