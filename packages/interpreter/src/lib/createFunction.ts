@@ -1,4 +1,6 @@
+import { EMPTY, TYPE_RETURN, UNINITIALIZED } from '../constants'
 import { evaluateNode } from '../nodes'
+import { evaluatePattern } from '../nodes/Pattern'
 import {
   AnyClass,
   AnyFunction,
@@ -10,19 +12,18 @@ import {
   FunctionScope,
   Scope,
 } from '../types'
-import { initBindings } from './initBindings'
 import { getFunctionParamIdentifiers } from './bound-identifiers'
-import { UnsupportedOperationError } from './UnsupportedOperationError'
-import { run } from './run'
-import { evaluatePattern } from '../nodes/Pattern'
-import { EMPTY, UNINITIALIZED, TYPE_RETURN } from '../constants'
-import { getNodeText } from './getNodeText'
-import { syncContext } from './syncContext'
-import { hasDirective } from './directive'
-import { FunctionMetadata } from './Metadata'
-import { createScope } from './createScope'
 import { getNewCalleeCallStack } from './callStack'
+import { createScope } from './createScope'
+import { hasDirective } from './directive'
 import { TYPE_ERROR_FN_RESTRICTED_PROPS_STRICT_MODE } from './errorDefinitions'
+import { getNodeText } from './getNodeText'
+import { initBindings } from './initBindings'
+import { InternalError } from './InternalError'
+import { FunctionMetadata } from './Metadata'
+import { run } from './run'
+import { syncContext } from './syncContext'
+import { UnsupportedOperationError } from './UnsupportedOperationError'
 
 const defineProperty = Object.defineProperty
 
@@ -112,6 +113,24 @@ export function createFunction(
     return resultValue
   }
 
+  function evaluateRunnerAsync(meta: FunctionCallMeta | ArrowFunctionCallMeta): Promise<unknown> {
+    try {
+      const result = evaluateRunner(meta)
+      return new context.metadata.globals.Promise((resolve) => {
+        resolve(result)
+      })
+    } catch (error) {
+      // PossibleSideEffectError should be thrown synchronously
+      if (error instanceof InternalError) {
+        throw error
+      }
+
+      return new context.metadata.globals.Promise((_, reject) => {
+        reject(error)
+      })
+    }
+  }
+
   let fn: Function
   let evaluate: (
     this: unknown,
@@ -138,11 +157,7 @@ export function createFunction(
           callStack,
         }
 
-        const result = context.metadata.globals.PromiseResolve.call(
-          context.metadata.globals.Promise,
-          evaluateRunner(meta),
-        )
-
+        const result = evaluateRunnerAsync(meta)
         return { result, scope: meta.scope! }
       }
 
@@ -185,11 +200,7 @@ export function createFunction(
           callStack,
         }
 
-        const result = context.metadata.globals.PromiseResolve.call(
-          context.metadata.globals.Promise,
-          evaluateRunner(meta),
-        )
-
+        const result = evaluateRunnerAsync(meta)
         return { result, scope: meta.scope! }
       }
 

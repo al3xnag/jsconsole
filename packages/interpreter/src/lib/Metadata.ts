@@ -82,7 +82,6 @@ export type MetadataGlobals = {
   EvalError: EvalErrorConstructor
   URIError: URIErrorConstructor
   Promise: PromiseConstructor
-  PromiseResolve: PromiseConstructor['resolve']
   WeakMap: WeakMapConstructor
   WeakSet: WeakSetConstructor
   WeakRef: WeakRefConstructor
@@ -137,7 +136,6 @@ export class Metadata {
     this.globals.EvalError = global.EvalError
     this.globals.URIError = global.URIError
     this.globals.Promise = global.Promise
-    this.globals.PromiseResolve = global.Promise.resolve
     this.globals.WeakMap = global.WeakMap
     this.globals.WeakSet = global.WeakSet
     this.globals.WeakRef = global.WeakRef
