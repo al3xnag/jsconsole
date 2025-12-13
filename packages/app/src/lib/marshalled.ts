@@ -5,6 +5,7 @@ import { isWellKnownSymbol } from './well-known-symbols'
 import { ObjectTypeInspector } from './ObjectTypeInspector'
 import { ValueContext } from './ValueContextContext'
 import { SPECIAL_RESULTS } from '@/constants'
+import { getErrorStackUnsafe } from '@jsconsole/interpreter/src/lib/error-utils'
 
 const MAX_DEPTH = 4
 const MAX_PROPS = 30
@@ -132,6 +133,8 @@ export type MarshalledError = Marshalled<
   {
     props: MarshalledPropertyDescriptors
     proto: MarshalledPrototype
+    /** native error stack */
+    stack?: string
   }
 >
 export type MarshalledElement = Marshalled<
@@ -433,6 +436,7 @@ function toMarshalledError(error: Error, context: InnerContext): MarshalledError
     $: 'error',
     props: getMarshalledProperties(error, context),
     proto: getMarshalledProto(error, context),
+    stack: getErrorStackUnsafe(error, context.metadata) ?? undefined,
   }
 }
 

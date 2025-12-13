@@ -37,8 +37,8 @@ it(
 )
 it(`a: for (var j = 0; j < 3; j++) { j; break a; }`, 0)
 it(`a: var b = 1; b`, 1)
-it(`a: let b = 1; b`, ({ thrown }) => {
-  expect(thrown).toThrow(SyntaxError)
+it(`a: let b = 1; b`, ({ thrown, globalObject }) => {
+  expect(thrown).toThrow(globalObject.SyntaxError)
 })
 it(`a: { var b = 1; } b`, 1)
 it(`a: { let b = 1; } b`, ({ thrown }) => {

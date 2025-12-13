@@ -57,8 +57,8 @@ test('reusing globalObject & globalScope', () => {
 })
 
 describe('options.stripTypes', () => {
-  it('const a: number = 1; a', ({ thrown }) => {
-    expect(thrown).toThrow(SyntaxError)
+  it('const a: number = 1; a', ({ thrown, globalObject }) => {
+    expect(thrown).toThrow(globalObject.SyntaxError)
   })
   it('const a: number = 1; a', 1, { stripTypes: true })
   it('const a: string = 1; a', 1, { stripTypes: true })

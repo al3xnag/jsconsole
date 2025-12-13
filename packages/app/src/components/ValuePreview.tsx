@@ -1,9 +1,11 @@
 import { useValueContext } from '@/hooks/useValueContext'
+import { exhaustMicrotaskQueue } from '@/lib/exhaustMicrotaskQueue'
 import { getDisplayObjectProperties } from '@/lib/getDisplayObjectProperties'
 import { getObjectStringTag } from '@/lib/getObjectStringTag'
 import { ObjectTypeInspector } from '@/lib/ObjectTypeInspector'
 import { parseFunctionParts } from '@/lib/parseFunctionParts'
 import { PropertyContext } from '@/lib/PropertyContext'
+import { isRevived } from '@/lib/revived'
 import { stringifyString } from '@/lib/stringifyString'
 import {
   SYNTHETIC_PROPERTY_KEY_PROTOTYPE,
@@ -14,14 +16,20 @@ import {
 } from '@/lib/synthetic'
 import { ValueContext } from '@/lib/ValueContextContext'
 import { assertNever } from '@jsconsole/interpreter/src/lib/assert'
-import { memo, useContext, useInsertionEffect, useMemo, useState } from 'react'
+import {
+  getErrorMessageUnsafe,
+  getErrorNameUnsafe,
+  getErrorStackUnsafe,
+} from '@jsconsole/interpreter/src/lib/error-utils'
+import { createSourcePreview } from '@jsconsole/source-preview'
+import { parseStack, type StackFrameLite } from 'error-stack-parser-es/lite'
+import { memo, useContext, useEffect, useInsertionEffect, useMemo, useState } from 'react'
 import { ErrorBoundary } from './ErrorBoundary'
-import { exhaustMicrotaskQueue } from '@/lib/exhaustMicrotaskQueue'
-import { isRevived } from '@/lib/revived'
+import { Metadata } from '@jsconsole/interpreter'
 
 export type ValuePreviewProps<T = unknown> = {
   value: T
-  placement: 'top' | 'item' | 'inner'
+  placement: 'top' | 'eager-preview' | 'item' | 'inner'
   renderStringAsPlainText?: boolean
 }
 
@@ -118,7 +126,7 @@ function RenderUnknown(props: ValuePreviewProps) {
   }
 
   if (o.isError(value)) {
-    return <RenderError value={value} placement={placement} />
+    return <RenderError value={value} placement={placement} context={context} />
   }
 
   if (o.isPromise(value)) {
@@ -147,7 +155,7 @@ function RenderProxy({ value, placement, context }: ValuePreviewPropsWithContext
     return <span>Proxy({targetTag})</span>
   }
 
-  if (placement === 'top') {
+  if (placement === 'top' || placement === 'eager-preview') {
     return (
       <span className="italic">
         <span>Proxy(</span>
@@ -173,6 +181,7 @@ function RenderProxy({ value, placement, context }: ValuePreviewPropsWithContext
 function RenderArray(props: ValuePreviewPropsWithContext<Array<unknown>>) {
   switch (props.placement) {
     case 'top':
+    case 'eager-preview':
     case 'item':
       return <RenderArrayTopOrItem {...props} />
     case 'inner':
@@ -219,7 +228,7 @@ function RenderArrayTopOrItem({ value, placement }: ValuePreviewPropsWithContext
   }, [ownPropDescriptors, value.length])
 
   return (
-    <span className={placement === 'top' ? 'italic' : ''}>
+    <span className={placement === 'top' || placement === 'eager-preview' ? 'italic' : ''}>
       <span className="token-meta">
         {displayTag}
         {displayLength}
@@ -247,15 +256,110 @@ function RenderArrayInner({ value }: ValuePreviewPropsWithContext<Array<unknown>
   )
 }
 
-function RenderError({ value }: ValuePreviewProps<Error>) {
-  const str = useMemo(() => Error.prototype.toString.call(value), [value])
-  return <span className="">{str}</span>
+function RenderError({ placement, value, context }: ValuePreviewPropsWithContext<Error>) {
+  const name = useMemo(() => getErrorNameUnsafe(value), [value])
+  const message = useMemo(() => getErrorMessageUnsafe(value), [value])
+
+  const stack = useMemo(() => {
+    if (placement !== 'top' && placement !== 'eager-preview') {
+      return []
+    }
+
+    const stackStr = getErrorStackUnsafe(value, context.metadata)
+    if (stackStr === null) {
+      return []
+    }
+
+    try {
+      return parseStack(stackStr, { allowEmpty: true })
+    } catch {
+      return []
+    }
+  }, [placement, value, context.metadata])
+
+  const title = `${name || 'Error'}${message ? `: ${message}` : ''}`
+
+  return (
+    <span>
+      {title}
+      {stack.map((frame, index) => (
+        <StackFrame
+          key={index}
+          frame={frame}
+          metadata={context.metadata}
+          showLinks={placement !== 'eager-preview'}
+        />
+      ))}
+    </span>
+  )
+}
+
+function StackFrame({
+  frame,
+  metadata,
+  showLinks,
+}: {
+  frame: StackFrameLite
+  metadata: Metadata
+  showLinks: boolean
+}) {
+  const fileNameWithLoc = getStackFrameFileNameWithLoc(frame)
+  const [linkHref, setLinkHref] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (showLinks && frame.file && metadata.sources.has(frame.file)) {
+      const sourcePreview = createSourcePreview({
+        title: frame.file,
+        source: metadata.sources.get(frame.file)!.content,
+        location: frame.line != null ? [frame.line, frame.col ?? 1] : undefined,
+      })
+
+      setLinkHref(sourcePreview.url)
+      return () => {
+        sourcePreview?.dispose()
+      }
+    }
+
+    setLinkHref(null)
+  }, [showLinks, frame, metadata.sources])
+
+  return (
+    <span>
+      {'\n    at'}
+      {frame.function && ` ${frame.function}`}
+      {fileNameWithLoc && (frame.function ? ` (` : ' ')}
+      {linkHref ? (
+        <a href={linkHref} target="_blank" className="underline">
+          {fileNameWithLoc}
+        </a>
+      ) : (
+        fileNameWithLoc
+      )}
+      {fileNameWithLoc && (frame.function ? `)` : '')}
+    </span>
+  )
+}
+
+function getStackFrameFileNameWithLoc(frame: StackFrameLite): string | undefined {
+  // eslint-disable-next-line prefer-const
+  let { file, line, col } = frame
+
+  if (file === '(native)') {
+    return 'native'
+  }
+
+  if (file?.startsWith('vm:///')) {
+    file = file.slice('vm:///'.length)
+  }
+
+  return file != null && line != null ? `${file}:${line}${col != null ? `:${col}` : ''}` : file
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
 function RenderFunction(props: ValuePreviewPropsWithContext<Function>) {
   switch (props.placement) {
-    case 'top': {
+    case 'top':
+    case 'eager-preview': {
       return <RenderFunctionTop {...props} />
     }
 
@@ -336,7 +440,7 @@ function RenderPromise({
   }
 
   return (
-    <span className={placement === 'top' ? 'italic' : ''}>
+    <span className={placement === 'top' || placement === 'eager-preview' ? 'italic' : ''}>
       {tag}
       {' {'}
       <span className="token-meta">{`<${state ?? 'unknown'}>`}</span>
@@ -377,6 +481,7 @@ function RenderPromise({
 function RenderObject(props: ValuePreviewPropsWithContext<object>) {
   switch (props.placement) {
     case 'top':
+    case 'eager-preview':
     case 'item':
       return <RenderObjectTopOrItem {...props} />
     case 'inner':
@@ -418,12 +523,16 @@ function RenderObjectTopOrItem({
   }, [value])
 
   return (
-    <span className={placement === 'top' ? 'italic' : ''}>
+    <span className={placement === 'top' || placement === 'eager-preview' ? 'italic' : ''}>
       {tag && tag !== 'Object' && <span>{tag} </span>}
       {'{'}
       {displayProps.map((prop, index) => (
         <span key={String(prop.name)}>
-          <span className={placement === 'top' ? 'token-meta' : ''}>{String(prop.name)}</span>
+          <span
+            className={placement === 'top' || placement === 'eager-preview' ? 'token-meta' : ''}
+          >
+            {String(prop.name)}
+          </span>
           {': '}
           <RenderUnknown value={prop.descriptor.value} placement="inner" />
           {index < displayProps.length - 1 && ', '}

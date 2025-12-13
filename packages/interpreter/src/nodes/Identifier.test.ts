@@ -447,8 +447,7 @@ describe('hoisting', () => {
       foo = 2;
     }
     `, ({ thrown }) => {
-    expect(thrown).toThrow(SyntaxError)
-    expect(thrown).toThrow("Identifier 'foo' has already been declared")
+    expect(thrown).toThrow(new SyntaxError("Identifier 'foo' has already been declared"))
   })
 
   // https://stackoverflow.com/questions/63948741
@@ -602,8 +601,7 @@ describe('hoisting', () => {
       var foo;
     }
     `, ({ thrown }) => {
-    expect(thrown).toThrow(SyntaxError)
-    expect(thrown).toThrow("Identifier 'foo' has already been declared")
+    expect(thrown).toThrow(new SyntaxError("Identifier 'foo' has already been declared"))
   })
 
   it(
@@ -953,8 +951,7 @@ describe('hoisting', () => {
       function foo(arguments, b = arguments[0]) { return [arguments, b] }
       foo('foo')
     `, ({ thrown }) => {
-    expect(thrown).toThrow(SyntaxError)
-    expect(thrown).toThrow('Binding arguments in strict mode')
+    expect(thrown).toThrow(new SyntaxError('Binding arguments in strict mode'))
   })
 
   it(

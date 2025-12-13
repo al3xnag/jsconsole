@@ -2,11 +2,13 @@ import { parse, Program } from 'acorn'
 import tsBlankSpace from 'ts-blank-space'
 import { EMPTY } from './constants'
 import './lib/acorn-tweaks'
+import { isAcornSyntaxError } from './lib/acorn-tweaks'
 import { isProbablyGlobalThis } from './lib/isProbablyGlobalThis'
 import { Metadata } from './lib/Metadata'
 import { run } from './lib/run'
 import { SideEffectInfo } from './lib/SideEffectInfo'
 import { setSyncContext } from './lib/syncContext'
+import { throwError } from './lib/throwError'
 import { wrapObjectLiteral } from './lib/wrapObjectLiteral'
 import { evaluateNode } from './nodes'
 import {
@@ -41,8 +43,6 @@ export function evaluate(
     code = wrapObjectLiteral(code)
   }
 
-  const ast = options?.stripTypes ? parseCodeStripTypes(code) : parseCode(code)
-
   const globalObject = (options?.globalObject ?? globalThis) as Record<PropertyKey, unknown>
   const _globalThis = isProbablyGlobalThis(globalObject) ? globalObject : globalThis
 
@@ -71,6 +71,7 @@ export function evaluate(
     debug: options?.debug,
   }
 
+  metadata.sources.set(context.name, { content: code })
   const callStack: CallStack = [{ fn: null, loc: { col: 1, line: 1, file: context.name } }]
 
   setSyncContext({
@@ -81,6 +82,8 @@ export function evaluate(
   })
 
   try {
+    const ast = options?.stripTypes ? parseCodeStripTypes(code) : parseCode(code)
+
     const evaluated: EvaluatedNode | Promise<EvaluatedNode> = run(
       evaluateNode(ast, context.globalScope, callStack, context),
     )
@@ -97,6 +100,12 @@ export function evaluate(
     const resultValue = evaluated.value !== EMPTY ? evaluated.value : undefined
     DEBUG_INT && context.debug?.('Result:', resultValue)
     return { value: resultValue }
+  } catch (error) {
+    if (isAcornSyntaxError(error)) {
+      throwError(error, null, callStack, context)
+    }
+
+    throw error
   } finally {
     setSyncContext(null)
   }

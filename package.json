@@ -18,6 +18,7 @@
     "packages/interpreter",
     "packages/interpreter-test262",
     "packages/code-editor",
-    "packages/codemirror-block-cursor"
+    "packages/codemirror-block-cursor",
+    "packages/source-preview"
   ]
 }

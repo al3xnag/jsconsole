@@ -31,7 +31,10 @@ module.exports = function preprocessor(test) {
 
     const origEvalScript = $262.evalScript;
     $262.evalScript = function evalScript(code) {
-      code = \`$262.INTERPRETER.evaluate(\${JSON.stringify(code)}).value;\`;
+      code = \`$262.INTERPRETER.evaluate(\${JSON.stringify(code)}, {
+        globalObject: $262.global,
+        metadata: new $262.INTERPRETER.Metadata($262.global),
+      }).value;\`;
       return origEvalScript.call(this, code);
     }
 
@@ -41,7 +44,10 @@ module.exports = function preprocessor(test) {
 
       const origEvalScript = realm262.evalScript;
       realm262.evalScript = function evalScript(code) {
-        code = \`$262.INTERPRETER.evaluate(\${JSON.stringify(code)}).value;\`;
+        code = \`$262.INTERPRETER.evaluate(\${JSON.stringify(code)}, {
+          globalObject: $262.global,
+          metadata: new $262.INTERPRETER.Metadata($262.global),
+        }).value;\`;
         return origEvalScript.call(this, code);
       }
 
@@ -56,3 +62,5 @@ module.exports = function preprocessor(test) {
 
   return test
 }
+
+// FIXME: test262/test/built-ins/Function/internals/Construct/derived-this-uninitialized-realm.js

@@ -60,12 +60,10 @@ describe('scope', () => {
   it('const i = 1; for (const i of []) {}', undefined)
   it('var i; for (var i of []) {}', undefined)
   it('let i; for (var i of []) {}', ({ thrown }) => {
-    expect(thrown).toThrow(SyntaxError)
-    expect(thrown).toThrow("Identifier 'i' has already been declared")
+    expect(thrown).toThrow(new SyntaxError("Identifier 'i' has already been declared"))
   })
   it('const i = 1; for (var i of []) {}', ({ thrown }) => {
-    expect(thrown).toThrow(SyntaxError)
-    expect(thrown).toThrow("Identifier 'i' has already been declared")
+    expect(thrown).toThrow(new SyntaxError("Identifier 'i' has already been declared"))
   })
   it(
     `

@@ -428,7 +428,7 @@ function toRevivedProxy({ target, handler }: MarshalledProxy, context: ValueCont
 }
 
 function toRevivedError(
-  { props: marshalledProps, proto: marshalledProto }: MarshalledError,
+  { props: marshalledProps, proto: marshalledProto, stack }: MarshalledError,
   context: ValueContext,
 ): Error {
   const err = new context.globals.Error()
@@ -436,6 +436,11 @@ function toRevivedError(
 
   const proto = getRevivedProto(marshalledProto, context)
   const props = getRevivedProperties(marshalledProps, context)
+
+  if (stack != null) {
+    err.stack = stack
+    delete props.stack
+  }
 
   if (proto !== context.globals.Error.prototype) {
     Object.setPrototypeOf(err, proto)

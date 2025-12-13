@@ -12,8 +12,7 @@ it('try { throw 1 } catch (e) {}; e', ({ thrown }) => {
 })
 it('try { throw 1 } catch (e) {var e = 2}; e', undefined)
 it('try { throw 1 } catch (e) {let e = 2}; e', ({ thrown }) => {
-  expect(thrown).toThrow(SyntaxError)
-  expect(thrown).toThrow("Identifier 'e' has already been declared")
+  expect(thrown).toThrow(new SyntaxError("Identifier 'e' has already been declared"))
 })
 it('(function() { try { return 1 } catch { 2 } })()', 1)
 it('(function() { try { return 1 } finally { return 2 } })()', 2)
@@ -31,6 +30,5 @@ it('try { throw new Error("err") } catch ({message}) {}; message', ({ thrown }) 
   expect(thrown).toThrow(new ReferenceError('message is not defined'))
 })
 it('try { throw new Error("err") } catch ({message}) {var message = 0}', ({ thrown }) => {
-  expect(thrown).toThrow(SyntaxError)
-  expect(thrown).toThrow("Identifier 'message' has already been declared")
+  expect(thrown).toThrow(new SyntaxError("Identifier 'message' has already been declared"))
 })

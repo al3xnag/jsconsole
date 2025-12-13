@@ -322,8 +322,7 @@ it(`
     }
     fn('a')
   `, ({ thrown }) => {
-  expect(thrown).toThrow(SyntaxError)
-  expect(thrown).toThrow('Binding arguments in strict mode')
+  expect(thrown).toThrow(new SyntaxError('Binding arguments in strict mode'))
 })
 
 it(`

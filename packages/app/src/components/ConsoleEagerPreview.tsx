@@ -123,15 +123,17 @@ export function ConsoleEagerPreview({ editor }: { editor: EditorView | undefined
     <div
       ref={elementRef}
       onClick={handleClick}
-      className="box-content h-5 overflow-hidden pr-2 pb-2 pl-8 font-mono text-ellipsis whitespace-nowrap opacity-40"
+      className="pr-2 pb-2 pl-8 font-mono text-ellipsis whitespace-nowrap opacity-40"
     >
-      {valueContext && value !== NO_VALUE && (
-        <ValueContextProvider value={valueContext}>
-          <span ref={previewWrapperRef}>
-            <ValuePreview key={actualInput} value={value} placement="top" />
-          </span>
-        </ValueContextProvider>
-      )}
+      <div className="h-5 overflow-hidden">
+        {valueContext && value !== NO_VALUE && (
+          <ValueContextProvider value={valueContext}>
+            <span ref={previewWrapperRef}>
+              <ValuePreview key={actualInput} value={value} placement="eager-preview" />
+            </span>
+          </ValueContextProvider>
+        )}
+      </div>
     </div>
   )
 }

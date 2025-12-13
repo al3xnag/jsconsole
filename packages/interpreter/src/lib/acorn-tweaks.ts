@@ -1,8 +1,13 @@
 import { Parser, getLineInfo } from 'acorn'
 
-type AcornSyntaxError = SyntaxError & {
+export type AcornSyntaxError = SyntaxError & {
   pos: number
-  loc: { line: number; column: number }
+  loc: {
+    /** 1-based */
+    line: number
+    /** 0-based */
+    column: number
+  }
   raisedAt: number
 }
 
@@ -20,3 +25,7 @@ ParserPrototype.raise = function (pos: number, message: string) {
 }
 
 ParserPrototype.raiseRecoverable = ParserPrototype.raise
+
+export function isAcornSyntaxError(error: unknown): error is AcornSyntaxError {
+  return error instanceof SyntaxError && 'raisedAt' in error
+}

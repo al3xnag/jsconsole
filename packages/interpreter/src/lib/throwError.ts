@@ -1,4 +1,5 @@
 import { CallStack, Context } from '../types'
+import { isAcornSyntaxError } from './acorn-tweaks'
 import { assertNever } from './assert'
 import { ErrorDefinition } from './errorDefinitions'
 import { Location, rewriteErrorStack } from './errorStack'
@@ -36,6 +37,15 @@ export function throwError(
 
   if (error instanceof RangeError && RangeError !== context.metadata.globals.RangeError) {
     Object.setPrototypeOf(error, context.metadata.globals.RangeError.prototype)
+  }
+
+  if (isAcornSyntaxError(error)) {
+    loc = {
+      file: context.name,
+      line: error.loc.line,
+      col: error.loc.column + 1,
+    }
+    error = new context.metadata.globals.SyntaxError(error.message)
   }
 
   if (error instanceof context.metadata.globals.Error) {

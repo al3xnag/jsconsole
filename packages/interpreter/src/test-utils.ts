@@ -126,9 +126,7 @@ export function it<T>(
     }
 
     if (result.error instanceof Object) {
-      const isAcornParseError = result.error instanceof SyntaxError && 'raisedAt' in result.error
-      const isInternalError = result.error instanceof InternalError
-      if (!isAcornParseError && !isInternalError) {
+      if (!(result.error instanceof InternalError)) {
         const error = new WrongValueRealmError(
           `It is not expected that the result error instance is of the topmost realm. Original error: ${inspect(result.error)}`,
         )

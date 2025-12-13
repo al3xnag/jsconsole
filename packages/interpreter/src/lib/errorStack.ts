@@ -1,7 +1,6 @@
 import { SourceLocation } from 'acorn'
 import { CallStack, CallStackLocation, Context } from '../types'
-import { findSetter } from './findSetter'
-import { getPropertyDescriptor } from './getPropertyDescriptor'
+import { getErrorMessageUnsafe, getErrorNameUnsafe, getErrorStackSetterUnsafe } from './error-utils'
 
 const errorsWithRewrittenStack = new WeakSet<Error>()
 
@@ -30,18 +29,10 @@ export function captureStackTrace(
   flag?: 'unsafe',
 ) {
   if (flag === 'unsafe') {
-    const errorStackSetter = findSetter(obj, 'stack')
-    if (
-      typeof errorStackSetter === 'function' &&
-      errorStackSetter === context.metadata.globals.ErrorStackSetter
-    ) {
-      const messageDescriptor = Object.getOwnPropertyDescriptor(obj, 'message')
-      const message = typeof messageDescriptor?.value === 'string' ? messageDescriptor.value : ''
-      const nameDescriptor = getPropertyDescriptor(obj, 'name')
-      const name =
-        typeof nameDescriptor?.value === 'string' && nameDescriptor.value !== ''
-          ? nameDescriptor.value
-          : obj.constructor.name
+    const errorStackSetter = getErrorStackSetterUnsafe(obj, context.metadata)
+    if (errorStackSetter) {
+      const name = getErrorNameUnsafe(obj)
+      const message = getErrorMessageUnsafe(obj)
       const stackString = makeErrorStackString(name, message, loc, callStack, context)
       Reflect.apply(errorStackSetter, obj, [stackString])
     }

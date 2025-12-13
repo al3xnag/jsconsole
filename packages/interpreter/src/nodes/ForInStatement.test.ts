@@ -53,12 +53,12 @@ describe('scope', () => {
   it('let i; for (let i in []) {}', undefined)
   it('const i = 1; for (const i in []) {}', undefined)
   it('var i; for (var i in []) {}', undefined)
-  it('let i; for (var i in []) {}', ({ thrown }) => {
-    expect(thrown).toThrow(SyntaxError)
+  it('let i; for (var i in []) {}', ({ thrown, globalObject }) => {
+    expect(thrown).toThrow(globalObject.SyntaxError)
     expect(thrown).toThrow("Identifier 'i' has already been declared")
   })
-  it('const i = 1; for (var i in []) {}', ({ thrown }) => {
-    expect(thrown).toThrow(SyntaxError)
+  it('const i = 1; for (var i in []) {}', ({ thrown, globalObject }) => {
+    expect(thrown).toThrow(globalObject.SyntaxError)
     expect(thrown).toThrow("Identifier 'i' has already been declared")
   })
   it(

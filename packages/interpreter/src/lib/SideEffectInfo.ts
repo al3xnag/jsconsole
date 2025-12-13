@@ -290,6 +290,9 @@ function getDefaultFunctions(global: typeof globalThis): [Function, SideEffectFl
     [global.Function.prototype.bind, SIDE_EFFECT_FREE],
     [global.Function.prototype.toString, SIDE_EFFECT_FREE],
     [global.Function.prototype[Symbol.hasInstance], SIDE_EFFECT_FREE],
+
+    // Error
+    [findGetter(global.Error(), 'stack'), SIDE_EFFECT_FREE],
   ]
 
   if ('window' in global && global === global.window) {

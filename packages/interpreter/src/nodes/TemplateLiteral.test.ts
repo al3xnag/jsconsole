@@ -14,8 +14,7 @@ it('`1${{}}`', '1[object Object]')
 it('`1${[]}`', '1')
 it('`${1}${2}${3}`', '123')
 it('`\\9`', ({ thrown }) => {
-  expect(thrown).toThrow(SyntaxError)
-  expect(thrown).toThrow('Bad escape sequence in untagged template literal')
+  expect(thrown).toThrow(new SyntaxError('Bad escape sequence in untagged template literal'))
 })
 it('`42${x = 123}`', ExpectToThrowPossibleSideEffectError, { throwOnSideEffect: true })
 

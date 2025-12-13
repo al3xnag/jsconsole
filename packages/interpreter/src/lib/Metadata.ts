@@ -4,6 +4,7 @@ import {
   FunctionCallInternal,
   PrivateElementMap,
 } from '../types'
+import { findGetter } from './findGetter'
 import { findSetter } from './findSetter'
 import { InternalError } from './InternalError'
 
@@ -71,6 +72,7 @@ export type MetadataGlobals = {
   FunctionPrototypeApply: FunctionConstructor['prototype']['apply']
   FunctionPrototypeBind: FunctionConstructor['prototype']['bind']
   Error: ErrorConstructor
+  ErrorStackGetter: (this: Error) => string
   ErrorStackSetter: (this: Error, stack: string) => void
   ErrorCaptureStackTrace: ErrorConstructor['captureStackTrace']
   SyntaxError: SyntaxErrorConstructor
@@ -91,6 +93,10 @@ export type MetadataGlobals = {
   Proxy: ProxyConstructor
 }
 
+export type Source = {
+  content: string
+}
+
 export class Metadata {
   functions: WeakMap<Function, FunctionMetadata> = new WeakMap()
   promises: WeakMap<Promise<unknown>, PromiseMetadata> = new WeakMap()
@@ -99,6 +105,7 @@ export class Metadata {
   proxies: WeakMap<object, ProxyMetadata> = new WeakMap()
   privateElements: WeakMap<object, PrivateElementMap> = new WeakMap()
   globals: MetadataGlobals = Object.create(null)
+  sources: Map<string, Source> = new Map()
 
   constructor(global: typeof globalThis) {
     this.globals.String = global.String
@@ -119,7 +126,9 @@ export class Metadata {
     this.globals.FunctionPrototypeApply = global.Function.prototype.apply
     this.globals.FunctionPrototypeBind = global.Function.prototype.bind
     this.globals.Error = global.Error
-    this.globals.ErrorStackSetter = findSetter(global.Error(), 'stack')!
+    const dummyError = global.Error()
+    this.globals.ErrorStackGetter = findGetter(dummyError, 'stack')!
+    this.globals.ErrorStackSetter = findSetter(dummyError, 'stack')!
     this.globals.ErrorCaptureStackTrace = global.Error.captureStackTrace
     this.globals.SyntaxError = global.SyntaxError
     this.globals.RangeError = global.RangeError
