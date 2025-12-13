@@ -81,6 +81,13 @@ const REVIVED_WEAK_MAP = Symbol('RevivedWeakMap')
 const REVIVED_WEAK_SET = Symbol('RevivedWeakSet')
 const REVIVED_WEAK_REF = Symbol('RevivedWeakRef')
 
+addEventListener('unhandledrejection', (event: PromiseRejectionEvent) => {
+  if (revivedRefs.has(event.promise)) {
+    // Prevent outputting the error to the console
+    event.preventDefault()
+  }
+})
+
 export function toRevived(value: MarshalledValue, context: ValueContext): RevivedValue {
   if (value === null) {
     return value
