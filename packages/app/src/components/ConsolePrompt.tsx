@@ -71,7 +71,7 @@ export function ConsolePrompt({ ref, onSubmit, onUpdate }: ConsolePromptProps) {
     }
 
     const evaluateOptions: EvaluateOptions = {
-      contextName: `vm:///anonymous`,
+      contextName: `<anonymous>`,
       globalObject: currentSession.previewWindow,
       globalScope: currentSession.globalScope,
       metadata: currentSession.metadata,

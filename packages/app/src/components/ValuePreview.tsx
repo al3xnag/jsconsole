@@ -331,7 +331,7 @@ function StackFrame({
     <span>
       {'\n    at'}
       {frame.function && ` ${frame.function}`}
-      {fileNameWithLoc && (frame.function ? ` (` : ' ')}
+      {frame.function ? ` (` : ' '}
       {linkHref ? (
         <a href={linkHref} target="_blank" className="underline">
           {fileNameWithLoc}
@@ -339,24 +339,27 @@ function StackFrame({
       ) : (
         fileNameWithLoc
       )}
-      {fileNameWithLoc && (frame.function ? `)` : '')}
+      {frame.function ? `)` : ''}
     </span>
   )
 }
 
-function getStackFrameFileNameWithLoc(frame: StackFrameLite): string | undefined {
-  // eslint-disable-next-line prefer-const
-  let { file, line, col } = frame
+function getStackFrameFileNameWithLoc(frame: StackFrameLite): string {
+  const { line, col } = frame
+
+  // NOTE: parseStack('Error\n    at <anonymous>:1:1') returns `file: undefined`,
+  // but parseStack('Error\n    at <anonymous2>:1:1') returns `file: '<anonymous2>'`
+  let file = frame.file ?? '<anonymous>'
 
   if (file === '(native)') {
     return 'native'
   }
 
-  if (file?.startsWith('vm:///')) {
+  if (file.startsWith('vm:///')) {
     file = file.slice('vm:///'.length)
   }
 
-  return file != null && line != null ? `${file}:${line}${col != null ? `:${col}` : ''}` : file
+  return line != null ? `${file}:${line}${col != null ? `:${col}` : ''}` : file
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
