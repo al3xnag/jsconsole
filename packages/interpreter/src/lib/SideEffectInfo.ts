@@ -17,6 +17,7 @@ export const SIDE_EFFECT_CALL_CHECK_ARG0_TO_PRIMITIVE = 1 << 12
 export const SIDE_EFFECT_CALL_CHECK_ARG0_ARRAY_CALLBACK = 1 << 13
 export const SIDE_EFFECT_CONSTRUCT_CHECK_ARG0_TO_NUMERIC = 1 << 14
 export const SIDE_EFFECT_CONSTRUCT_CHECK_ALL_ARGS_TO_NUMBER = 1 << 15
+export const SIDE_EFFECT_CONSTRUCT_CHECK_ARG0_TO_STRING = 1 << 16
 
 export type SideEffectFlags = number
 
@@ -291,7 +292,51 @@ function getDefaultFunctions(global: typeof globalThis): [Function, SideEffectFl
     [global.Function.prototype.toString, SIDE_EFFECT_FREE],
     [global.Function.prototype[Symbol.hasInstance], SIDE_EFFECT_FREE],
 
-    // Error
+    // Error (https://tc39.es/ecma262/#sec-error-objects)
+    // https://tc39.es/ecma262/#sec-native-error-types-used-in-this-standard
+    // https://tc39.es/ecma262/#sec-nativeerror
+    [
+      global.Error,
+      SIDE_EFFECT_FREE |
+        SIDE_EFFECT_CALL_CHECK_ARG0_TO_STRING |
+        SIDE_EFFECT_CONSTRUCT_CHECK_ARG0_TO_STRING,
+    ],
+    [
+      global.EvalError,
+      SIDE_EFFECT_FREE |
+        SIDE_EFFECT_CALL_CHECK_ARG0_TO_STRING |
+        SIDE_EFFECT_CONSTRUCT_CHECK_ARG0_TO_STRING,
+    ],
+    [
+      global.RangeError,
+      SIDE_EFFECT_FREE |
+        SIDE_EFFECT_CALL_CHECK_ARG0_TO_STRING |
+        SIDE_EFFECT_CONSTRUCT_CHECK_ARG0_TO_STRING,
+    ],
+    [
+      global.ReferenceError,
+      SIDE_EFFECT_FREE |
+        SIDE_EFFECT_CALL_CHECK_ARG0_TO_STRING |
+        SIDE_EFFECT_CONSTRUCT_CHECK_ARG0_TO_STRING,
+    ],
+    [
+      global.SyntaxError,
+      SIDE_EFFECT_FREE |
+        SIDE_EFFECT_CALL_CHECK_ARG0_TO_STRING |
+        SIDE_EFFECT_CONSTRUCT_CHECK_ARG0_TO_STRING,
+    ],
+    [
+      global.TypeError,
+      SIDE_EFFECT_FREE |
+        SIDE_EFFECT_CALL_CHECK_ARG0_TO_STRING |
+        SIDE_EFFECT_CONSTRUCT_CHECK_ARG0_TO_STRING,
+    ],
+    [
+      global.URIError,
+      SIDE_EFFECT_FREE |
+        SIDE_EFFECT_CALL_CHECK_ARG0_TO_STRING |
+        SIDE_EFFECT_CONSTRUCT_CHECK_ARG0_TO_STRING,
+    ],
     [findGetter(global.Error(), 'stack'), SIDE_EFFECT_FREE],
   ]
 
