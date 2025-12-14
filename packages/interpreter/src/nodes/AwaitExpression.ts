@@ -16,6 +16,12 @@ export function* evaluateAwaitExpression(
   }
 
   const { value } = yield* evaluateNode(node.argument, scope, callStack, context)
+
+  const promiseMetadata = context.metadata.promises.get(value)
+  if (promiseMetadata) {
+    promiseMetadata.handled = true
+  }
+
   const evaluated: EvaluatedNode = {
     type: TYPE_AWAIT,
     value,
