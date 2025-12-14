@@ -17,6 +17,8 @@ import { ComponentProps, useCallback, useState } from 'react'
 import { ErrorBoundary } from './ErrorBoundary'
 import { HighlightCode } from './HighlightCode'
 import { ChevronLeftFromDot } from './icons/ChevronLeftFromDot'
+import { ErrorFilledIcon } from './icons/ErrorFilledIcon'
+import { WarningFilledIcon } from './icons/WarningFilledIcon'
 import { Button } from './ui/button'
 import {
   ContextMenu,
@@ -126,7 +128,13 @@ function ResultEntry({ entry, showTimestamps }: EntryProps<ConsoleEntryResult>) 
   return (
     <div className="flex items-start whitespace-pre-wrap">
       {showTimestamps && <TimestampPad value={entry.timestamp} className="mx-2" />}
-      <ChevronLeftFromDot className="mr-1 h-5 w-4 shrink-0 text-gray-400/50" />
+      {entry.severity === 'error' ? (
+        <ErrorFilledIcon className="mr-1 h-5 w-4 shrink-0 text-rose-500 dark:text-rose-400" />
+      ) : entry.severity === 'warning' ? (
+        <WarningFilledIcon className="mr-1 h-5 w-4 shrink-0 text-yellow-600 dark:text-yellow-500" />
+      ) : (
+        <ChevronLeftFromDot className="mr-1 h-5 w-4 shrink-0 text-gray-400/50" />
+      )}
       <ResultEntryValue entry={entry} />
     </div>
   )
@@ -155,7 +163,14 @@ function UserAgentEntry({ entry, showTimestamps }: EntryProps<ConsoleEntryUserAg
   return (
     <div className="flex items-start">
       {showTimestamps && <TimestampPad value={entry.timestamp} className="mx-2" />}
-      <span className="ml-5 whitespace-pre-wrap">
+      {entry.severity === 'error' ? (
+        <ErrorFilledIcon className="mr-1 h-5 w-4 shrink-0 text-rose-500 dark:text-rose-400" />
+      ) : entry.severity === 'warning' ? (
+        <WarningFilledIcon className="mr-1 h-5 w-4 shrink-0 text-yellow-600 dark:text-yellow-500" />
+      ) : (
+        <div className="mr-1 h-5 w-4 shrink-0" />
+      )}
+      <span className="whitespace-pre-wrap">
         {entry.output
           .filter((value) => value !== SPECIAL_RESULTS.HIDDEN)
           .map((value, index) => (

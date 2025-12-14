@@ -152,13 +152,13 @@ function LazyExpandable({
 
   return (
     <div className="-ml-2 group-[ol]/list:-ml-5">
-      <span className="hover:bg-muted flex items-start">
+      <span className="group/expander flex items-start">
         <button id={btnId} onClick={toggle} aria-expanded={expanded} aria-controls={contentId}>
           <svg
             width="20"
             height="20"
             viewBox="0 0 15 15"
-            className={`transition-transform ${expanded ? 'rotate-90' : ''}`}
+            className={`transition-transform ${expanded ? 'rotate-90' : ''} group-hover/expander:text-accent-foreground`}
           >
             <path d="M6 11L6 4L10.5 7.5L6 11Z" fill="currentColor"></path>
           </svg>
