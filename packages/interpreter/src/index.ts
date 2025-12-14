@@ -68,6 +68,7 @@ export function evaluate(
     globalScope,
     metadata,
     sideEffectInfo,
+    onUnhandledRejection: options?.onUnhandledRejection,
     debug: options?.debug,
   }
 

@@ -87,6 +87,7 @@ export function saveStore(store: Store): void {
                       sideEffectInfo: session.sideEffectInfo,
                     }),
                   ),
+                  exception: entry.exception,
                 }
               } else if (entry.type === 'user-agent') {
                 return {
@@ -103,6 +104,7 @@ export function saveStore(store: Store): void {
                       }),
                     ),
                   ),
+                  exception: entry.exception,
                 }
               } else if (entry.type === 'system') {
                 return {

@@ -6,7 +6,7 @@ import { getDisplayObjectProperties } from '@/lib/getDisplayObjectProperties'
 import { isRevived } from '@/lib/revived'
 import { SYNTHETIC_PROPERTY_KEY_ENTRIES, SYNTHETIC_PROPERTY_KEY_PROTOTYPE } from '@/lib/synthetic'
 import { cn } from '@/lib/utils'
-import { Property } from '@/types'
+import { ExceptionKind, Property } from '@/types'
 import { SideEffectInfo } from '@jsconsole/interpreter'
 import { HistoryIcon, InfoIcon } from 'lucide-react'
 import { useId, useMemo, useState } from 'react'
@@ -14,9 +14,10 @@ import { useId, useMemo, useState } from 'react'
 type ValueTreeViewProps = {
   value: unknown
   renderStringAsPlainText?: boolean
+  exception?: ExceptionKind
 }
 
-export function ValueTreeView({ value, renderStringAsPlainText }: ValueTreeViewProps) {
+export function ValueTreeView({ value, renderStringAsPlainText, exception }: ValueTreeViewProps) {
   const isRevivedValue = isRevived(value)
   const isExpandable = isValueExpandable(value)
 
@@ -30,6 +31,7 @@ export function ValueTreeView({ value, renderStringAsPlainText }: ValueTreeViewP
               value={value}
               placement="top"
               renderStringAsPlainText={renderStringAsPlainText}
+              exception={exception}
             />
             {isRevivedValue && (
               <span

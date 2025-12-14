@@ -26,6 +26,7 @@ export function hookCallAfter(
   weakSetPrototypeDeleteHookHandler(resolvedFn, resolvedFnThis, resolvedFnArgs, context)
   errorHookHandler(resolvedFn, result, node, callStack, context)
   errorCaptureStackTraceHookHandler(resolvedFn, resolvedFnArgs, node, callStack, context)
+  promiseHandledHookHandler(resolvedFn, resolvedFnThis, context)
 
   return resultRef.value
 }
@@ -230,4 +231,23 @@ function errorCaptureStackTraceHookHandler(
   }
 
   captureStackTrace(object, loc!, callStack, context, 'unsafe')
+}
+
+// promise.then/catch/finally(...)
+function promiseHandledHookHandler(
+  fn: Function /* then, catch, finally */,
+  fnThis: unknown /* promise */,
+  context: Context,
+) {
+  if (
+    (fn === context.metadata.globals.PromiseThen ||
+      fn === context.metadata.globals.PromiseCatch ||
+      fn === context.metadata.globals.PromiseFinally) &&
+    fnThis instanceof context.metadata.globals.Promise
+  ) {
+    const metadata = context.metadata.promises.get(fnThis)
+    if (metadata) {
+      metadata.handled = true
+    }
+  }
 }

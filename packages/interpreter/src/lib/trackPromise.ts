@@ -15,7 +15,13 @@ export function trackPromise(promise: Promise<unknown>, context: Context) {
     then.call(
       promise,
       (result) => promises.set(promise, { state: 'fulfilled', result }),
-      (result) => promises.set(promise, { state: 'rejected', result }),
+      (reason) => {
+        const handled = promises.get(promise)?.handled
+        promises.set(promise, { state: 'rejected', result: reason, handled })
+        if (!handled) {
+          context.onUnhandledRejection?.(reason, promise)
+        }
+      },
     )
 
     promises.set(promise, { state: 'pending', result: undefined })

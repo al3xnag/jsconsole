@@ -1,4 +1,4 @@
-import { ConsoleEntryInput, ConsoleEntryResult, ConsoleSession } from '@/types'
+import { ConsoleEntryInput, ConsoleEntryResult, ConsoleSession, PreviewWindow } from '@/types'
 import type { EvaluateOptions, EvaluateResult } from '@jsconsole/interpreter'
 import { evaluate } from '@jsconsole/interpreter'
 import { nextId } from './nextId'
@@ -23,6 +23,7 @@ export function evaluateEntry(
     throwOnSideEffect: false,
     wrapObjectLiteral: true,
     stripTypes: true,
+    onUnhandledRejection: onUnhandledRejection.bind(session.previewWindow),
     debug: console.debug,
   }
 
@@ -31,12 +32,13 @@ export function evaluateEntry(
   try {
     result = evaluate(inputEntry.value, options)
   } catch (error) {
-    console.error(error)
+    console.error('Uncaught', error)
 
     return {
       type: 'result',
       id,
       severity: 'error',
+      exception: 'unhandled',
       value: error,
       timestamp: Date.now(),
       inputId: inputEntry.id,
@@ -59,6 +61,7 @@ export function evaluateEntry(
           type: 'result',
           id,
           severity: 'error',
+          exception: 'unhandled',
           value: error,
           timestamp: Date.now(),
           inputId: inputEntry.id,
@@ -73,5 +76,19 @@ export function evaluateEntry(
       timestamp: Date.now(),
       inputId: inputEntry.id,
     }
+  }
+}
+
+function onUnhandledRejection(this: PreviewWindow, reason: unknown, promise: Promise<unknown>) {
+  const event = new PromiseRejectionEvent('unhandledrejection', {
+    promise,
+    reason,
+    cancelable: true,
+  })
+
+  this.dispatchEvent(event)
+
+  if (!event.defaultPrevented) {
+    console.error('Uncaught (in promise)', reason)
   }
 }

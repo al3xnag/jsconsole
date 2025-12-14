@@ -7,6 +7,8 @@ export type JSONObject = { [key: string]: JSONValue }
 
 export type ConsoleEntryId = number
 
+export type ExceptionKind = 'unhandled' | 'unhandled-rejection'
+
 export interface ConsoleEntryBase {
   id: ConsoleEntryId
   timestamp: number
@@ -24,11 +26,13 @@ export interface ConsoleEntryResult extends ConsoleEntryBase {
   type: 'result'
   value: unknown
   inputId?: ConsoleEntryId
+  exception?: ExceptionKind
 }
 
 export interface ConsoleEntryUserAgent extends ConsoleEntryBase {
   type: 'user-agent'
   output: unknown[]
+  exception?: ExceptionKind
 }
 
 export interface ConsoleEntrySystem extends ConsoleEntryBase {

@@ -26,11 +26,13 @@ import { parseStack, type StackFrameLite } from 'error-stack-parser-es/lite'
 import { memo, useContext, useEffect, useInsertionEffect, useMemo, useState } from 'react'
 import { ErrorBoundary } from './ErrorBoundary'
 import { Metadata } from '@jsconsole/interpreter'
+import { ExceptionKind } from '@/types'
 
 export type ValuePreviewProps<T = unknown> = {
   value: T
   placement: 'top' | 'eager-preview' | 'item' | 'inner'
   renderStringAsPlainText?: boolean
+  exception?: ExceptionKind
 }
 
 type ValuePreviewPropsWithContext<T = unknown> = ValuePreviewProps<T> & { context: ValueContext }
@@ -39,6 +41,8 @@ export const ValuePreview = memo(function ValuePreview(props: ValuePreviewProps)
   return (
     <span>
       <ErrorBoundary fallback={<p>Something went wrong</p>}>
+        {props.exception === 'unhandled' && <span>Uncaught&nbsp;</span>}
+        {props.exception === 'unhandled-rejection' && <span>Uncaught&nbsp;(in promise)&nbsp;</span>}
         <RenderUnknown {...props} />
       </ErrorBoundary>
     </span>

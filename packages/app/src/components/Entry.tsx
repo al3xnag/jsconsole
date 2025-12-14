@@ -139,14 +139,13 @@ function ResultEntryValue({ entry }: Pick<EntryProps<ConsoleEntryResult>, 'entry
 
   return (
     <span>
-      {entry.severity === 'error' && <span>Uncaught&nbsp;</span>}
       <ErrorBoundary
         fallback={<span>⚠️</span>}
         onError={() => {
           console.warn('Error rendering value', entry.value)
         }}
       >
-        <ValueTreeView value={entry.value} />
+        <ValueTreeView value={entry.value} exception={entry.exception} />
       </ErrorBoundary>
     </span>
   )
@@ -168,7 +167,7 @@ function UserAgentEntry({ entry, showTimestamps }: EntryProps<ConsoleEntryUserAg
                   console.warn('Error rendering value', value)
                 }}
               >
-                <ValueTreeView value={value} renderStringAsPlainText />
+                <ValueTreeView value={value} renderStringAsPlainText exception={entry.exception} />
               </ErrorBoundary>
             </span>
           ))}

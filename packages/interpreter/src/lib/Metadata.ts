@@ -38,6 +38,7 @@ export type FunctionMetadata = {
 export type PromiseMetadata = {
   state: 'pending' | 'fulfilled' | 'rejected'
   result: unknown
+  handled?: boolean
 }
 
 export type WeakMapMetadata = {
@@ -82,6 +83,9 @@ export type MetadataGlobals = {
   EvalError: EvalErrorConstructor
   URIError: URIErrorConstructor
   Promise: PromiseConstructor
+  PromiseThen: PromiseConstructor['prototype']['then']
+  PromiseCatch: PromiseConstructor['prototype']['catch']
+  PromiseFinally: PromiseConstructor['prototype']['finally']
   WeakMap: WeakMapConstructor
   WeakSet: WeakSetConstructor
   WeakRef: WeakRefConstructor
@@ -136,6 +140,9 @@ export class Metadata {
     this.globals.EvalError = global.EvalError
     this.globals.URIError = global.URIError
     this.globals.Promise = global.Promise
+    this.globals.PromiseThen = global.Promise.prototype.then
+    this.globals.PromiseCatch = global.Promise.prototype.catch
+    this.globals.PromiseFinally = global.Promise.prototype.finally
     this.globals.WeakMap = global.WeakMap
     this.globals.WeakSet = global.WeakSet
     this.globals.WeakRef = global.WeakRef

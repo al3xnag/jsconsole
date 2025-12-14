@@ -129,8 +129,9 @@ export function Preview({ ref }: PreviewProps) {
               id: nextId(),
               timestamp: Date.now(),
               type: 'user-agent',
-              output: ['Uncaught', e.error],
+              output: [e.error],
               severity: 'error',
+              exception: 'unhandled',
             },
           },
         })
@@ -144,8 +145,9 @@ export function Preview({ ref }: PreviewProps) {
               id: nextId(),
               timestamp: Date.now(),
               type: 'user-agent',
-              output: ['Uncaught (in promise)', e.reason],
+              output: [e.reason],
               severity: 'error',
+              exception: 'unhandled-rejection',
             },
           },
         })

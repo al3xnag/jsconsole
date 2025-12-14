@@ -38,6 +38,7 @@ export type EvaluateOptions = {
   throwOnSideEffect?: boolean
   sideEffectInfo?: SideEffectInfo
   timeout?: number
+  onUnhandledRejection?: (reason: unknown, promise: Promise<unknown>) => void
   debug?: (...args: unknown[]) => void
 }
 
@@ -104,6 +105,7 @@ export type Context = {
   globalScope: GlobalScope
   metadata: Metadata
   sideEffectInfo: SideEffectInfo
+  onUnhandledRejection?: (reason: unknown, promise: Promise<unknown>) => void
   debug?: (...args: unknown[]) => void
 }
 
